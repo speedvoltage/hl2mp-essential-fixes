@@ -1795,8 +1795,8 @@ void CWeaponRPG::CreateLaserPointer( void )
 	
 	if ( pOwner == NULL )
 		return;
-
-	if ( pOwner->GetAmmoCount(m_iPrimaryAmmoType) <= 0 )
+	//3RD ROCKET FIX
+	if ( pOwner->GetAmmoCount(m_iPrimaryAmmoType) < 0 )
 		return;
 
 	m_hLaserDot = CLaserDot::Create( GetAbsOrigin(), GetOwner() );

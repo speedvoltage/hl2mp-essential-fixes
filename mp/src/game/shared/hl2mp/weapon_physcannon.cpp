@@ -1957,7 +1957,8 @@ void CWeaponPhysCannon::SecondaryAttack( void )
 			break;
 
 		case OBJECT_NOT_FOUND:
-			m_flNextSecondaryAttack = gpGlobals->curtime + 0.1f;
+			//POLL EVERY TICK INSTEAD 100 ms
+			m_flNextSecondaryAttack = gpGlobals->curtime + TICK_INTERVAL;
 			CloseElements();
 			break;
 
@@ -2168,7 +2169,8 @@ CWeaponPhysCannon::FindObjectResult_t CWeaponPhysCannon::FindObject( void )
 	// If we're too far, simply start to pull the object towards us
 	Vector	pullDir = start - pEntity->WorldSpaceCenter();
 	VectorNormalize( pullDir );
-	pullDir *= physcannon_pullforce.GetFloat();
+	//INCREASED PHYSCANNON POLLING
+	pullDir *= physcannon_pullforce.GetFloat()*TICK_INTERVAL*10.0f;
 	
 	float mass = PhysGetEntityMass( pEntity );
 	if ( mass < 50.0f )

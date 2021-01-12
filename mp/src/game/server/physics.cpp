@@ -243,7 +243,7 @@ void CPhysicsHook::LevelInitPreEntity()
 
 	physenv->SetObjectEventHandler( &g_Collisions );
 	
-	physenv->SetSimulationTimestep( DEFAULT_TICK_INTERVAL ); // 15 ms per tick
+	physenv->SetSimulationTimestep( TICK_INTERVAL ); // 15 ms per tick
 	// HL Game gravity, not real-world gravity
 	physenv->SetGravity( Vector( 0, 0, -GetCurrentGravity() ) );
 	g_PhysAverageSimTime = 0;
@@ -1606,7 +1606,7 @@ CON_COMMAND( physics_budget, "Times the cost of each active object" )
 		float totalTime = 0.f;
 		g_Collisions.BufferTouchEvents( true );
 		float full = engine->Time();
-		physenv->Simulate( DEFAULT_TICK_INTERVAL );
+		physenv->Simulate( TICK_INTERVAL );
 		full = engine->Time() - full;
 		float lastTime = full;
 
@@ -1623,7 +1623,7 @@ CON_COMMAND( physics_budget, "Times the cost of each active object" )
 				PhysForceEntityToSleep( ents[j], ents[j]->VPhysicsGetObject() );
 			}
 			float start = engine->Time();
-			physenv->Simulate( DEFAULT_TICK_INTERVAL );
+			physenv->Simulate( TICK_INTERVAL );
 			float end = engine->Time();
 
 			float elapsed = end - start;
