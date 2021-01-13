@@ -110,3 +110,6 @@ config.cfg
 /mp/src/mathlib/mathlib.vpc.sentinel
 /mp/src/tier1/Debug/vc120.pdb
 /mp/src/tier1/tier1.vpc.sentinel
+/mp/src/game/server/Debug_mod_hl2mp/server_hl2mp.vcxproj.FileListAbsolute.txt
+/mp/src/mathlib/Debug/mathlib.vcxproj.FileListAbsolute.txt
+/mp/src/tier1/Debug/tier1.vcxproj.FileListAbsolute.txt
