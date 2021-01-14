@@ -227,6 +227,14 @@ bool CHL2GameMovement::ContinueForcedMove()
 	Assert( lm );
 	Assert( lm->m_bForceLadderMove );
 
+	if (player->pl.deadflag && lm->m_hForceLadder.Get())
+	{
+		SetLadder(NULL);
+		lm->m_bForceLadderMove = false;
+		lm->m_hForceLadder = NULL;
+		return false;
+	}
+
 	// Suppress regular motion
 	mv->m_flForwardMove = 0.0f;
 	mv->m_flSideMove = 0.0f;
@@ -883,7 +891,6 @@ bool CHL2GameMovement::CheckLadderAutoMount( CFuncLadder *ladder, const Vector& 
 //-----------------------------------------------------------------------------
 bool CHL2GameMovement::LadderMove( void )
 {
-
 	if ( player->GetMoveType() == MOVETYPE_NOCLIP )
 	{
 		SetLadder( NULL );

@@ -4611,11 +4611,11 @@ void CGameMovement::PlayerMove( void )
 	Duck();
 
 	// Don't run ladder code if dead on on a train
-	if ( !player->pl.deadflag && !(player->GetFlags() & FL_ONTRAIN) )
+	if ( !(player->GetFlags() & FL_ONTRAIN) )
 	{
 		// If was not on a ladder now, but was on one before, 
 		//  get off of the ladder
-		
+
 		// TODO: this causes lots of weirdness.
 		//bool bCheckLadder = CheckInterval( LADDER );
 		//if ( bCheckLadder || player->GetMoveType() == MOVETYPE_LADDER )

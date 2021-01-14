@@ -122,6 +122,11 @@ CHL2MP_Player::~CHL2MP_Player( void )
 
 void CHL2MP_Player::UpdateOnRemove( void )
 {
+	if (auto p = GetLadderMove())
+	{
+		UTIL_Remove((CBaseEntity*)(p->m_hReservedSpot.Get()));
+		p->m_hReservedSpot = NULL;
+	}
 	if ( m_hRagdoll )
 	{
 		UTIL_RemoveImmediate( m_hRagdoll );
