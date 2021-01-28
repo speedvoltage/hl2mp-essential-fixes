@@ -62,7 +62,7 @@ public:
 
 	virtual int OnTakeDamage( const CTakeDamageInfo &info );
 	void Event_Killed( const CTakeDamageInfo &info );
-	void Break( CBaseEntity *pBreaker, const CTakeDamageInfo &info );
+	virtual void Break( CBaseEntity *pBreaker, const CTakeDamageInfo &info );
 	void BreakThink( void );
 	void AnimateThink( void );
 
@@ -346,6 +346,8 @@ public:
 
 	virtual void VPhysicsUpdate( IPhysicsObject *pPhysics );
 	virtual void VPhysicsCollision( int index, gamevcollisionevent_t *pEvent );
+
+	void Break(CBaseEntity* pBreaker, const CTakeDamageInfo& info)override;
 
 	void InputWake( inputdata_t &inputdata );
 	void InputSleep( inputdata_t &inputdata );

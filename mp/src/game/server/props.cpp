@@ -2661,6 +2661,16 @@ void CPhysicsProp::InputWake( inputdata_t &inputdata )
 		pPhysicsObject->Wake();
 	}
 }
+//Fix:barrel explodes on respawn after being destroyed by bullets
+void CPhysicsProp::Break(CBaseEntity* pBreaker, const CTakeDamageInfo& info)
+{
+	m_bFirstCollisionAfterLaunch = false;
+
+	// Setup the think function to remove the flags
+	RegisterThinkContext("PROP_CLEARFLAGS");
+	SetContextThink(&CPhysicsProp::ClearFlagsThink, gpGlobals->curtime, "PROP_CLEARFLAGS");
+	CBreakableProp::Break(pBreaker, info);
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: Input handler to stop the physics prop simulating.
