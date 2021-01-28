@@ -114,3 +114,4 @@ config.cfg
 /mp/src/mathlib/Debug/mathlib.vcxproj.FileListAbsolute.txt
 /mp/src/tier1/Debug/tier1.vcxproj.FileListAbsolute.txt
 /mp/src/game/server/Debug_mod_hl2mp/gamerules.new.obj.enc
+/mp/src/game/server/Debug_mod_hl2mp/weapon_physcannon.obj.enc
