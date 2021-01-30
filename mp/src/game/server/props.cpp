@@ -2756,6 +2756,11 @@ void CPhysicsProp::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t r
 			SetCollisionGroup( COLLISION_GROUP_INTERACTIVE_DEBRIS );
 		}
 	}
+	if ( pPhysicsObject && ( pPhysicsObject->GetGameFlags() & FVPHYSICS_WAS_THROWN ) )
+	{
+		PhysClearGameFlags( pPhysicsObject, FVPHYSICS_WAS_THROWN );
+		m_bFirstCollisionAfterLaunch = false;
+	}
 
 	m_OnPhysGunPickup.FireOutput( pPhysGunUser, this );
 
