@@ -140,6 +140,8 @@ public:
 		
 private:
 
+	void LadderRespawnFix();
+
 	CNetworkQAngle( m_angEyeAngles );
 	CPlayerAnimState   m_PlayerAnimState;
 
