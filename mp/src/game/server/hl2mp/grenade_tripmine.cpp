@@ -92,6 +92,8 @@ void CTripmineGrenade::Spawn( void )
 	m_vecEnd = GetAbsOrigin() + m_vecDir * 2048;
 
 	AddEffects( EF_NOSHADOW );
+
+	m_pAttachedObject = nullptr;
 }
 
 
@@ -182,6 +184,14 @@ void CTripmineGrenade::MakeBeam( void )
 	m_pBeam->SetEndAttachment( beamAttach );
 }
 
+void CTripmineGrenade::AttachToEntity(const CBaseEntity* entity )
+{
+	Assert(m_pAttachedObject == NULL);
+	m_pAttachedObject = entity;
+	m_vecOldPosAttachedObject = entity->GetAbsOrigin();
+	m_vecOldAngAttachedObject = entity->GetAbsAngles();
+}
+
 
 void CTripmineGrenade::BeamBreakThink( void  )
 {
@@ -225,7 +235,15 @@ void CTripmineGrenade::BeamBreakThink( void  )
 		return;
 	}
 
-	SetNextThink( gpGlobals->curtime + 0.05f );
+	if (m_pAttachedObject &&
+		(!VectorsAreEqual(m_vecOldPosAttachedObject, m_pAttachedObject->GetAbsOrigin(), 1.0f)
+			|| !QAnglesAreEqual(m_vecOldAngAttachedObject, m_pAttachedObject->GetAbsAngles(), 1.0f)))
+	{
+		SetHealth(0);
+		Event_Killed(CTakeDamageInfo((CBaseEntity*)m_hOwner, this, 100, GIB_NORMAL));
+		return;
+	}
+	SetNextThink(gpGlobals->curtime + 0.05f);
 }
 
 #if 0 // FIXME: OnTakeDamage_Alive() is no longer called now that base grenade derives from CBaseAnimating

@@ -375,6 +375,7 @@ void CWeapon_SLAM::TripmineAttach( void )
 			CBaseEntity *pEnt = CBaseEntity::Create( "npc_tripmine", tr.endpos + tr.plane.normal * 3, angles, NULL );
 
 			CTripmineGrenade *pMine = (CTripmineGrenade *)pEnt;
+			pMine->AttachToEntity(pEntity);
 			pMine->m_hOwner = GetOwner();
 
 #endif

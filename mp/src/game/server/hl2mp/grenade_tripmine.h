@@ -33,6 +33,7 @@ public:
 	void BeamBreakThink( void );
 	void DelayDeathThink( void );
 	void Event_Killed( const CTakeDamageInfo &info );
+	void AttachToEntity( const CBaseEntity* entity );
 
 	void MakeBeam( void );
 	void KillBeam( void );
@@ -50,6 +51,9 @@ private:
 	Vector		m_posOwner;
 	Vector		m_angleOwner;
 
+	const CBaseEntity* m_pAttachedObject;
+	Vector m_vecOldPosAttachedObject;
+	QAngle m_vecOldAngAttachedObject;
 	DECLARE_DATADESC();
 };
 
