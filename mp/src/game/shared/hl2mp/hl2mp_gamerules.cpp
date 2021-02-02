@@ -726,6 +726,10 @@ void CHL2MPRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info
 		{
 			killer_weapon_name = "physics";
 		}
+		if ( strstr( killer_weapon_name, "physbox" ) )
+		{
+			killer_weapon_name = "physics";
+		}
 
 		if ( strcmp( killer_weapon_name, "prop_combine_ball" ) == 0 )
 		{
