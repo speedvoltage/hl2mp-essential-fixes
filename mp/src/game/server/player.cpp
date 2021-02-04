@@ -1622,19 +1622,6 @@ int CBasePlayer::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 
 	// fire global game event
 
-	IGameEvent* evUpdate = gameeventmanager->CreateEvent ( "spec_target_updated" );
-	if ( evUpdate )
-	{
-		Log ( "Update\n" );
-		if ( gameeventmanager->FireEvent( evUpdate ) )
-		{
-			Log ( "Success\n" );
-		}
-		else
-		{
-			Log ( "Fail\n" );
-		}
-	}
 	IGameEvent * event = gameeventmanager->CreateEvent( "player_hurt" );
 	if ( event )
 	{
