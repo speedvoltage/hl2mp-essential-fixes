@@ -43,6 +43,7 @@
 #include "tier0/memdbgon.h"
 
 #define DEBUG_TRANSITIONS_VERBOSE	2
+
 ConVar g_debug_transitions( "g_debug_transitions", "0", FCVAR_NONE, "Set to 1 and restart the map to be warned if the map has no trigger_transition volumes. Set to 2 to see a dump of all entities & associated results during a transition." );
 
 // Global list of triggers that care about weapon fire
@@ -2239,36 +2240,36 @@ void CTriggerPush::Activate()
 // Purpose: 
 // Input  : *pOther - 
 //-----------------------------------------------------------------------------
-void CTriggerPush::Touch( CBaseEntity *pOther )
+void CTriggerPush::Touch ( CBaseEntity* pOther )
 {
-	if ( !pOther->IsSolid() || (pOther->GetMoveType() == MOVETYPE_PUSH || pOther->GetMoveType() == MOVETYPE_NONE ) )
+	if ( !pOther->IsSolid ( ) || ( pOther->GetMoveType ( ) == MOVETYPE_PUSH || pOther->GetMoveType ( ) == MOVETYPE_NONE ) )
 		return;
 
-	if (!PassesTriggerFilters(pOther))
+	if ( !PassesTriggerFilters ( pOther ) )
 		return;
 
 	// FIXME: If something is hierarchically attached, should we try to push the parent?
-	if (pOther->GetMoveParent())
+	if ( pOther->GetMoveParent ( ) )
 		return;
 
 	// Transform the push dir into global space
 	Vector vecAbsDir;
-	VectorRotate( m_vecPushDir, EntityToWorldTransform(), vecAbsDir );
+	VectorRotate ( m_vecPushDir, EntityToWorldTransform ( ), vecAbsDir );
 
 	// Instant trigger, just transfer velocity and remove
-	if (HasSpawnFlags(SF_TRIG_PUSH_ONCE))
+	if ( HasSpawnFlags ( SF_TRIG_PUSH_ONCE ) )
 	{
-		pOther->ApplyAbsVelocityImpulse( m_flPushSpeed * vecAbsDir );
+		pOther->ApplyAbsVelocityImpulse ( m_flPushSpeed * vecAbsDir );
 
 		if ( vecAbsDir.z > 0 )
 		{
-			pOther->SetGroundEntity( NULL );
+			pOther->SetGroundEntity ( NULL );
 		}
-		UTIL_Remove( this );
+		UTIL_Remove ( this );
 		return;
 	}
 
-	switch( pOther->GetMoveType() )
+	switch ( pOther->GetMoveType ( ) )
 	{
 	case MOVETYPE_NONE:
 	case MOVETYPE_PUSH:
@@ -2276,59 +2277,65 @@ void CTriggerPush::Touch( CBaseEntity *pOther )
 		break;
 
 	case MOVETYPE_VPHYSICS:
+	{
+		const float DEFAULT_MASS = 100.0f;
+		if ( HasSpawnFlags ( SF_TRIGGER_DISALLOW_BOTS ) )
 		{
-			IPhysicsObject *pPhys = pOther->VPhysicsGetObject();
+			// New-style code (Ep3 and beyond), affects all physobjs and accounts for mass
+			IPhysicsObject* ppPhysObjs [ VPHYSICS_MAX_OBJECT_LIST_COUNT ];
+			int nNumPhysObjs = pOther->VPhysicsGetObjectList ( ppPhysObjs, VPHYSICS_MAX_OBJECT_LIST_COUNT );
+			for ( int i = 0; i < nNumPhysObjs; i++ )
+			{
+				Vector force = m_flPushSpeed * vecAbsDir * DEFAULT_MASS * gpGlobals->frametime;
+				force *= ppPhysObjs [ i ]->GetMass ( ) / DEFAULT_MASS;
+				ppPhysObjs [ i ]->ApplyForceCenter ( force );
+			}
+		}
+		else
+		{
+			// Old-style code (Ep2 and before), affects the first physobj and assumes the mass is 100kg
+			IPhysicsObject* pPhys = pOther->VPhysicsGetObject ( );
 			if ( pPhys )
 			{
-				// UNDONE: Assume the velocity is for a 100kg object, scale with mass
-				pPhys->ApplyForceCenter( m_flPushSpeed * vecAbsDir * 100.0f * gpGlobals->frametime );
+				pPhys->ApplyForceCenter ( m_flPushSpeed * vecAbsDir * DEFAULT_MASS * gpGlobals->frametime );
 				return;
 			}
 		}
-		break;
+	}
+	break;
 
 	default:
-		{
+	{
 #if defined( HL2_DLL )
-			// HACK HACK  HL2 players on ladders will only be disengaged if the sf is set, otherwise no push occurs.
-			if ( pOther->IsPlayer() && 
-				 pOther->GetMoveType() == MOVETYPE_LADDER )
+		// HACK HACK  HL2 players on ladders will only be disengaged if the sf is set, otherwise no push occurs.
+		if ( pOther->IsPlayer ( ) &&
+			pOther->GetMoveType ( ) == MOVETYPE_LADDER )
+		{
+			if ( !HasSpawnFlags ( SF_TRIG_PUSH_AFFECT_PLAYER_ON_LADDER ) )
 			{
-				if ( !HasSpawnFlags(SF_TRIG_PUSH_AFFECT_PLAYER_ON_LADDER) )
-				{
-					// Ignore the push
-					return;
-				}
+				// Ignore the push
+				return;
 			}
+		}
 #endif
 
-			Vector vecPush = (m_flPushSpeed * vecAbsDir);
-			if ( ( pOther->GetFlags() & FL_BASEVELOCITY ) && !lagcompensation->IsCurrentlyDoingLagCompensation() )
-			{
-				vecPush = vecPush + pOther->GetBaseVelocity();
-			}
-			if ( vecPush.z > 0 && (pOther->GetFlags() & FL_ONGROUND) )
-			{
-				pOther->SetGroundEntity( NULL );
-				Vector origin = pOther->GetAbsOrigin();
-				origin.z += 1.0f;
-				pOther->SetAbsOrigin( origin );
-			}
-
-#ifdef HL1_DLL
-			// Apply the z velocity as a force so it counteracts gravity properly
-			Vector vecImpulse( 0, 0, vecPush.z * 0.025 );//magic hack number
-
-			pOther->ApplyAbsVelocityImpulse( vecImpulse );
-
-			// apply x, y as a base velocity so we travel at constant speed on conveyors
-			vecPush.z = 0;
-#endif			
-
-			pOther->SetBaseVelocity( vecPush );
-			pOther->AddFlag( FL_BASEVELOCITY );
+		Vector vecPush = ( m_flPushSpeed * vecAbsDir );
+		if ( pOther->GetFlags ( ) & FL_BASEVELOCITY )
+		{
+			vecPush = vecPush + pOther->GetBaseVelocity ( );
 		}
-		break;
+		if ( vecPush.z > 0 && ( pOther->GetFlags ( ) & FL_ONGROUND ) )
+		{
+			pOther->SetGroundEntity ( NULL );
+			Vector origin = pOther->GetAbsOrigin ( );
+			origin.z += 1.0f;
+			pOther->SetAbsOrigin ( origin );
+		}
+
+		pOther->SetBaseVelocity ( vecPush );
+		pOther->AddFlag ( FL_BASEVELOCITY );
+		}
+	break;
 	}
 }
 
