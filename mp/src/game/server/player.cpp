@@ -729,11 +729,11 @@ int CBasePlayer::ShouldTransmit( const CCheckTransmitInfo *pInfo )
 }
 
 
-bool CBasePlayer::WantsLagCompensationOnEntity( const CBaseEntity*pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const
+bool CBasePlayer::WantsLagCompensationOnEntity( const CBasePlayer*pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const
 {
 	// Team members shouldn't be adjusted unless friendly fire is on.
-	if ( !friendlyfire.GetInt() && pPlayer->GetTeamNumber() == GetTeamNumber() )
-		return false;
+	//if ( !friendlyfire.GetInt() && pPlayer->GetTeamNumber() == GetTeamNumber() )
+	//	return false;
 
 	// If this entity hasn't been transmitted to us and acked, then don't bother lag compensating it.
 	if ( pEntityTransmitBits && !pEntityTransmitBits->Get( pPlayer->entindex() ) )
@@ -744,7 +744,7 @@ bool CBasePlayer::WantsLagCompensationOnEntity( const CBaseEntity*pPlayer, const
 
 	// get max distance player could have moved within max lag compensation time, 
 	// multiply by 1.5 to to avoid "dead zones"  (sqrt(2) would be the exact value)
-	float entityMaxSpeed = ToBasePlayer ((CBaseEntity*) pPlayer ) ? ToBasePlayer ((CBaseEntity*) pPlayer )->MaxSpeed ( ) : 600.0f;
+	float entityMaxSpeed = ToBasePlayer ( pPlayer ) ? ToBasePlayer ( pPlayer )->MaxSpeed ( ) : 600.0f;
 	float maxDistance = 1.5 * entityMaxSpeed * sv_maxunlag.GetFloat ( );
 
 	// If the player is within this distance, lag compensate them in case they're running past us.
