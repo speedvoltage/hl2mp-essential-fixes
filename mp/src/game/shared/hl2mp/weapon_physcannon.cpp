@@ -1090,7 +1090,7 @@ public:
 	bool	DropIfEntityHeld( CBaseEntity *pTarget );	// Drops its held entity if it matches the entity passed in
 	CGrabController &GetGrabController() { return m_grabController; }
 
-	bool	CanHolster( void );
+	bool	CanHolster( void ) const;
 	bool	Holster( CBaseCombatWeapon *pSwitchingTo = NULL );
 	bool	Deploy( void );
 
@@ -1519,7 +1519,7 @@ void CWeaponPhysCannon::Drop( const Vector &vecVelocity )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-bool CWeaponPhysCannon::CanHolster( void ) 
+bool CWeaponPhysCannon::CanHolster( void ) const 
 { 
 	//Don't holster this weapon if we're holding onto something
 	if ( m_bActive )

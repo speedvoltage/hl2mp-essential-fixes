@@ -511,11 +511,6 @@ void CHL2_Player::HandleSpeedChanges( void )
 			m_nButtons &= ~IN_SPEED;
 		}
 	}
-	//FIX SPRINT DELAY
-	if ( bWantSprint )
-	{
-		StartSprinting();
-	}
 
 	bool bIsWalking = IsWalking();
 	// have suit, pressing button, not sprinting or ducking
@@ -1173,7 +1168,7 @@ bool CHL2_Player::CanSprint()
 {
 	return ( m_bSprintEnabled &&										// Only if sprint is enabled 
 			!IsWalking() &&												// Not if we're walking
-			!( m_Local.m_bDucked /*&& !m_Local.m_bDucking*/ ) &&			// Nor if we're ducking
+			!( m_Local.m_bDucked && !m_Local.m_bDucking ) &&			// Nor if we're ducking
 			(GetWaterLevel() != 3) &&									// Certainly not underwater
 			(GlobalEntity_GetState("suit_no_sprint") != GLOBAL_ON) );	// Out of the question without the sprint module
 }
