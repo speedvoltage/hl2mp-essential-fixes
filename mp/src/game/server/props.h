@@ -347,7 +347,7 @@ public:
 	virtual void VPhysicsUpdate( IPhysicsObject *pPhysics );
 	virtual void VPhysicsCollision( int index, gamevcollisionevent_t *pEvent );
 
-	void Break(CBaseEntity* pBreaker, const CTakeDamageInfo& info)override;
+	virtual void Break(CBaseEntity* pBreaker, const CTakeDamageInfo& info);
 
 	void InputWake( inputdata_t &inputdata );
 	void InputSleep( inputdata_t &inputdata );

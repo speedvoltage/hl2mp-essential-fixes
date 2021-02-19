@@ -1033,7 +1033,7 @@ void CC_Player_PhysSwap( void )
 
 			const char *strWeaponName = pWeapon->GetName();
 
-			if ( !Q_stricmp( strWeaponName, "weapon_physcannon" ) )
+			if ( !Q_stricmp( strWeaponName, "weapon_physcannon" ) && pWeapon->CanHolster() )
 			{
 				PhysCannonForceDrop( pWeapon, NULL );
 				pPlayer->SelectLastItem();
