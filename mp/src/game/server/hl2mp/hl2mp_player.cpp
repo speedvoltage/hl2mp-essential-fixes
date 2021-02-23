@@ -754,7 +754,7 @@ void CHL2MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 		*/
 		else
 		{
-			if ( GetFlags() & FL_ANIMDUCKING )
+			if ( GetFlags() & FL_DUCKING )
 			{
 				if ( speed > 0 )
 				{

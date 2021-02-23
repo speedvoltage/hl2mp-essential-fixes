@@ -53,6 +53,7 @@ config.cfg
 
 # shader files
 *.tmp
+*.vcxproj
 
 /mp/src/.vs/everything/v16
 /.vs
@@ -115,3 +116,4 @@ config.cfg
 /mp/src/tier1/Debug/tier1.vcxproj.FileListAbsolute.txt
 /mp/src/game/server/Debug_mod_hl2mp/gamerules.new.obj.enc
 /mp/src/game/server/Debug_mod_hl2mp/weapon_physcannon.obj.enc
+/mp/src/.vs/games/v16
