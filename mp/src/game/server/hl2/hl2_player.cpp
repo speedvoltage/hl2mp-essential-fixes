@@ -480,7 +480,7 @@ void CHL2_Player::RemoveSuit( void )
 
 void CHL2_Player::HandleSpeedChanges( void )
 {
-	int buttonsChanged = m_afButtonPressed | m_afButtonReleased;
+	//int buttonsChanged = m_afButtonPressed | m_afButtonReleased;
 
 	bool bCanSprint = CanSprint();
 	bool bIsSprinting = IsSprinting();
@@ -673,7 +673,7 @@ void CHL2_Player::PreThink(void)
 	else if ( IsSprinting() )
 	{
 		// Disable sprint while ducked unless we're in the air (jumping)
-		if ( IsDucked() && ( GetGroundEntity() != NULL ) )
+		if ( IsDucked() && ( GetGroundEntity() != NULL ) && !IsDucking() )
 		{
 			StopSprinting();
 		}
