@@ -1449,6 +1449,7 @@ void CHL2MP_Player::InitialSpawn( void )
 			pSatchel->SetThrower( this );
 		}
 	}
+	pEntity = NULL;
 	while ( ( pEntity = gEntList.FindEntityByClassname( pEntity, "npc_tripmine" ) ) != NULL )
 	{
 		CTripmineGrenade* pMine = dynamic_cast< CTripmineGrenade* >( pEntity );
