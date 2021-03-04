@@ -314,28 +314,36 @@ bool CWeapon_SLAM::AnyUndetonatedCharges(void)
 //-----------------------------------------------------------------------------
 void CWeapon_SLAM::StartSatchelDetonate()
 {
+	Activity activity = GetActivity();
+	if ( activity != ACT_SLAM_STICKWALL_IDLE && activity != ACT_SLAM_THROW_TO_STICKWALL )
+	{
+		if ( activity != ACT_SLAM_DETONATOR_IDLE && activity != ACT_SLAM_THROW_IDLE )
+			return;
 
-	if ( GetActivity() != ACT_SLAM_DETONATOR_IDLE && GetActivity() != ACT_SLAM_THROW_IDLE )
-		 return;
-	
-	// -----------------------------------------
-	//  Play detonate animation
-	// -----------------------------------------
-	if (m_bNeedReload)
-	{
-		SendWeaponAnim(ACT_SLAM_DETONATOR_DETONATE);
-	}
-	else if (m_tSlamState == SLAM_SATCHEL_ATTACH)
-	{
-		SendWeaponAnim(ACT_SLAM_STICKWALL_DETONATE);
-	}
-	else if (m_tSlamState == SLAM_SATCHEL_THROW)
-	{
-		SendWeaponAnim(ACT_SLAM_THROW_DETONATE);
+
+		// -----------------------------------------
+		//  Play detonate animation
+		// -----------------------------------------
+		if ( m_bNeedReload )
+		{
+			SendWeaponAnim( ACT_SLAM_DETONATOR_DETONATE );
+		}
+		else if ( m_tSlamState == SLAM_SATCHEL_ATTACH )
+		{
+			SendWeaponAnim( ACT_SLAM_STICKWALL_DETONATE );
+		}
+		else if ( m_tSlamState == SLAM_SATCHEL_THROW )
+		{
+			SendWeaponAnim( ACT_SLAM_THROW_DETONATE );
+		}
+		else
+		{
+			return;
+		}
 	}
 	else
 	{
-		return;
+		SendWeaponAnim( ACT_SLAM_STICKWALL_DETONATE );
 	}
 	SatchelDetonate();
 
@@ -385,7 +393,6 @@ void CWeapon_SLAM::TripmineAttach( void )
 			angles.x += 90;
 
 			CBaseEntity *pEnt = CBaseEntity::Create( "npc_tripmine", tr.endpos + tr.plane.normal * 3, angles, NULL );
-
 			CTripmineGrenade *pMine = (CTripmineGrenade *)pEnt;
 #if !defined(NO_STEAM)
 			CBasePlayer* pPlayer = dynamic_cast< CBasePlayer* >( pOwner );
