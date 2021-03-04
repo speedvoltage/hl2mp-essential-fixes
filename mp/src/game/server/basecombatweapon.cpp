@@ -578,7 +578,7 @@ void CBaseCombatWeapon::Materialize( void )
 		DoMuzzleFlash();
 	}
 #ifdef HL2MP
-	if ( HasSpawnFlags( SF_NORESPAWN ) == false )
+	//if ( HasSpawnFlags( SF_NORESPAWN ) == false )
 	{
 		VPhysicsInitNormal( SOLID_BBOX, GetSolidFlags() | FSOLID_TRIGGER, false );
 		SetMoveType( MOVETYPE_VPHYSICS );
