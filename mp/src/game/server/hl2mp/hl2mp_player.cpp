@@ -18,6 +18,7 @@
 #include "team.h"
 #include "weapon_hl2mpbase.h"
 #include "grenade_satchel.h"
+#include "grenade_tripmine.h"
 #include "eventqueue.h"
 #include "gamestats.h"
 
@@ -1433,7 +1434,32 @@ ReturnSpot:
 	m_flSlamProtectTime = gpGlobals->curtime + 0.5;
 
 	return pSpot;
-} 
+}
+void CHL2MP_Player::InitialSpawn( void )
+{
+	BaseClass::InitialSpawn();
+#if !defined(NO_STEAM)
+	CBaseEntity* pEntity = NULL;
+	uint64 thisSteamID = GetSteamIDAsUInt64();
+	while ( ( pEntity = gEntList.FindEntityByClassname( pEntity, "npc_satchel" ) ) != NULL )
+	{
+		CSatchelCharge* pSatchel = dynamic_cast< CSatchelCharge* >( pEntity );
+		if ( pSatchel && pSatchel->m_bIsLive && !pSatchel->GetThrower() && pSatchel->GetSteamID() == thisSteamID )
+		{
+			pSatchel->SetThrower( this );
+		}
+	}
+	while ( ( pEntity = gEntList.FindEntityByClassname( pEntity, "npc_tripmine" ) ) != NULL )
+	{
+		CTripmineGrenade* pMine = dynamic_cast< CTripmineGrenade* >( pEntity );
+		if ( pMine && pMine->m_bIsLive && !pMine->GetThrower() && pMine->GetSteamID() == thisSteamID )
+		{
+			pMine->SetThrower( this );
+			pMine->m_hOwner = this;
+		}
+	}
+#endif
+}
 
 
 CON_COMMAND( timeleft, "prints the time remaining in the match" )

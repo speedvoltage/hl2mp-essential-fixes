@@ -27,7 +27,14 @@ enum
 #ifdef CLIENT_DLL
 #define CWeapon_SLAM C_Weapon_SLAM
 #endif
-
+class CSteamIDWeapon
+{
+	uint64 m_nSteamID;
+public:
+	CSteamIDWeapon();
+	uint64 GetSteamID()const;
+	void SetSteamID( uint64 steamID );
+};
 class CWeapon_SLAM : public CBaseHL2MPCombatWeapon
 {
 public:

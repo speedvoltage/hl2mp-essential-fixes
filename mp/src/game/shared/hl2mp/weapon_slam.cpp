@@ -106,6 +106,18 @@ acttable_t	CWeapon_SLAM::m_acttable[] =
 
 IMPLEMENT_ACTTABLE(CWeapon_SLAM);
 #endif
+CSteamIDWeapon::CSteamIDWeapon()
+{
+	m_nSteamID = 0;
+}
+uint64 CSteamIDWeapon::GetSteamID()const
+{
+	return m_nSteamID;
+}
+void CSteamIDWeapon::SetSteamID( uint64 steamID )
+{
+	m_nSteamID = steamID;
+}
 
 
 void CWeapon_SLAM::Spawn( )
@@ -375,6 +387,13 @@ void CWeapon_SLAM::TripmineAttach( void )
 			CBaseEntity *pEnt = CBaseEntity::Create( "npc_tripmine", tr.endpos + tr.plane.normal * 3, angles, NULL );
 
 			CTripmineGrenade *pMine = (CTripmineGrenade *)pEnt;
+#if !defined(NO_STEAM)
+			CBasePlayer* pPlayer = dynamic_cast< CBasePlayer* >( pOwner );
+			if ( pPlayer )
+			{
+				pMine->SetSteamID( pPlayer->GetSteamIDAsUInt64() );
+			}
+#endif
 			pMine->AttachToEntity(pEntity);
 			pMine->m_hOwner = GetOwner();
 
@@ -485,6 +504,9 @@ void CWeapon_SLAM::SatchelThrow( void )
 
 	if ( pSatchel )
 	{
+#if !defined(NO_STEAM)
+		pSatchel->SetSteamID( pPlayer->GetSteamIDAsUInt64() );
+#endif
 		pSatchel->SetThrower( GetOwner() );
 		pSatchel->ApplyAbsVelocityImpulse( vecThrow );
 		pSatchel->SetLocalAngularVelocity( QAngle( 0, 400, 0 ) );
@@ -567,6 +589,13 @@ void CWeapon_SLAM::SatchelAttach( void )
 			tr.endpos.z -= 6.0f;
 					
 			CSatchelCharge *pSatchel	= (CSatchelCharge*)CBaseEntity::Create( "npc_satchel", tr.endpos + tr.plane.normal * 3, angles, NULL );
+#if !defined(NO_STEAM)
+			CBasePlayer* pPlayer = dynamic_cast< CBasePlayer* >( pOwner );
+			if ( pPlayer )
+			{
+				pSatchel->SetSteamID( pPlayer->GetSteamIDAsUInt64() );
+			}
+#endif
 			pSatchel->SetMoveType( MOVETYPE_FLY ); // no gravity
 			pSatchel->m_bIsAttached		= true;
 			pSatchel->m_bIsLive			= true;
@@ -728,6 +757,12 @@ bool CWeapon_SLAM::CanAttachSLAM( void )
 			CBaseEntity *pEntity = tr.m_pEnt;
 			CBaseCombatCharacter *pBCC		= ToBaseCombatCharacter( pEntity );
 			if (pBCC)
+			{
+				return false;
+			}
+			//block attaching to another SLAM
+			CBaseGrenade* pGrenade = dynamic_cast< CBaseGrenade* >( pEntity );
+			if ( pGrenade )
 			{
 				return false;
 			}

@@ -20,7 +20,7 @@
 class CSoundPatch;
 class CSprite;
 
-class CSatchelCharge : public CBaseGrenade
+class CSatchelCharge : public CBaseGrenade, public CSteamIDWeapon
 {
 public:
 	DECLARE_CLASS( CSatchelCharge, CBaseGrenade );
