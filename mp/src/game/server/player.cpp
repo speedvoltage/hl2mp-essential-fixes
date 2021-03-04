@@ -6532,9 +6532,9 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 			 args.ArgC() == 6 )
 		{
 			Vector origin;
-			origin.x = atof( args[1] );
-			origin.y = atof( args[2] );
-			origin.z = atof( args[3] );
+			origin.x = clamp( atof( args [ 1 ] ), MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+			origin.y = clamp( atof( args [ 2 ] ), MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+			origin.z = clamp( atof( args [ 3 ] ), MIN_COORD_FLOAT, MAX_COORD_FLOAT );
 
 			QAngle angle;
 			angle.x = atof( args[4] );
