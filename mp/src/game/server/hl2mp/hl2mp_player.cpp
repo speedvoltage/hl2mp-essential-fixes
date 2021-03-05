@@ -1439,24 +1439,33 @@ void CHL2MP_Player::InitialSpawn( void )
 {
 	BaseClass::InitialSpawn();
 #if !defined(NO_STEAM)
-	CBaseEntity* pEntity = NULL;
 	uint64 thisSteamID = GetSteamIDAsUInt64();
-	while ( ( pEntity = gEntList.FindEntityByClassname( pEntity, "npc_satchel" ) ) != NULL )
+	const CEntInfo* pInfo = gEntList.FirstEntInfo();
+
+	for ( ; pInfo; pInfo = pInfo->m_pNext )
 	{
-		CSatchelCharge* pSatchel = dynamic_cast< CSatchelCharge* >( pEntity );
-		if ( pSatchel && pSatchel->m_bIsLive && !pSatchel->GetThrower() && pSatchel->GetSteamID() == thisSteamID )
+		CBaseEntity* pEntity = ( CBaseEntity* ) pInfo->m_pEntity;
+		if ( !pEntity )
 		{
-			pSatchel->SetThrower( this );
+			DevWarning( "NULL entity in global entity list!\n" );
+			continue;
 		}
-	}
-	pEntity = NULL;
-	while ( ( pEntity = gEntList.FindEntityByClassname( pEntity, "npc_tripmine" ) ) != NULL )
-	{
-		CTripmineGrenade* pMine = dynamic_cast< CTripmineGrenade* >( pEntity );
-		if ( pMine && pMine->m_bIsLive && !pMine->GetThrower() && pMine->GetSteamID() == thisSteamID )
+		if ( pEntity->ClassMatches( "npc_satchel" ) )
 		{
-			pMine->SetThrower( this );
-			pMine->m_hOwner = this;
+			CSatchelCharge* pSatchel = dynamic_cast< CSatchelCharge* >( pEntity );
+			if ( pSatchel && pSatchel->m_bIsLive && !pSatchel->GetThrower() && pSatchel->GetSteamID() == thisSteamID )
+			{
+				pSatchel->SetThrower( this );
+			}
+		}
+		else if ( pEntity->ClassMatches( "npc_tripmine" ) )
+		{
+			CTripmineGrenade* pMine = dynamic_cast< CTripmineGrenade* >( pEntity );
+			if ( pMine && pMine->m_bIsLive && !pMine->GetThrower() && pMine->GetSteamID() == thisSteamID )
+			{
+				pMine->SetThrower( this );
+				pMine->m_hOwner = this;
+			}
 		}
 	}
 #endif
