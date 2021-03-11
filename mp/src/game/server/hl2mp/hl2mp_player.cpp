@@ -520,7 +520,7 @@ void CHL2MP_Player::ResetAnimation( void )
 
 		if (!GetAbsVelocity().x && !GetAbsVelocity().y)
 			SetAnimation( PLAYER_IDLE );
-		else if ((GetAbsVelocity().x || GetAbsVelocity().y) && ( GetFlags() & FL_ONGROUND ))
+		else if ((GetAbsVelocity().x || GetAbsVelocity().y))//Fixed model's T-Pose while realoding in jump 
 			SetAnimation( PLAYER_WALK );
 		else if (GetWaterLevel() > 1)
 			SetAnimation( PLAYER_WALK );
