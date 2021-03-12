@@ -458,7 +458,7 @@ void CMissile::IgniteThink( void )
 	SetModel("models/weapons/w_missile.mdl");
 	//UTIL_SetSize( this, vec3_origin, vec3_origin ); //This cause weird no damage dealing on stairs
  	RemoveSolidFlags( FSOLID_NOT_SOLID );
-
+	AddEFlags( EFL_NO_WATER_VELOCITY_CHANGE );//Ignore velocity change by in or out water transition
 	//TODO: Play opening sound
 
 	Vector vecForward;
