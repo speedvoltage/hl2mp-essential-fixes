@@ -178,7 +178,7 @@ void CMissile::Spawn( void )
 
 	SetSolid( SOLID_BBOX );
 	SetModel("models/weapons/w_missile_launch.mdl");
-	UTIL_SetSize( this, -Vector(4,4,4), Vector(4,4,4) );
+	UTIL_SetSize( this, -Vector(2,2,2), Vector(2,2,2) );
 
 	SetTouch( &CMissile::MissileTouch );
 
@@ -664,7 +664,6 @@ CMissile *CMissile::Create( const Vector &vecOrigin, const QAngle &vecAngles, ed
 	//CMissile *pMissile = (CMissile *)CreateEntityByName("rpg_missile" );
 	CMissile *pMissile = (CMissile *) CBaseEntity::Create( "rpg_missile", vecOrigin, vecAngles, CBaseEntity::Instance( pentOwner ) );
 	pMissile->SetOwnerEntity( Instance( pentOwner ) );
-	pMissile->Spawn();
 	pMissile->AddEffects( EF_NOSHADOW );
 	
 	Vector vecForward;
@@ -1639,7 +1638,7 @@ bool CWeaponRPG::Deploy( void )
 	return BaseClass::Deploy();
 }
 
-bool CWeaponRPG::CanHolster( void ) const
+bool CWeaponRPG::CanHolster( void ) const 
 {
 	//Can't have an active missile out
 	if ( m_hMissile != NULL )
