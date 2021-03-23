@@ -307,7 +307,9 @@ void CHL2MP_Player::Spawn(void)
 
 		RemoveEffects( EF_NODRAW );
 		
+		SetAllowPickupWeaponThroughObstacle( true );
 		GiveDefaultItems();
+		SetAllowPickupWeaponThroughObstacle( false );
 	}
 
 	SetNumAnimOverlays( 3 );
@@ -865,10 +867,13 @@ bool CHL2MP_Player::BumpWeapon( CBaseCombatWeapon *pWeapon )
 		return false;
 	}
 
-	// Don't let the player fetch weapons through walls (use MASK_SOLID so that you can't pickup through windows)
-	if( !pWeapon->FVisible( this, MASK_SOLID ) && !(GetFlags() & FL_NOTARGET) )
-	{
-		return false;
+	if( !GetAllowPickupWeaponThroughObstacle() )
+	{ 
+		// Don't let the player fetch weapons through walls (use MASK_SOLID so that you can't pickup through windows)
+		if( !pWeapon->FVisible( this, MASK_SOLID ) && !(GetFlags() & FL_NOTARGET) )
+		{
+			return false;
+		}
 	}
 
 	bool bOwnsWeaponAlready = !!Weapon_OwnsThisType( pWeapon->GetClassname(), pWeapon->GetSubType());
