@@ -51,7 +51,7 @@
 
 #define HIDEWEAPON_THINK_CONTEXT			"BaseCombatWeapon_HideThink"
 
-extern bool UTIL_ItemCanBeTouchedByPlayer( CBaseEntity *pItem, CBasePlayer *pPlayer );
+extern bool UTIL_ItemCanBeTouchedByPlayer( CBaseEntity *pItem, CBasePlayer *pPlayer, unsigned int traceMask = MASK_SOLID );
 
 #if defined ( TF_CLIENT_DLL ) || defined ( TF_DLL )
 #ifdef _DEBUG

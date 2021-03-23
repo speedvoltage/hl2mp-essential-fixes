@@ -6572,7 +6572,7 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 	return false;
 }
 
-extern bool UTIL_ItemCanBeTouchedByPlayer( CBaseEntity *pItem, CBasePlayer *pPlayer );
+extern bool UTIL_ItemCanBeTouchedByPlayer( CBaseEntity *pItem, CBasePlayer *pPlayer, unsigned int traceMask = MASK_SOLID );
 
 //-----------------------------------------------------------------------------
 // Purpose: Player reacts to bumping a weapon. 
