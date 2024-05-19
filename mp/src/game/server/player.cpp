@@ -5914,7 +5914,10 @@ void CBasePlayer::ImpulseCommands( )
 
 	case 200:
 		
+		// Not sure why this needs to be initialized first and only defined after.
 		CBaseCombatWeapon *pWeapon;
+
+		pWeapon = GetActiveWeapon();
 
 		if (pWeapon)
 		{
