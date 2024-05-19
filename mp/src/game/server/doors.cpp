@@ -731,22 +731,13 @@ void CBaseDoor::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 
 	bool bAllowUse = false;
 
-	// if not ready to be used, ignore "use" command.
-	if( HasSpawnFlags(SF_DOOR_NEW_USE_RULES) )
+	// If not ready to be used, ignore "use" command.
+	// Allow use in these cases:
+	//		- when the door is closed/closing
+	//		- when the door is open/opening and can be manually closed
+	if ((m_toggle_state == TS_AT_BOTTOM || m_toggle_state == TS_GOING_DOWN) || (HasSpawnFlags(SF_DOOR_NO_AUTO_RETURN) && (m_toggle_state == TS_AT_TOP || m_toggle_state == TS_GOING_UP)))
 	{
-		//New behavior:
-		// If not ready to be used, ignore "use" command.
-		// Allow use in these cases:
-		//		- when the door is closed/closing
-		//		- when the door is open/opening and can be manually closed
-		if ( ( m_toggle_state == TS_AT_BOTTOM || m_toggle_state == TS_GOING_DOWN ) || ( HasSpawnFlags(SF_DOOR_NO_AUTO_RETURN) && ( m_toggle_state == TS_AT_TOP || m_toggle_state == TS_GOING_UP ) ) )
-			bAllowUse = true;
-	}
-	else
-	{
-		// Legacy behavior:
-		if (m_toggle_state == TS_AT_BOTTOM || (HasSpawnFlags(SF_DOOR_NO_AUTO_RETURN) && m_toggle_state == TS_AT_TOP) )
-			bAllowUse = true;
+		bAllowUse = true;
 	}
 
 	if( bAllowUse )
