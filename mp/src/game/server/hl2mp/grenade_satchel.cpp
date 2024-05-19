@@ -174,6 +174,12 @@ void CSatchelCharge::SatchelThink( void )
 		return;
 	}
 
+	if (GetOwnerEntity())
+	{
+		UTIL_Remove(this);
+		return;
+	}
+
 	// Is it attached to a wall?
 	if (m_bIsAttached)
 	{

@@ -299,7 +299,13 @@ void CMissile::AugerThink( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer(GetOwnerEntity());
 
-	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+	if (!m_hOwner)
+	{
+		UTIL_Remove(this);
+		return;
+	}
+
+	if (m_hOwner && m_hOwner->GetTeamNumber() == TEAM_SPECTATOR)
 	{
 		pPlayer->DeathNotice(this);
 		SetOwnerEntity(NULL);

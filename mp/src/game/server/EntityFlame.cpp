@@ -254,12 +254,6 @@ void CEntityFlame::FlameThink( void )
 		}
 
 		CBaseCombatCharacter *pAttachedCC = m_hEntAttached->MyCombatCharacterPointer();
-		if (m_hEntAttached->IsPlayer() && m_hEntAttached->GetTeamNumber() == TEAM_SPECTATOR)
-		{
-			UTIL_Remove(this);
-			pAttachedCC->Extinguish();
-			return;
-		}
 
 		if (m_hEntAttached->IsPlayer() && !m_hEntAttached->IsAlive())
 		{
