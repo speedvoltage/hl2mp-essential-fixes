@@ -5913,20 +5913,18 @@ void CBasePlayer::ImpulseCommands( )
 		break;
 
 	case 200:
-		if ( sv_cheats->GetBool() )
-		{
-			CBaseCombatWeapon *pWeapon;
+		
+		CBaseCombatWeapon *pWeapon;
 
-			if (pWeapon)
+		if (pWeapon)
+		{
+			if (pWeapon->IsEffectActive(EF_NODRAW))
 			{
-				if (pWeapon->IsEffectActive(EF_NODRAW))
-				{
-					pWeapon->Deploy();
-				}
-				else
-				{
-					pWeapon->Holster();
-				}
+				pWeapon->Deploy();
+			}
+			else
+			{
+				pWeapon->Holster();
 			}
 		}
 		break;
