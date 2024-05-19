@@ -472,64 +472,55 @@ void CHL2_Player::RemoveSuit( void )
 	m_HL2Local.m_bDisplayReticle = false;
 }
 
-void CHL2_Player::HandleSpeedChanges( void )
+void CHL2_Player::HandleSpeedChanges(void)
 {
-	//int buttonsChanged = m_afButtonPressed | m_afButtonReleased;
+	int buttonsChanged = m_afButtonPressed | m_afButtonReleased;
 
-	bool bCanSprint = CanSprint();
-	bool bIsSprinting = IsSprinting();
-	bool bWantSprint = ( bCanSprint && IsSuitEquipped() && (m_nButtons & IN_SPEED) );
-	if ( bIsSprinting != bWantSprint )
+	if ((buttonsChanged & IN_DUCK))
 	{
-		// If someone wants to sprint, make sure they've pressed the button to do so. We want to prevent the
-		// case where a player can hold down the sprint key and burn tiny bursts of sprint as the suit recharges
-		// We want a full debounce of the key to resume sprinting after the suit is completely drained
-		if ( bWantSprint )
+		StopSprinting();
+	}
+	if ((buttonsChanged & IN_SPEED))
+	{
+		// The state of the sprint/run button has changed.
+		if (IsSuitEquipped())
 		{
-			if ( sv_stickysprint.GetBool() )
-			{
-				StartAutoSprint();
-			}
-			else
-			{
-				StartSprinting();
-			}
-		}
-		else
-		{
-			if ( !sv_stickysprint.GetBool() )
+			if (!(m_afButtonPressed & IN_SPEED) && IsSprinting())
 			{
 				StopSprinting();
 			}
-			// Reset key, so it will be activated post whatever is suppressing it.
-			m_nButtons &= ~IN_SPEED;
+			else if ((m_afButtonPressed & IN_SPEED) && !IsSprinting())
+			{
+				if (CanSprint())
+				{
+					StartSprinting();
+				}
+				else
+				{
+					// Reset key, so it will be activated post whatever is suppressing it.
+					m_nButtons &= ~IN_SPEED;
+				}
+			}
+		}
+	}
+	else if (buttonsChanged & IN_WALK)
+	{
+		if (IsSuitEquipped())
+		{
+			// The state of the WALK button has changed. 
+			if (IsWalking() && !(m_afButtonPressed & IN_WALK))
+			{
+				StopWalking();
+			}
+			else if (!IsWalking() && !IsSprinting() && (m_afButtonPressed & IN_WALK) && !(m_nButtons & IN_DUCK))
+			{
+				StartWalking();
+			}
 		}
 	}
 
-	bool bIsWalking = IsWalking();
-	// have suit, pressing button, not sprinting or ducking
-	bool bWantWalking;
-	
-	if( IsSuitEquipped() )
-	{
-		bWantWalking = (m_nButtons & IN_WALK) && !IsSprinting() && !(m_nButtons & IN_DUCK);
-	}
-	else
-	{
-		bWantWalking = true;
-	}
-	
-	if( bIsWalking != bWantWalking )
-	{
-		if ( bWantWalking )
-		{
-			StartWalking();
-		}
-		else
-		{
-			StopWalking();
-		}
-	}
+	if (IsSuitEquipped() && m_fIsWalking && !(m_nButtons & IN_WALK))
+		StopWalking();
 }
 
 //-----------------------------------------------------------------------------

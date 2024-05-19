@@ -4294,7 +4294,7 @@ void CGameMovement::HandleDuckingSpeedCrop(void)
 
 	if (!(m_iSpeedCropped & SPEED_CROPPED_DUCK) && (player->GetFlags() & FL_DUCKING) && (player->GetGroundEntity() != NULL))
 	{
-		if (pMoveData->m_bIsSprinting)
+		if (pMoveData->m_bIsSprinting && !(mv->m_nButtons & IN_DUCK))
 		{
 			return;
 		}
