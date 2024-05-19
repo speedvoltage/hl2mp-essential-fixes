@@ -1166,13 +1166,6 @@ void CBaseEntity::VPhysicsUpdate( IPhysicsObject *pPhysics )
 			{
 				SetAbsOrigin( origin );
 			}
-			else
-			{
-				if ( CheckEmitReasonablePhysicsSpew() )
-				{
-					Warning( "Ignoring unreasonable position (%f,%f,%f) from vphysics! (entity %s)\n", origin.x, origin.y, origin.z, GetDebugName() );
-				}
-			}
 
 			for ( int i = 0; i < 3; ++i )
 			{
