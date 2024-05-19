@@ -119,6 +119,7 @@ ConVar	sv_noclipduringpause( "sv_noclipduringpause", "0", FCVAR_REPLICATED | FCV
 extern ConVar sv_maxunlag;
 extern ConVar sv_turbophysics;
 extern ConVar *sv_maxreplay;
+extern ConVar mp_suitvoice;
 
 extern CServerGameDLL g_ServerGameDLL;
 
@@ -4216,9 +4217,8 @@ void CBasePlayer::CheckSuitUpdate()
 	// if in range of radiation source, ping geiger counter
 	UpdateGeigerCounter();
 
-	if ( g_pGameRules->IsMultiplayer() )
+	if (!mp_suitvoice.GetBool())
 	{
-		// don't bother updating HEV voice in multiplayer.
 		return;
 	}
 
@@ -4275,9 +4275,8 @@ void CBasePlayer::SetSuitUpdate(const char *name, int fgroup, int iNoRepeatTime)
 	if ( !IsSuitEquipped() )
 		return;
 
-	if ( g_pGameRules->IsMultiplayer() )
+	if (!mp_suitvoice.GetBool())
 	{
-		// due to static channel design, etc. We don't play HEV sounds in multiplayer right now.
 		return;
 	}
 

@@ -336,6 +336,8 @@ void CHL2MP_Player::Spawn(void)
 		RemoveFlag( FL_FROZEN );
 	}
 
+	SetSuitUpdate(NULL, false, 0); // stop ALL hev stuff
+
 	m_iSpawnInterpCounter = (m_iSpawnInterpCounter + 1) % 8;
 
 	m_Local.m_bDucked = false;
