@@ -110,7 +110,7 @@ void CTripmineGrenade::WarningThink( void  )
 {
 	// set to power up
 	SetThink( &CTripmineGrenade::PowerupThink );
-	SetNextThink( gpGlobals->curtime + 1.0f );
+	SetNextThink( gpGlobals->curtime + 1.25f );
 }
 
 
@@ -126,6 +126,17 @@ void CTripmineGrenade::PowerupThink( void  )
 		EmitSound( "TripmineGrenade.Activate" );
 	}
 	SetNextThink( gpGlobals->curtime + 0.1f );
+
+	CBasePlayer *pPlayer = ToBasePlayer(m_hOwner);
+	if (pPlayer && pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+	{
+		m_takedamage = DAMAGE_NO;
+
+		SetThink(&CTripmineGrenade::DelayDeathThink);
+		SetNextThink(gpGlobals->curtime + 0.25);
+
+		EmitSound("TripmineGrenade.StopSound");
+	}
 }
 
 
@@ -246,22 +257,6 @@ void CTripmineGrenade::BeamBreakThink( void  )
 	SetNextThink(gpGlobals->curtime + 0.05f);
 }
 
-#if 0 // FIXME: OnTakeDamage_Alive() is no longer called now that base grenade derives from CBaseAnimating
-int CTripmineGrenade::OnTakeDamage_Alive( const CTakeDamageInfo &info )
-{
-	if (gpGlobals->curtime < m_flPowerUp && info.GetDamage() < m_iHealth)
-	{
-		// disable
-		// Create( "weapon_tripmine", GetLocalOrigin() + m_vecDir * 24, GetAngles() );
-		SetThink( &CTripmineGrenade::SUB_Remove );
-		SetNextThink( gpGlobals->curtime + 0.1f );
-		KillBeam();
-		return FALSE;
-	}
-	return BaseClass::OnTakeDamage_Alive( info );
-}
-#endif
-
 //-----------------------------------------------------------------------------
 // Purpose:
 // Input  :
@@ -285,8 +280,12 @@ void CTripmineGrenade::DelayDeathThink( void )
 	UTIL_TraceLine ( GetAbsOrigin() + m_vecDir * 8, GetAbsOrigin() - m_vecDir * 64,  MASK_SOLID, this, COLLISION_GROUP_NONE, & tr);
 	UTIL_ScreenShake( GetAbsOrigin(), 25.0, 150.0, 1.0, 750, SHAKE_START );
 
-	ExplosionCreate( GetAbsOrigin() + m_vecDir * 8, GetAbsAngles(), m_hOwner, GetDamage(), GetDamageRadius(), 
-		SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this);
+	CBasePlayer *pPlayer = ToBasePlayer(m_hOwner);
+	if (pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
+	{
+		ExplosionCreate(GetAbsOrigin() + m_vecDir * 8, GetAbsAngles(), m_hOwner, GetDamage(), 200,
+			SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this);
+	}
 
 	UTIL_Remove( this );
 }

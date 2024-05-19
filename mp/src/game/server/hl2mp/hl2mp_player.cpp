@@ -971,7 +971,7 @@ bool CHL2MP_Player::HandleCommand_JoinTeam(int team)
 	if (GetNextTeamChangeTime() > gpGlobals->curtime)
 	{
 		char szReturnString[128];
-		Q_snprintf(szReturnString, sizeof(szReturnString), "Please wait %d more seconds before trying to switch teams again.\n", (int)(GetNextTeamChangeTime() - gpGlobals->curtime));
+		Q_snprintf(szReturnString, sizeof(szReturnString), "Please wait %d more second%s before trying to switch teams again.\n", (int)(GetNextTeamChangeTime() - gpGlobals->curtime), (int)(GetNextTeamChangeTime() - gpGlobals->curtime) > 1 ? "s" : "");
 
 		ClientPrint(this, HUD_PRINTTALK, szReturnString);
 

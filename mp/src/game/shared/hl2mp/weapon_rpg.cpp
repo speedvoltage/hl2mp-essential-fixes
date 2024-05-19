@@ -298,6 +298,7 @@ void CMissile::AccelerateThink( void )
 void CMissile::AugerThink( void )
 {
 	CBasePlayer *pPlayer = ToBasePlayer(GetOwnerEntity());
+
 	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
 	{
 		pPlayer->DeathNotice(this);

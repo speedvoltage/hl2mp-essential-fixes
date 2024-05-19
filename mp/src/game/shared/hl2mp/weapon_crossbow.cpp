@@ -203,7 +203,7 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 	if ( !pOther->IsSolid() || pOther->IsSolidFlagSet(FSOLID_VOLUME_CONTENTS) )
 		return;
 
-	if (pOther->m_takedamage != DAMAGE_NO && GetOwnerEntity()->GetTeamNumber() != TEAM_SPECTATOR)
+	if (pOther->m_takedamage != DAMAGE_NO)
 	{
 		trace_t	tr, tr2;
 		tr = BaseClass::GetTouchTrace();
@@ -351,12 +351,6 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 
 			UTIL_Remove( this );
 		}
-	}
-
-	if ( g_pGameRules->IsMultiplayer() )
-	{
-//		SetThink( &CCrossbowBolt::ExplodeThink );
-//		SetNextThink( gpGlobals->curtime + 0.1f );
 	}
 }
 
@@ -639,6 +633,9 @@ void CWeaponCrossbow::FireBolt( void )
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
 	
 	if ( pOwner == NULL )
+		return;
+
+	if (pOwner->GetTeamNumber() == TEAM_SPECTATOR)
 		return;
 
 #ifndef CLIENT_DLL
