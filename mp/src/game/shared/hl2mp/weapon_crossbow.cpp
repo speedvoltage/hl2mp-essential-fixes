@@ -324,7 +324,7 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 				UTIL_ImpactTrace( &tr, DMG_BULLET );
 
 				AddEffects( EF_NODRAW );
-				SetTouch( NULL );
+				SetTouch(NULL); CWeaponCrossbow::FireBolt(void)
 				SetThink( &CCrossbowBolt::SUB_Remove );
 				SetNextThink( gpGlobals->curtime + 2.0f );
 
@@ -359,15 +359,6 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 //-----------------------------------------------------------------------------
 void CCrossbowBolt::BubbleThink( void )
 {
-	CBasePlayer *pPlayer = ToBasePlayer(GetOwnerEntity());
-	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
-	{
-		pPlayer->DeathNotice(this);
-		SetOwnerEntity(NULL);
-		UTIL_Remove(this);
-		return;
-	}
-
 	QAngle angNewAngles;
 
 	VectorAngles( GetAbsVelocity(), angNewAngles );
@@ -633,9 +624,6 @@ void CWeaponCrossbow::FireBolt( void )
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
 	
 	if ( pOwner == NULL )
-		return;
-
-	if (pOwner->GetTeamNumber() == TEAM_SPECTATOR)
 		return;
 
 #ifndef CLIENT_DLL

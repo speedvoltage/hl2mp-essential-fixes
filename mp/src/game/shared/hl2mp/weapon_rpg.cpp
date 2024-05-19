@@ -305,14 +305,6 @@ void CMissile::AugerThink( void )
 		return;
 	}
 
-	if (m_hOwner && m_hOwner->GetTeamNumber() == TEAM_SPECTATOR)
-	{
-		pPlayer->DeathNotice(this);
-		SetOwnerEntity(NULL);
-		UTIL_Remove(this);
-		return;
-	}
-
 	// If we've augered long enough, then just explode
 	if ( m_flAugerTime < gpGlobals->curtime )
 	{
@@ -380,10 +372,6 @@ void CMissile::DoExplosion( void )
 	origin.z -= 1;
 	SetAbsOrigin( origin );
 
-	CBasePlayer *pPlayer = ToBasePlayer(GetOwnerEntity());
-
-	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
-		return;
 	// Explode
 	ExplosionCreate(GetAbsOrigin(), GetAbsAngles(), GetOwnerEntity(), GetDamage(), GetDamage() * 2, SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this);
 }
