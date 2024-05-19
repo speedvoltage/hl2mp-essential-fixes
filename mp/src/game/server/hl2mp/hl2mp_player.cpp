@@ -903,16 +903,9 @@ bool CHL2MP_Player::BumpWeapon( CBaseCombatWeapon *pWeapon )
 void CHL2MP_Player::ChangeTeam( int iTeam )
 {
 	LadderRespawnFix();
-/*	if ( GetNextTeamChangeTime() >= gpGlobals->curtime )
-	{
-		char szReturnString[128];
-		Q_snprintf( szReturnString, sizeof( szReturnString ), "Please wait %d more seconds before trying to switch teams again.\n", (int)(GetNextTeamChangeTime() - gpGlobals->curtime) );
-
-		ClientPrint( this, HUD_PRINTTALK, szReturnString );
-		return;
-	}*/
 
 	bool bKill = false;
+	bool bWasSpectator = false;
 
 	if ( HL2MPRules()->IsTeamplay() != true && iTeam != TEAM_SPECTATOR )
 	{
@@ -928,6 +921,11 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 		}
 	}
 
+	if (this->GetTeamNumber() == TEAM_SPECTATOR)
+	{
+		bWasSpectator = true;
+	}
+
 	BaseClass::ChangeTeam( iTeam );
 
 	m_flNextTeamChangeTime = gpGlobals->curtime + TEAM_CHANGE_INTERVAL;
@@ -939,6 +937,12 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	else
 	{
 		SetPlayerModel();
+	}
+
+	if (bWasSpectator)
+	{
+		Spawn();
+		return; // everything is useless afterwards
 	}
 
 	if ( iTeam == TEAM_SPECTATOR )
@@ -954,34 +958,65 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	}
 }
 
-bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
+bool CHL2MP_Player::HandleCommand_JoinTeam(int team)
 {
-	if ( !GetGlobalTeam( team ) || team == 0 )
+	if (team == TEAM_SPECTATOR && IsHLTV())
 	{
-		Warning( "HandleCommand_JoinTeam( %d ) - invalid team index.\n", team );
+		ChangeTeam(TEAM_SPECTATOR);
+		ResetDeathCount();
+		ResetFragCount();
+		return true;
+	}
+
+	if (GetNextTeamChangeTime() > gpGlobals->curtime)
+	{
+		char szReturnString[128];
+		Q_snprintf(szReturnString, sizeof(szReturnString), "Please wait %d more seconds before trying to switch teams again.\n", (int)(GetNextTeamChangeTime() - gpGlobals->curtime));
+
+		ClientPrint(this, HUD_PRINTTALK, szReturnString);
+
 		return false;
 	}
 
-	if ( team == TEAM_SPECTATOR )
+	if (!GetGlobalTeam(team) || team == 0)
+	{
+		Warning("HandleCommand_JoinTeam( %d ) - invalid team index.\n", team);
+		return false;
+	}
+
+	// Don't do anything if you join your own team
+	if (team == GetTeamNumber())
+	{
+		return false;
+	}
+
+	// end early
+	if (this->GetTeamNumber() == TEAM_SPECTATOR)
+	{
+		ChangeTeam(team);
+		return true;
+	}
+
+	if (team == TEAM_SPECTATOR)
 	{
 		// Prevent this is the cvar is set
-		if ( !mp_allowspectators.GetInt() )
+		if (!mp_allowspectators.GetInt())
 		{
-			ClientPrint( this, HUD_PRINTCENTER, "#Cannot_Be_Spectator" );
+			ClientPrint(this, HUD_PRINTCENTER, "#Cannot_Be_Spectator");
 			return false;
 		}
 
-		if ( GetTeamNumber() != TEAM_UNASSIGNED && !IsDead() )
+		if (GetTeamNumber() != TEAM_UNASSIGNED && !IsDead())
 		{
 			m_fNextSuicideTime = gpGlobals->curtime;	// allow the suicide to work
 
 			CommitSuicide();
 
 			// add 1 to frags to balance out the 1 subtracted for killing yourself
-			IncrementFragCount( 1 );
+			IncrementFragCount(1);
 		}
 
-		ChangeTeam( TEAM_SPECTATOR );
+		ChangeTeam(TEAM_SPECTATOR);
 
 		return true;
 	}
@@ -992,7 +1027,7 @@ bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 	}
 
 	// Switch their actual team...
-	ChangeTeam( team );
+	ChangeTeam(team);
 
 	return true;
 }
