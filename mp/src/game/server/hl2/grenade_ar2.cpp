@@ -128,6 +128,13 @@ void CGrenadeAR2::GrenadeAR2Think( void )
 {
 	SetNextThink( gpGlobals->curtime + 0.05f );
 
+	CBasePlayer *pPlayer = ToBasePlayer(GetOwnerEntity());
+	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+	{
+		UTIL_Remove(this);
+		return;
+	}
+
 	if (!m_bIsLive)
 	{
 		// Go live after a short delay

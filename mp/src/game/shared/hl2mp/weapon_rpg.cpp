@@ -297,6 +297,15 @@ void CMissile::AccelerateThink( void )
 //---------------------------------------------------------
 void CMissile::AugerThink( void )
 {
+	CBasePlayer *pPlayer = ToBasePlayer(GetOwnerEntity());
+	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+	{
+		pPlayer->DeathNotice(this);
+		SetOwnerEntity(NULL);
+		UTIL_Remove(this);
+		return;
+	}
+
 	// If we've augered long enough, then just explode
 	if ( m_flAugerTime < gpGlobals->curtime )
 	{
@@ -363,9 +372,13 @@ void CMissile::DoExplosion( void )
 	Vector origin = GetAbsOrigin();
 	origin.z -= 1;
 	SetAbsOrigin( origin );
+
+	CBasePlayer *pPlayer = ToBasePlayer(GetOwnerEntity());
+
+	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+		return;
 	// Explode
-	ExplosionCreate( GetAbsOrigin(), GetAbsAngles(), GetOwnerEntity(), GetDamage(), GetDamage() * 2, 
-		SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this);
+	ExplosionCreate(GetAbsOrigin(), GetAbsAngles(), GetOwnerEntity(), GetDamage(), GetDamage() * 2, SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this);
 }
 
 
@@ -410,12 +423,12 @@ void CMissile::Explode( void )
 // Purpose: 
 // Input  : *pOther - 
 //-----------------------------------------------------------------------------
-void CMissile::MissileTouch( CBaseEntity *pOther )
+void CMissile::MissileTouch(CBaseEntity *pOther)
 {
-	Assert( pOther );
-	
+	Assert(pOther);
+
 	// Don't touch triggers (but DO hit weapons)
-	if ( pOther->IsSolidFlagSet(FSOLID_TRIGGER|FSOLID_VOLUME_CONTENTS) && pOther->GetCollisionGroup() != COLLISION_GROUP_WEAPON )
+	if (pOther->IsSolidFlagSet(FSOLID_TRIGGER | FSOLID_VOLUME_CONTENTS) && pOther->GetCollisionGroup() != COLLISION_GROUP_WEAPON)
 		return;
 
 	Explode();
@@ -664,7 +677,6 @@ CMissile *CMissile::Create( const Vector &vecOrigin, const QAngle &vecAngles, ed
 	//CMissile *pMissile = (CMissile *)CreateEntityByName("rpg_missile" );
 	CMissile *pMissile = (CMissile *) CBaseEntity::Create( "rpg_missile", vecOrigin, vecAngles, CBaseEntity::Instance( pentOwner ) );
 	pMissile->SetOwnerEntity( Instance( pentOwner ) );
-	pMissile->AddEffects( EF_NOSHADOW );
 	
 	Vector vecForward;
 	AngleVectors( vecAngles, &vecForward );
@@ -885,7 +897,6 @@ CAPCMissile *CAPCMissile::Create( const Vector &vecOrigin, const QAngle &vecAngl
 	pMissile->Spawn();
 	pMissile->SetAbsVelocity( vecVelocity );
 	pMissile->AddFlag( FL_NOTARGET );
-	pMissile->AddEffects( EF_NOSHADOW );
 	return pMissile;
 }
 
