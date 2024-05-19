@@ -174,10 +174,11 @@ void CHL2MP_Player::GiveAllItems( void )
 	CBasePlayer::GiveAmmo( 1,	"smg1_grenade");
 	CBasePlayer::GiveAmmo( 255,	"Buckshot");
 	CBasePlayer::GiveAmmo( 32,	"357" );
-	CBasePlayer::GiveAmmo( 3,	"rpg_round");
+	CBasePlayer::GiveAmmo( 3, "rpg_round" );
+	CBasePlayer::GiveAmmo(10, "XBowBolt");
 
-	CBasePlayer::GiveAmmo( 1,	"grenade" );
-	CBasePlayer::GiveAmmo( 2,	"slam" );
+	CBasePlayer::GiveAmmo( 5,	"grenade" );
+	CBasePlayer::GiveAmmo( 5,	"slam" );
 
 	GiveNamedItem( "weapon_crowbar" );
 	GiveNamedItem( "weapon_stunstick" );
@@ -197,7 +198,6 @@ void CHL2MP_Player::GiveAllItems( void )
 	GiveNamedItem( "weapon_slam" );
 
 	GiveNamedItem( "weapon_physcannon" );
-	
 }
 
 void CHL2MP_Player::GiveDefaultItems( void )
