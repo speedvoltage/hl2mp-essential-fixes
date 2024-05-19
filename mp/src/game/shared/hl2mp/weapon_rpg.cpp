@@ -297,8 +297,6 @@ void CMissile::AccelerateThink( void )
 //---------------------------------------------------------
 void CMissile::AugerThink( void )
 {
-	CBasePlayer *pPlayer = ToBasePlayer(GetOwnerEntity());
-
 	if (!m_hOwner)
 	{
 		UTIL_Remove(this);

@@ -642,7 +642,10 @@ void CPhysBox::InputWake( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 void CPhysBox::InputSleep( inputdata_t &inputdata )
 {
-	VPhysicsGetObject()->Sleep();
+	if (VPhysicsGetObject() != NULL)
+	{
+		VPhysicsGetObject()->Sleep();
+	}
 }
 
 //-----------------------------------------------------------------------------

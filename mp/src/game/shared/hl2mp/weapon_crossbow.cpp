@@ -324,7 +324,7 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 				UTIL_ImpactTrace( &tr, DMG_BULLET );
 
 				AddEffects( EF_NODRAW );
-				SetTouch(NULL); CWeaponCrossbow::FireBolt(void)
+				SetTouch( NULL );
 				SetThink( &CCrossbowBolt::SUB_Remove );
 				SetNextThink( gpGlobals->curtime + 2.0f );
 

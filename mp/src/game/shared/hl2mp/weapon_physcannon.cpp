@@ -872,7 +872,7 @@ void CPlayerPickupController::Use( CBaseEntity *pActivator, CBaseEntity *pCaller
 		}
 #endif
 		// +ATTACK will throw phys objects
-		if ( m_pPlayer->m_nButtons & IN_ATTACK )
+		if (pPhys && m_pPlayer->m_nButtons & IN_ATTACK)
 		{
 			Shutdown( true );
 			Vector vecLaunch;
