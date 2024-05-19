@@ -705,6 +705,15 @@ void CPropCombineBall::WhizSoundThink()
 
 	pPhysicsObject->GetPosition( &vecPosition, NULL );
 	pPhysicsObject->GetVelocity( &vecVelocity, NULL );
+
+	CBasePlayer *pPlayer = ToBasePlayer(GetOwnerEntity());
+	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+	{
+		pPlayer->DeathNotice(this);
+		SetOwnerEntity(NULL);
+		UTIL_Remove(this);
+		return;
+	}
 	
 	if ( gpGlobals->maxClients == 1 )
 	{
@@ -1201,6 +1210,15 @@ void CPropCombineBall::OnHitEntity( CBaseEntity *pHitEntity, float flSpeed, int 
 		(pHitEntity->GetOwnerEntity() && FClassnameIs( pHitEntity->GetOwnerEntity(), "npc_strider" )) )
 	{
 		DoExplosion();
+		return;
+	}
+
+	CBasePlayer *pPlayer = ToBasePlayer(GetOwnerEntity());
+	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+	{
+		pPlayer->DeathNotice(this);
+		SetOwnerEntity(NULL);
+		UTIL_Remove(this);
 		return;
 	}
 

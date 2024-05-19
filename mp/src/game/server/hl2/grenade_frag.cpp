@@ -328,6 +328,15 @@ void CGrenadeFrag::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t r
 
 void CGrenadeFrag::DelayThink() 
 {
+	CBasePlayer *pPlayer = ToBasePlayer(GetOwnerEntity());
+	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+	{
+		pPlayer->DeathNotice(this);
+		SetOwnerEntity(NULL);
+		UTIL_Remove(this);
+		return;
+	}
+
 	if( gpGlobals->curtime > m_flDetonateTime )
 	{
 		Detonate();
