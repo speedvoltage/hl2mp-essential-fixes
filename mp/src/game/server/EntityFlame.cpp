@@ -250,7 +250,7 @@ void CEntityFlame::FlameThink( void )
 			return;
 		}
 
-		if( m_hEntAttached->GetWaterLevel() > 0 )
+		if (m_hEntAttached->GetWaterLevel() >= 1 0)
 		{
 			Vector mins, maxs;
 
@@ -266,6 +266,11 @@ void CEntityFlame::FlameThink( void )
 			mins.y -= 32;
 
 			UTIL_Bubbles( mins, maxs, 12 );
+
+			if (m_flLifetime > 3)
+			{
+				m_flLifetime -= 3;
+			}
 		}
 	}
 	else
@@ -273,6 +278,8 @@ void CEntityFlame::FlameThink( void )
 		UTIL_Remove( this );
 		return;
 	}
+
+	CBaseCombatCharacter *pAttachedCC = m_hEntAttached->MyCombatCharacterPointer();
 
 	// See if we're done burning, or our attached ent has vanished
 	if ( m_flLifetime < gpGlobals->curtime || m_hEntAttached == NULL )
@@ -285,8 +292,6 @@ void CEntityFlame::FlameThink( void )
 		// Notify anything we're attached to
 		if ( m_hEntAttached )
 		{
-			CBaseCombatCharacter *pAttachedCC = m_hEntAttached->MyCombatCharacterPointer();
-
 			if( pAttachedCC )
 			{
 				// Notify the NPC that it's no longer burning!
