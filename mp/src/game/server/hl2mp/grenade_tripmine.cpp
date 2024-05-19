@@ -89,7 +89,7 @@ void CTripmineGrenade::Spawn( void )
 	angles.x -= 90;
 
 	AngleVectors( angles, &m_vecDir );
-	m_vecEnd = GetAbsOrigin() + m_vecDir * 2048;
+	m_vecEnd = GetAbsOrigin() + m_vecDir * 9048;
 
 	AddEffects( EF_NOSHADOW );
 
@@ -172,7 +172,7 @@ void CTripmineGrenade::MakeBeam( void )
 	// to appear if person right in front of it
 	SetNextThink( gpGlobals->curtime + 1.0f );
 
-	Vector vecTmpEnd = GetLocalOrigin() + m_vecDir * 2048 * drawLength;
+	Vector vecTmpEnd = GetLocalOrigin() + m_vecDir * 9048 * drawLength;
 
 	m_pBeam = CBeam::BeamCreate( g_pModelNameLaser, 0.35 );
 	m_pBeam->PointEntInit( vecTmpEnd, this );
