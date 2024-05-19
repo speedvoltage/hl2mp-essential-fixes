@@ -289,6 +289,14 @@ void CHL2MPRules::PlayerKilled( CBasePlayer *pVictim, const CTakeDamageInfo &inf
 #endif
 }
 
+ConVar sv_timeleft_enable("sv_timeleft_enable", "1", 0, "Enable/Disable time left indication on the HUD.", true, 0.0, true, 1.0);
+ConVar sv_timeleft_r("sv_timeleft_red", "255", 0, "Red intensity.", true, 0.0, true, 255.0);
+ConVar sv_timeleft_g("sv_timeleft_green", "255", 0, "Green intensity.", true, 0.0, true, 255.0);
+ConVar sv_timeleft_b("sv_timeleft_blue", "255", 0, "Blue intensity.", true, 0.0, true, 255.0);
+ConVar sv_timeleft_a("sv_timeleft_alpha", "255", 0, "Alpha/Intensity.", true, 0.0, true, 255.0);
+ConVar sv_timeleft_channel("sv_timeleft_channel", "0", 0, "Alpha/Intensity.", true, 0.0, true, 5.0); // Channels go from 0 to 5 (6 total channels).
+ConVar sv_timeleft_x("sv_timeleft_x", "-1");
+ConVar sv_timeleft_y("sv_timeleft_y", "0.01");
 
 void CHL2MPRules::Think( void )
 {
@@ -314,6 +322,43 @@ void CHL2MPRules::Think( void )
 
 //	float flTimeLimit = mp_timelimit.GetFloat() * 60;
 	float flFragLimit = fraglimit.GetFloat();
+
+	if (GetMapRemainingTime() > 0)
+	{
+		if (sv_timeleft_enable.GetBool())
+		{
+			if (gpGlobals->curtime > m_tmNextPeriodicThink)
+			{
+				hudtextparms_t textParams;
+				textParams.channel = sv_timeleft_channel.GetInt();;
+				textParams.r1 = sv_timeleft_r.GetInt();
+				textParams.g1 = sv_timeleft_g.GetInt();
+				textParams.b1 = sv_timeleft_b.GetInt();
+				textParams.a1 = sv_timeleft_a.GetInt();
+				textParams.x = sv_timeleft_x.GetFloat();
+				textParams.y = sv_timeleft_y.GetFloat();
+				textParams.effect = 0;
+				textParams.fadeinTime = 0;
+				textParams.fadeoutTime = 0;
+				textParams.holdTime = 1.10;
+				textParams.fxTime = 0;
+
+				int iTimeRemaining = (int)HL2MPRules()->GetMapRemainingTime();
+
+				int iMinutes, iSeconds;
+				iMinutes = iTimeRemaining / 60;
+				iSeconds = iTimeRemaining % 60;
+
+				char stime[8];
+				// char seconds[8];
+
+				Q_snprintf(stime, sizeof(stime), "%d:%2.2d", iMinutes, iSeconds);
+				// Q_snprintf(seconds, sizeof(seconds), "%2.2d", iSeconds);
+
+				UTIL_HudMessage(UTIL_GetLocalPlayer(), textParams, stime);
+			}
+		}
+	}
 	
 	if ( GetMapRemainingTime() < 0 )
 	{
