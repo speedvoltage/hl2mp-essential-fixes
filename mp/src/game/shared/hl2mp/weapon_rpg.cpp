@@ -1673,6 +1673,7 @@ void CWeaponRPG::StartGuiding( void )
 	m_bGuiding = true;
 
 #ifndef CLIENT_DLL
+	IPredictionSystem::SuppressHostEvents(NULL);
 	WeaponSound(SPECIAL1);
 
 	CreateLaserPointer();
@@ -1689,6 +1690,7 @@ void CWeaponRPG::StopGuiding( void )
 
 #ifndef CLIENT_DLL
 
+	IPredictionSystem::SuppressHostEvents(NULL);
 	WeaponSound( SPECIAL2 );
 
 	// Kill the dot completely

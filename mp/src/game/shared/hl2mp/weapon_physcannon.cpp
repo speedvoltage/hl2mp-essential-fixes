@@ -1948,6 +1948,7 @@ void CWeaponPhysCannon::SecondaryAttack( void )
 		switch ( result )
 		{
 		case OBJECT_FOUND:
+			IPredictionSystem::SuppressHostEvents(NULL);
 			WeaponSound( SPECIAL1 );
 			SendWeaponAnim( ACT_VM_PRIMARYATTACK );
 			m_flNextSecondaryAttack = gpGlobals->curtime + 0.5f;
@@ -2142,6 +2143,7 @@ CWeaponPhysCannon::FindObjectResult_t CWeaponPhysCannon::FindObject( void )
 		if ( !m_flLastDenySoundPlayed )
 		{
 			m_flLastDenySoundPlayed = true;
+			IPredictionSystem::SuppressHostEvents(NULL);
 			WeaponSound( SPECIAL3 );
 		}
 
@@ -2412,6 +2414,7 @@ void CWeaponPhysCannon::DetachObject( bool playSound, bool wasLaunched )
 	if ( playSound )
 	{
 		//Play the detach sound
+		IPredictionSystem::SuppressHostEvents(NULL);
 		WeaponSound( MELEE_MISS );
 	}
 	
@@ -2820,6 +2823,7 @@ void CWeaponPhysCannon::OpenElements( void )
 	if ( m_bOpen )
 		return;
 
+	IPredictionSystem::SuppressHostEvents(NULL);
 	WeaponSound( SPECIAL2 );
 
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
@@ -2848,6 +2852,7 @@ void CWeaponPhysCannon::CloseElements( void )
 	if ( m_bOpen == false )
 		return;
 
+	IPredictionSystem::SuppressHostEvents(NULL);
 	WeaponSound( MELEE_HIT );
 
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );

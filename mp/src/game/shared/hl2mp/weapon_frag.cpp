@@ -543,6 +543,7 @@ void CWeaponFrag::RollGrenade( CBasePlayer *pPlayer )
 
 #endif
 
+	IPredictionSystem::SuppressHostEvents(NULL);
 	WeaponSound( SPECIAL1 );
 
 	// player "shoot" animation

@@ -837,6 +837,7 @@ void CWeaponCrossbow::SetChargerState( ChargerState_t state )
 	{
 	case CHARGER_STATE_START_LOAD:
 	
+		IPredictionSystem::SuppressHostEvents(NULL);
 		WeaponSound( SPECIAL1 );
 		
 		// Shoot some sparks and draw a beam between the two outer points
