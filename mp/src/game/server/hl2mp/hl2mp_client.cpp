@@ -62,6 +62,12 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 	{
 		ClientPrint( pPlayer, HUD_PRINTTALK, "You are on team %s1\n", pPlayer->GetTeam()->GetName() );
 	}
+
+	// If on a custom game mode that puts players in team spectator on connect, strip suit and weapons too
+	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+	{
+		pPlayer->RemoveAllItems(true);
+	}
 }
 
 /*

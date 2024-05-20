@@ -953,7 +953,13 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 
 	if ( iTeam == TEAM_SPECTATOR )
 	{
+		// Fixes the sprinting issue and suit zoom as spec
 		RemoveAllItems( true );
+
+		if (FlashlightIsOn())
+		{
+			FlashlightTurnOff();
+		}
 
 		State_Transition( STATE_OBSERVER_MODE );
 	}

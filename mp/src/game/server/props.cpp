@@ -651,7 +651,7 @@ void CBreakableProp::StickAtPosition( const Vector &stickPosition, const Vector 
 
 	VPhysicsGetObject()->EnableMotion( false );
 	AddSpawnFlags( SF_PHYSPROP_ENABLE_ON_PHYSCANNON );
-	SetCollisionGroup( COLLISION_GROUP_DEBRIS );
+	SetCollisionGroup(COLLISION_GROUP_INTERACTIVE);
 }
 
 //-----------------------------------------------------------------------------
@@ -5764,6 +5764,8 @@ void CPhysicsPropRespawnable::Event_Killed( const CTakeDamageInfo &info )
 	PhysCleanupFrictionSounds( this );
 
 	VPhysicsDestroyObject();
+
+	RemoveAllDecals();
 
 	CBaseEntity::PhysicsRemoveTouchedList( this );
 	CBaseEntity::PhysicsRemoveGroundList( this );
