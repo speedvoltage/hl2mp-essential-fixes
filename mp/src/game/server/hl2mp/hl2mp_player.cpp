@@ -526,12 +526,14 @@ void CHL2MP_Player::ResetAnimation( void )
 		SetSequence ( -1 );
 		SetActivity( ACT_INVALID );
 
-		if (!GetAbsVelocity().x && !GetAbsVelocity().y)
-			SetAnimation( PLAYER_IDLE );
-		else if ((GetAbsVelocity().x || GetAbsVelocity().y))//Fixed model's T-Pose while realoding in jump 
-			SetAnimation( PLAYER_WALK );
-		else if (GetWaterLevel() > 1)
-			SetAnimation( PLAYER_WALK );
+		if ((GetAbsVelocity().x || GetAbsVelocity().y) && (GetFlags() & FL_ONGROUND) || GetWaterLevel() > 1)
+		{
+			SetAnimation(PLAYER_WALK);
+		}
+		else
+		{
+			SetAnimation(PLAYER_IDLE);
+		}
 	}
 }
 
@@ -990,7 +992,9 @@ bool CHL2MP_Player::HandleCommand_JoinTeam(int team)
 
 	if (!GetGlobalTeam(team) || team == 0)
 	{
-		Warning("HandleCommand_JoinTeam( %d ) - invalid team index.\n", team);
+		char szReturnString[128];
+		Q_snprintf(szReturnString, sizeof(szReturnString), "Please enter a valid team index.\n");
+		ClientPrint(this, HUD_PRINTTALK, szReturnString);
 		return false;
 	}
 
@@ -1055,11 +1059,6 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 	}
 	else if ( FStrEq( args[0], "jointeam" ) ) 
 	{
-		if ( args.ArgC() < 2 )
-		{
-			Warning( "Player sent bad jointeam syntax\n" );
-		}
-
 		if ( ShouldRunRateLimitedCommand( args ) )
 		{
 			int iTeam = atoi( args[1] );
@@ -1272,9 +1271,6 @@ void CHL2MP_Player::DetonateTripmines( void )
 			g_EventQueue.AddEvent( pSatchel, "Explode", 0.20, this, this );
 		}
 	}
-
-	// Play sound for pressing the detonator
-	EmitSound( "Weapon_SLAM.SatchelDetonate" );
 }
 
 void CHL2MP_Player::LadderRespawnFix()
