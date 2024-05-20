@@ -282,8 +282,8 @@ bool CWeaponAR2::Reload( void )
 void CWeaponAR2::AddViewKick( void )
 {
 	#define	EASY_DAMPEN			0.5f
-	#define	MAX_VERTICAL_KICK	8.0f	//Degrees
-	#define	SLIDE_LIMIT			5.0f	//Seconds
+	#define	MAX_VERTICAL_KICK	7.0f	//Degrees
+	#define	SLIDE_LIMIT			4.5f	//Seconds
 	
 	//Get the view kick
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );

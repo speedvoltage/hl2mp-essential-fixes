@@ -134,7 +134,7 @@ void CBaseHL2MPBludgeonWeapon::Hit( trace_t &traceHit, Activity nHitActivity )
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 	
 	//Do view kick
-//	AddViewKick();
+	AddViewKick();
 
 	CBaseEntity	*pHitEntity = traceHit.m_pEnt;
 

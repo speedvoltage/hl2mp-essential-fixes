@@ -1557,6 +1557,7 @@ void CWeaponPhysCannon::DryFire( void )
 {
 	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
 
+	IPredictionSystem::SuppressHostEvents(NULL);
 	WeaponSound( EMPTY );
 }
 
@@ -1577,6 +1578,7 @@ void CWeaponPhysCannon::PrimaryFireEffect( void )
 	UTIL_ScreenFade( pOwner, white, 0.1f, 0.0f, FFADE_IN );
 #endif
 
+	IPredictionSystem::SuppressHostEvents(NULL);
 	WeaponSound( SINGLE );
 }
 

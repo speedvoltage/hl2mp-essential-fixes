@@ -633,7 +633,10 @@ int CPhysBox::DrawDebugTextOverlays(void)
 //-----------------------------------------------------------------------------
 void CPhysBox::InputWake( inputdata_t &inputdata )
 {
-	VPhysicsGetObject()->Wake();
+	if (VPhysicsGetObject() != NULL)
+	{
+		VPhysicsGetObject()->Wake();
+	}
 }
 
 //-----------------------------------------------------------------------------

@@ -953,6 +953,9 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 		return; // everything is useless afterwards
 	}
 
+	DetonateTripmines();
+	ClearUseEntity();
+
 	if ( iTeam == TEAM_SPECTATOR )
 	{
 		// Fixes the sprinting issue and suit zoom as spec
@@ -961,6 +964,11 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 		if (FlashlightIsOn())
 		{
 			FlashlightTurnOff();
+		}
+
+		if (IsInAVehicle())
+		{
+			LeaveVehicle();
 		}
 
 		State_Transition( STATE_OBSERVER_MODE );

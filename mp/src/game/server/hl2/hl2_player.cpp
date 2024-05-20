@@ -3551,6 +3551,9 @@ const impactdamagetable_t &CHL2_Player::GetPhysicsImpactDamageTable()
 //-----------------------------------------------------------------------------
 void CHL2_Player::Splash( void )
 {
+	if (IsObserver())
+		return;
+
 	CEffectData data;
 	data.m_fFlags = 0;
 	data.m_vOrigin = GetAbsOrigin();

@@ -354,7 +354,7 @@ bool CTeamplayRules::IsTeamplay( void )
 
 bool CTeamplayRules::FPlayerCanTakeDamage( CBasePlayer *pPlayer, CBaseEntity *pAttacker, const CTakeDamageInfo &info )
 {
-	if (pAttacker->GetTeamNumber() == TEAM_SPECTATOR)
+	if (pAttacker->GetTeamNumber() == TEAM_SPECTATOR || pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
 	{
 		return false;
 	}

@@ -15,6 +15,10 @@
 #include "simtimer.h"
 #include "soundenvelope.h"
 
+#if defined ( HL2MP )
+#include "basemultiplayerplayer.h"
+#endif
+
 class CAI_Squad;
 class CPropCombineBall;
 
@@ -75,7 +79,11 @@ public:
 //=============================================================================
 // >> HL2_PLAYER
 //=============================================================================
+#if defined ( HL2MP )
+class CHL2_Player : public CBaseMultiplayerPlayer
+#else
 class CHL2_Player : public CBasePlayer
+#endif
 {
 public:
 	DECLARE_CLASS( CHL2_Player, CBasePlayer );
