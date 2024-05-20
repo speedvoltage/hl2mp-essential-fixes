@@ -759,9 +759,6 @@ void CPlayerPickupController::Init( CBasePlayer *pPlayer, CBaseEntity *pObject )
 		}
 	}
 
-
-	CHL2MP_Player *pOwner = (CHL2MP_Player *)ToBasePlayer( pPlayer );
-
 	// If the target is debris, convert it to non-debris
 	if ( pObject->GetCollisionGroup() == COLLISION_GROUP_DEBRIS )
 	{
