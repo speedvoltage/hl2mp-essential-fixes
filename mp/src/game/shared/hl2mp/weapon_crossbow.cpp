@@ -26,8 +26,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-//#define BOLT_MODEL			"models/crossbow_bolt.mdl"
-#define BOLT_MODEL	"models/weapons/w_missile_closed.mdl"
+#define BOLT_MODEL		"models/crossbow_bolt.mdl"
 
 #define BOLT_AIR_VELOCITY	3500
 #define BOLT_WATER_VELOCITY	1500
@@ -163,7 +162,7 @@ void CCrossbowBolt::Spawn( void )
 {
 	Precache( );
 
-	SetModel( "models/crossbow_bolt.mdl" );
+	SetModel(BOLT_MODEL);
 	SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_CUSTOM );
 	UTIL_SetSize( this, -Vector(1,1,1), Vector(1,1,1) );
 	SetSolid( SOLID_BBOX );
@@ -187,9 +186,6 @@ void CCrossbowBolt::Spawn( void )
 void CCrossbowBolt::Precache( void )
 {
 	PrecacheModel( BOLT_MODEL );
-
-	// This is used by C_TEStickyBolt, despte being different from above!!!
-	PrecacheModel( "models/crossbow_bolt.mdl" );
 
 	PrecacheModel( "sprites/light_glow02_noz.vmt" );
 }
@@ -248,9 +244,6 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 
 		if ( tr2.fraction != 1.0f )
 		{
-//			NDebugOverlay::Box( tr2.endpos, Vector( -16, -16, -16 ), Vector( 16, 16, 16 ), 0, 255, 0, 0, 10 );
-//			NDebugOverlay::Box( GetAbsOrigin(), Vector( -16, -16, -16 ), Vector( 16, 16, 16 ), 0, 0, 255, 0, 10 );
-
 			if ( tr2.m_pEnt == NULL || ( tr2.m_pEnt && tr2.m_pEnt->GetMoveType() == MOVETYPE_NONE ) )
 			{
 				CEffectData	data;
@@ -663,7 +656,6 @@ void CWeaponCrossbow::FireBolt( void )
 
 	m_flNextPrimaryAttack = m_flNextSecondaryAttack	= gpGlobals->curtime + 0.75;
 
-	DoLoadEffect();
 	SetChargerState( CHARGER_STATE_DISCHARGE );
 }
 
