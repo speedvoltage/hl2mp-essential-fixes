@@ -45,8 +45,6 @@ ConVar sv_hl2mp_weapon_respawn_time( "sv_hl2mp_weapon_respawn_time", "20", FCVAR
 ConVar sv_hl2mp_item_respawn_time( "sv_hl2mp_item_respawn_time", "30", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 
-extern ConVar sv_switch_messages;
-
 extern ConVar mp_chattime;
 
 extern CBaseEntity	 *g_pLastCombineSpawn;
@@ -844,25 +842,12 @@ void CHL2MPRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 
 			Q_snprintf( szReturnString, sizeof (szReturnString ), "cl_playermodel %s\n", pCurrentModel );
 			engine->ClientCommand ( pHL2Player->edict(), szReturnString );
-
-			if (sv_switch_messages.GetBool())
-			{
-				Q_snprintf(szReturnString, sizeof(szReturnString), "Please wait %d more seconds before trying to switch.\n", (int)(pHL2Player->GetNextModelChangeTime() - gpGlobals->curtime));
-				ClientPrint(pHL2Player, HUD_PRINTTALK, szReturnString);
-			}
 			return;
 		}
 
 		if ( HL2MPRules()->IsTeamplay() == false )
 		{
-			pHL2Player->SetPlayerModel();
-
-			const char *pszCurrentModelName = modelinfo->GetModelName( pHL2Player->GetModel() );
-
-			char szReturnString[128];
-			Q_snprintf( szReturnString, sizeof( szReturnString ), "Your player model is: %s\n", pszCurrentModelName );
-
-			ClientPrint( pHL2Player, HUD_PRINTTALK, szReturnString );
+			pHL2Player->SetPlayerTeamModel();
 		}
 		else
 		{
@@ -872,7 +857,7 @@ void CHL2MPRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 			}
 			else
 			{
-				pHL2Player->ChangeTeam( TEAM_COMBINE );
+				pHL2Player->SetPlayerTeamModel();
 			}
 		}
 	}

@@ -35,8 +35,6 @@ CBaseEntity	 *g_pLastCombineSpawn = NULL;
 CBaseEntity	 *g_pLastRebelSpawn = NULL;
 extern CBaseEntity				*g_pLastSpawn;
 
-extern ConVar sv_switch_messages;
-
 #define HL2MP_COMMAND_MAX_RATE 0.3
 
 void DropPrimedFragGrenade( CHL2MP_Player *pPlayer, CBaseCombatWeapon *pGrenade );
@@ -988,19 +986,6 @@ bool CHL2MP_Player::HandleCommand_JoinTeam(int team)
 		ResetDeathCount();
 		ResetFragCount();
 		return true;
-	}
-
-	if (GetNextTeamChangeTime() > gpGlobals->curtime)
-	{
-		if (sv_switch_messages.GetBool())
-		{
-			char szReturnString[128];
-			Q_snprintf(szReturnString, sizeof(szReturnString), "Please wait %d more second%s before trying to switch teams again.\n", (int)(GetNextTeamChangeTime() - gpGlobals->curtime), (int)(GetNextTeamChangeTime() - gpGlobals->curtime) > 1 ? "s" : "");
-
-			ClientPrint(this, HUD_PRINTTALK, szReturnString);
-		}
-
-		return false;
 	}
 
 	if (!GetGlobalTeam(team) || team == 0)
