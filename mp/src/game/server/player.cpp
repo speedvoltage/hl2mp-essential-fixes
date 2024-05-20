@@ -4585,12 +4585,17 @@ void CBasePlayer::PostThink()
 			// If he's in a vehicle, sit down
 			if ( IsInAVehicle() )
 				SetAnimation( PLAYER_IN_VEHICLE );
-			else if (!GetAbsVelocity().x && !GetAbsVelocity().y)
-				SetAnimation( PLAYER_IDLE );
-			else if ((GetAbsVelocity().x || GetAbsVelocity().y) && ( GetFlags() & FL_ONGROUND ))
-				SetAnimation( PLAYER_WALK );
-			else if (GetWaterLevel() > 1)
-				SetAnimation( PLAYER_WALK );
+			else
+			{
+				if ((GetAbsVelocity().x || GetAbsVelocity().y) && (GetFlags() & FL_ONGROUND) || GetWaterLevel() > 1)
+				{
+					SetAnimation(PLAYER_WALK);
+				}
+				else
+				{
+					SetAnimation(PLAYER_IDLE);
+				}
+			}
 		}
 
 		// Don't allow bogus sequence on player
