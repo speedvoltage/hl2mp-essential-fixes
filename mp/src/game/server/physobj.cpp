@@ -711,7 +711,10 @@ void CPhysBox::InputForceDrop( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 void CPhysBox::Move( const Vector &direction )
 {
-	VPhysicsGetObject()->ApplyForceCenter( direction );
+	if (VPhysicsGetObject())
+	{
+		VPhysicsGetObject()->ApplyForceCenter(direction);
+	}
 }
 
 // Update the visible representation of the physic system's representation of this object

@@ -590,7 +590,10 @@ void CPropAirboat::InputExitVehicle( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 void CPropAirboat::InputWake( inputdata_t &inputdata )
 {
-	VPhysicsGetObject()->Wake();
+	if (VPhysicsGetObject())
+	{
+		VPhysicsGetObject()->Wake();
+	}
 }
 
 

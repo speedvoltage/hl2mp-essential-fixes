@@ -1387,7 +1387,6 @@ CBaseEntity* CHL2MP_Player::EntSelectSpawnPoint( void )
 {
 	CBaseEntity *pSpot = NULL;
 	CBaseEntity *pLastSpawnPoint = g_pLastSpawn;
-	edict_t		*player = edict();
 	const char *pSpawnpointName = "info_player_deathmatch";
 
 	if ( HL2MPRules()->IsTeamplay() == true )
@@ -1443,22 +1442,7 @@ CBaseEntity* CHL2MP_Player::EntSelectSpawnPoint( void )
 	// we haven't found a place to spawn yet,  so kill any guy at the first spawn point and spawn there
 	if ( pSpot && ( TEAM_SPECTATOR != GetPlayerInfo()->GetTeamIndex() ) )
 	{
-		CBaseEntity *ent = NULL;
-		for ( CEntitySphereQuery sphere( pSpot->GetAbsOrigin(), 128 ); (ent = sphere.GetCurrentEntity()) != NULL; sphere.NextEntity() )
-		{
-			// if ent is a client, kill em (unless they are ourselves)
-			if ( ent->IsPlayer() && !(ent->edict() == player) )
-				ent->TakeDamage( CTakeDamageInfo( GetContainingEntity(INDEXENT(0)), GetContainingEntity(INDEXENT(0)), 300, DMG_GENERIC ) );
-		}
 		goto ReturnSpot;
-	}
-
-	if ( !pSpot  )
-	{
-		pSpot = gEntList.FindEntityByClassname( pSpot, "info_player_start" );
-
-		if ( pSpot )
-			goto ReturnSpot;
 	}
 
 ReturnSpot:
@@ -1475,9 +1459,19 @@ ReturnSpot:
 		}
 	}
 
+	if (!pSpot)
+	{
+		pSpot = gEntList.FindEntityByClassname(pSpot, "info_player_start");
+
+		if (pSpot)
+			goto ReturnSpot;
+		else
+			return CBaseEntity::Instance(INDEXENT(0));
+	}
+
 	g_pLastSpawn = pSpot;
 
-	m_flSlamProtectTime = gpGlobals->curtime + 0.5;
+	m_flSlamProtectTime = gpGlobals->curtime + 0.9;
 
 	return pSpot;
 }
