@@ -140,7 +140,6 @@ void CWeapon357::PrimaryAttack( void )
 	angles.y += random->RandomInt( -1, 1 );
 	angles.z = 0;
 
-
 	pPlayer->ViewPunch( QAngle( -8, random->RandomFloat( -2, 2 ), 0 ) );
 
 	if ( !m_iClip1 && pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )

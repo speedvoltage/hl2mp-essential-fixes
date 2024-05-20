@@ -1574,7 +1574,7 @@ void CWeaponRPG::ItemPostFrame( void )
 	//Move the laser
 	UpdateLaserPosition();
 
-	if ( pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0 && m_hMissile == NULL )
+	if ( pPlayer->GetAmmoCount(m_iPrimaryAmmoType) == 0 && m_hMissile == NULL )
 	{
 		StopGuiding();
 	}
@@ -1804,7 +1804,7 @@ void CWeaponRPG::CreateLaserPointer( void )
 	if ( pOwner == NULL )
 		return;
 	//3RD ROCKET FIX
-	if ( pOwner->GetAmmoCount(m_iPrimaryAmmoType) < 0 )
+	if (pOwner->GetAmmoCount(m_iPrimaryAmmoType) == 0 && m_hMissile == NULL)
 		return;
 
 	m_hLaserDot = CLaserDot::Create( GetAbsOrigin(), GetOwner() );
@@ -1904,7 +1904,7 @@ void CWeaponRPG::InitBeam( void )
 	if ( pOwner == NULL )
 		return;
 
-	if ( pOwner->GetAmmoCount(m_iPrimaryAmmoType) <= 0 )
+	if (pOwner->GetAmmoCount(m_iPrimaryAmmoType) == 0 && m_hMissile == NULL)
 		return;
 
 
