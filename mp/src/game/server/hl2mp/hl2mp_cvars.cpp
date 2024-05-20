@@ -36,3 +36,9 @@ ConVar mp_suitvoice(
 	"0",
 	FCVAR_GAMEDLL,
 	"If non-zero, game will enable suit notifications");
+
+ConVar sv_switch_messages(
+	"sv_switch_messages", 
+	"0", 
+	FCVAR_GAMEDLL | FCVAR_NOTIFY,
+	"If non-zero, game will notify the player of wait for switch messages.");
