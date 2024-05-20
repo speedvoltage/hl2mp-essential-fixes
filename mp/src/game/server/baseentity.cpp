@@ -5577,6 +5577,12 @@ void CC_Ent_Info( const CCommand& args )
 	{
 		return;
 	}
+
+	if (!Q_stricmp(args[1], "worldspawn"))
+	{
+		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "Usage:\n   ent_info <class name>\n");
+		return;
+	}
 	
 	if ( args.ArgC() < 2 )
 	{
