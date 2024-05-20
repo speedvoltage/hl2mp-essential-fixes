@@ -346,6 +346,8 @@ void CBaseHL2MPBludgeonWeapon::Swing( int bIsSecondary )
 		
 		// See if we happened to hit water
 		ImpactWater( swingStart, testEnd );
+
+		IPredictionSystem::SuppressHostEvents(NULL);
 	}
 	else
 	{

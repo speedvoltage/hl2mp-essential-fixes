@@ -3554,6 +3554,8 @@ void CHL2_Player::Splash( void )
 	if (IsObserver())
 		return;
 
+	IPredictionSystem::SuppressHostEvents(NULL);
+
 	CEffectData data;
 	data.m_fFlags = 0;
 	data.m_vOrigin = GetAbsOrigin();
