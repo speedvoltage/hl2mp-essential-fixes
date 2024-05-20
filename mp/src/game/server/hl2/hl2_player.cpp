@@ -231,61 +231,6 @@ void CC_ToggleZoom( void )
 static ConCommand toggle_zoom("toggle_zoom", CC_ToggleZoom, "Toggles zoom display" );
 
 // ConVar cl_forwardspeed( "cl_forwardspeed", "400", FCVAR_CHEAT ); // Links us to the client's version
-ConVar xc_crouch_range( "xc_crouch_range", "0.85", FCVAR_ARCHIVE, "Percentarge [1..0] of joystick range to allow ducking within" );	// Only 1/2 of the range is used
-ConVar xc_use_crouch_limiter( "xc_use_crouch_limiter", "0", FCVAR_ARCHIVE, "Use the crouch limiting logic on the controller" );
-
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-void CC_ToggleDuck( void )
-{
-	CBasePlayer* pPlayer = UTIL_GetCommandClient();
-	if ( pPlayer == NULL )
-		return;
-
-	// Cannot be frozen
-	if ( pPlayer->GetFlags() & FL_FROZEN )
-		return;
-
-	static bool		bChecked = false;
-	static ConVar *pCVcl_forwardspeed = NULL;
-	if ( !bChecked )
-	{
-		bChecked = true;
-		pCVcl_forwardspeed = ( ConVar * )cvar->FindVar( "cl_forwardspeed" );
-	}
-
-
-	// If we're not ducked, do extra checking
-	if ( xc_use_crouch_limiter.GetBool() )
-	{
-		if ( pPlayer->GetToggledDuckState() == false )
-		{
-			float flForwardSpeed = 400.0f;
-			if ( pCVcl_forwardspeed )
-			{
-				flForwardSpeed = pCVcl_forwardspeed->GetFloat();
-			}
-
-			flForwardSpeed = MAX( 1.0f, flForwardSpeed );
-
-			// Make sure we're not in the blindspot on the crouch detection
-			float flStickDistPerc = ( pPlayer->GetStickDist() / flForwardSpeed ); // Speed is the magnitude
-			if ( flStickDistPerc > xc_crouch_range.GetFloat() )
-				return;
-		}
-	}
-
-	// Toggle the duck
-	pPlayer->ToggleDuck();
-}
-
-static ConCommand toggle_duck("toggle_duck", CC_ToggleDuck, "Toggles duck" );
-
-#ifndef HL2MP
-#ifndef PORTAL
-LINK_ENTITY_TO_CLASS( player, CHL2_Player );
-#endif
-#endif
 
 PRECACHE_REGISTER(player);
 
@@ -1686,7 +1631,6 @@ void CHL2_Player::SetupVisibility( CBaseEntity *pViewEntity, unsigned char *pvs,
 	}
 }
 
-
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 void CHL2_Player::SuitPower_Update( void )
@@ -1751,7 +1695,6 @@ void CHL2_Player::SuitPower_Initialize( void )
 	m_flSuitPowerLoad = 0.0;
 }
 
-
 //-----------------------------------------------------------------------------
 // Purpose: Interface to drain power from the suit's power supply.
 // Input:	Amount of charge to remove (expressed as percentage of full charge)
@@ -1813,7 +1756,6 @@ bool CHL2_Player::SuitPower_AddDevice( const CSuitPowerDevice &device )
 	m_flSuitPowerLoad += device.GetDeviceDrainRate();
 	return true;
 }
-
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -1918,7 +1860,6 @@ int CHL2_Player::FlashlightIsOn( void )
 	return IsEffectActive( EF_DIMLIGHT );
 }
 
-
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 void CHL2_Player::FlashlightTurnOn( void )
@@ -1943,7 +1884,6 @@ void CHL2_Player::FlashlightTurnOn( void )
 	flashlighton.SetFloat( m_HL2Local.m_flSuitPower / 100.0f );
 	FirePlayerProxyOutput( "OnFlashlightOn", flashlighton, this, this );
 }
-
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -2105,7 +2045,6 @@ void CHL2_Player::InputEnableFlashlight( inputdata_t &inputdata )
 	SetFlashlightEnabled( true );
 }
 
-
 //-----------------------------------------------------------------------------
 // Purpose: Prevent the player from taking fall damage for [n] seconds, but
 // reset back to taking fall damage after the first impact (so players will be
@@ -2121,7 +2060,6 @@ void CHL2_Player::InputIgnoreFallDamage( inputdata_t &inputdata )
 	m_flTimeIgnoreFallDamage = gpGlobals->curtime + timeToIgnore;
 	m_bIgnoreFallDamageResetAfterImpact = true;
 }
-
 
 //-----------------------------------------------------------------------------
 // Purpose: Absolutely prevent the player from taking fall damage for [n] seconds. 
@@ -3087,7 +3025,6 @@ void CHL2_Player::InputForceDropPhysObjects( inputdata_t &data )
 	ForceDropOfCarriedPhysObjects( data.pActivator );
 }
 
-
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -3209,7 +3146,6 @@ Vector CHL2_Player::EyeDirection3D( void )
 	return vecForward;
 }
 
-
 //---------------------------------------------------------
 //---------------------------------------------------------
 bool CHL2_Player::Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex )
@@ -3227,7 +3163,6 @@ bool CHL2_Player::Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex 
 
 	return BaseClass::Weapon_Switch( pWeapon, viewmodelindex );
 }
-
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -3302,7 +3237,6 @@ static void Collision_ClearTrace( const Vector &vecRayStart, const Vector &vecRa
 	pTrace->fraction = 1.0f;
 	pTrace->contents = 0;
 }
-
 
 bool IntersectRayWithAACylinder( const Ray_t &ray, 
 	const Vector &center, float radius, float height, CBaseTrace *pTrace )
@@ -3382,7 +3316,6 @@ bool IntersectRayWithAACylinder( const Ray_t &ray,
 	return true;
 }
 
-
 bool CHL2_Player::TestHitboxes( const Ray_t &ray, unsigned int fContentsMask, trace_t& tr )
 {
 	if( g_pGameRules->IsMultiplayer() )
@@ -3459,7 +3392,6 @@ void CHL2_Player::ExitLadder()
 	m_HL2Local.m_hLadder.Set( NULL );
 }
 
-
 surfacedata_t *CHL2_Player::GetLadderSurface( const Vector &origin )
 {
 	extern const char *FuncLadder_GetSurfaceprops(CBaseEntity *pLadderEntity);
@@ -3483,7 +3415,6 @@ void CHL2_Player::PlayUseDenySound()
 	m_bPlayUseDenySound = true;
 }
 
-
 void CHL2_Player::ItemPostFrame()
 {
 	BaseClass::ItemPostFrame();
@@ -3494,7 +3425,6 @@ void CHL2_Player::ItemPostFrame()
 		EmitSound( "HL2Player.UseDeny" );
 	}
 }
-
 
 void CHL2_Player::StartWaterDeathSounds( void )
 {
@@ -3595,7 +3525,6 @@ void CHL2_Player::ModifyOrAppendPlayerCriteria( AI_CriteriaSet& set )
 	}
 }
 
-
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 const impactdamagetable_t &CHL2_Player::GetPhysicsImpactDamageTable()
@@ -3605,7 +3534,6 @@ const impactdamagetable_t &CHL2_Player::GetPhysicsImpactDamageTable()
 	
 	return BaseClass::GetPhysicsImpactDamageTable();
 }
-
 
 //-----------------------------------------------------------------------------
 // Purpose: Makes a splash when the player transitions between water states
@@ -3815,14 +3743,3 @@ void CLogicPlayerProxy::InputSetLocatorTargetEntity( inputdata_t &inputdata )
 	CHL2_Player *pPlayer = dynamic_cast<CHL2_Player*>(m_hPlayer.Get());
 	pPlayer->SetLocatorTargetEntity(pTarget);
 }
-
-#ifdef PORTAL
-void CLogicPlayerProxy::InputSuppressCrosshair( inputdata_t &inputdata )
-{
-	if( m_hPlayer == NULL )
-		return;
-
-	CPortal_Player *pPlayer = ToPortalPlayer(m_hPlayer.Get());
-	pPlayer->SuppressCrosshair( true );
-}
-#endif // PORTAL
