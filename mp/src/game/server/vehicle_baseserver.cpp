@@ -1510,7 +1510,7 @@ void CBaseServerVehicle::GetVehicleViewPosition( int nRole, Vector *pAbsOrigin, 
 	Assert( pPassenger );
 
 	CBasePlayer *pPlayer = ToBasePlayer( pPassenger );
-	if ( pPlayer != NULL )
+	if (pPlayer)
 	{
 		// Call through the player to resolve the actual position (if available)
 		if ( pAbsOrigin != NULL )

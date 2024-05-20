@@ -1140,7 +1140,7 @@ void CFourWheelServerVehicle::SetVehicle( CBaseEntity *pVehicle )
 //-----------------------------------------------------------------------------
 // Purpose: Modify the player view/camera while in a vehicle
 //-----------------------------------------------------------------------------
-void CFourWheelServerVehicle::GetVehicleViewPosition( int nRole, Vector *pAbsOrigin, QAngle *pAbsAngles, float *pFOV /*= NULL*/ )
+void CFourWheelServerVehicle::GetVehicleViewPosition(int nRole, Vector *pAbsOrigin, QAngle *pAbsAngles, float *pFOV)
 {
 	CBaseEntity *pDriver = GetPassenger( nRole );
 	if ( pDriver && pDriver->IsPlayer())

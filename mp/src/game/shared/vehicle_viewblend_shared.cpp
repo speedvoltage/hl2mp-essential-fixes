@@ -215,6 +215,11 @@ void SharedVehicleViewSmoothing(CBasePlayer *pPlayer,
 								ViewSmoothingData_t *pData, 
 								float *pFOV )
 {
+	if (!pPlayer)
+	{
+		return;
+	}
+
 	int eyeAttachmentIndex = pData->pVehicle->LookupAttachment( "vehicle_driver_eyes" );
 	matrix3x4_t vehicleEyePosToWorld;
 	Vector vehicleEyeOrigin;
@@ -272,13 +277,6 @@ void SharedVehicleViewSmoothing(CBasePlayer *pPlayer,
 
 		if ( frac < 1.0 )
 		{
-			// Blend to the desired vehicle eye origin
-			//Vector vecToView = (vehicleEyeOrigin - PrevMainViewOrigin());
-			//vehicleEyeOrigin = PrevMainViewOrigin() + (vecToView * SimpleSpline(frac));
-			//debugoverlay->AddBoxOverlay( vehicleEyeOrigin, -Vector(1,1,1), Vector(1,1,1), vec3_angle, 0,255,255, 64, 10 );
-		}
-		else 
-		{
 			pData->bRunningEnterExit = false;
 
 			// Enter animation has finished, align view with the eye attachment point
@@ -289,9 +287,7 @@ void SharedVehicleViewSmoothing(CBasePlayer *pPlayer,
 				QAngle localEyeAngles;
 
 				pData->pVehicle->GetAttachmentLocal( eyeAttachmentIndex, localEyeOrigin, localEyeAngles );
-#ifdef CLIENT_DLL
-				engine->SetViewAngles( localEyeAngles );
-#endif
+				pPlayer->SetLocalAngles(localEyeAngles);
 			}
 		}
 	}
@@ -366,12 +362,6 @@ void SharedVehicleViewSmoothing(CBasePlayer *pPlayer,
 
 		// Use this as the basis for the next error calculation.
 		pData->vecAnglesSaved = *pAbsAngles;
-
-		//if ( gpGlobals->frametime )
-		//{
-		//	Msg("Angle : %.2f %.2f %.2f\n", target.x, target.y, target.z );
-		//}
-		//Msg("Prev: %.2f %.2f %.2f\n", pData->vecAnglesSaved.x, pData->vecAnglesSaved.y, pData->vecAnglesSaved.z );
 
 		Vector vecAbsOrigin = *pAbsOrigin;
 

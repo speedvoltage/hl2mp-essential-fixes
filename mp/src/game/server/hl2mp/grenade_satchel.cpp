@@ -139,8 +139,15 @@ void CSatchelCharge::SatchelThink( void )
 		trace_t tr;
 		Vector	vUpABit = GetAbsOrigin();
 		vUpABit.z += 5.0;
+		CBaseEntity* saveOwner = GetOwnerEntity();
 
-		CBaseEntity* saveOwner	= GetOwnerEntity();
+		if (!saveOwner)
+		{
+			UTIL_Remove(this);
+			return;
+		}
+
+
 		SetOwnerEntity( NULL );
 		UTIL_TraceEntity( this, GetAbsOrigin(), vUpABit, MASK_SOLID, &tr );
 		if ( tr.startsolid || tr.fraction != 1.0 )
@@ -171,12 +178,6 @@ void CSatchelCharge::SatchelThink( void )
 	if (!IsInWorld())
 	{
 		UTIL_Remove( this );
-		return;
-	}
-
-	if (GetOwnerEntity())
-	{
-		UTIL_Remove(this);
 		return;
 	}
 
