@@ -1643,6 +1643,17 @@ void CHL2_Player::SuitPower_Update( void )
 	{
 		float flPowerLoad = m_flSuitPowerLoad;
 
+		if (SuitPower_IsDeviceActive(SuitDeviceSprint))
+		{
+			if (!fabs(GetAbsVelocity().x) && !fabs(GetAbsVelocity().y))
+			{
+				// If player's not moving, don't drain sprint juice.
+				flPowerLoad -= SuitDeviceSprint.GetDeviceDrainRate();
+				// Recharge the aux power if we're not moving.
+				SuitPower_Charge(SUITPOWER_CHARGE_RATE * gpGlobals->frametime);
+			}
+		}
+
 		if( SuitPower_IsDeviceActive(SuitDeviceFlashlight) )
 		{
 			float factor;
