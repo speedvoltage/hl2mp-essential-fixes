@@ -77,8 +77,6 @@ extern ConVar autoaim_max_dist;
 
 extern int gEvilImpulse101;
 
-ConVar sv_autojump( "sv_autojump", "0" );
-
 ConVar hl2_walkspeed( "hl2_walkspeed", "150" );
 ConVar hl2_normspeed( "hl2_normspeed", "190" );
 ConVar hl2_sprintspeed( "hl2_sprintspeed", "320" );
@@ -98,8 +96,6 @@ ConVar player_squad_double_tap_time( "player_squad_double_tap_time", "0.25" );
 ConVar sv_infinite_aux_power("sv_infinite_aux_power", "0", FCVAR_NOTIFY);
 
 ConVar autoaim_unlock_target( "autoaim_unlock_target", "0.8666" );
-
-ConVar sv_stickysprint("sv_stickysprint", "0", FCVAR_ARCHIVE | FCVAR_ARCHIVE_XBOX);
 
 #define	FLASH_DRAIN_TIME	 1.1111	// 100 units / 90 secs
 #define	FLASH_CHARGE_TIME	 50.0f	// 100 units / 2 secs
@@ -475,7 +471,7 @@ void CHL2_Player::RemoveSuit( void )
 void CHL2_Player::HandleSpeedChanges(void)
 {
 	int buttonsChanged = m_afButtonPressed | m_afButtonReleased;
-
+	
 	if ((buttonsChanged & IN_SPEED))
 	{
 		// The state of the sprint/run button has changed.
@@ -581,77 +577,10 @@ void CHL2_Player::PreThink(void)
 		return;
 	}
 
-	// This is an experiment of mine- autojumping! 
-	// only affects you if sv_autojump is nonzero.
-	if( (GetFlags() & FL_ONGROUND) && sv_autojump.GetFloat() != 0 )
-	{
-		VPROF( "CHL2_Player::PreThink-Autojump" );
-		// check autojump
-		Vector vecCheckDir;
-
-		vecCheckDir = GetAbsVelocity();
-
-		float flVelocity = VectorNormalize( vecCheckDir );
-
-		if( flVelocity > 200 )
-		{
-			// Going fast enough to autojump
-			vecCheckDir = WorldSpaceCenter() + vecCheckDir * 34 - Vector( 0, 0, 16 );
-
-			trace_t tr;
-
-			UTIL_TraceHull( WorldSpaceCenter() - Vector( 0, 0, 16 ), vecCheckDir, NAI_Hull::Mins(HULL_TINY_CENTERED),NAI_Hull::Maxs(HULL_TINY_CENTERED), MASK_PLAYERSOLID, this, COLLISION_GROUP_PLAYER, &tr );
-			
-			//NDebugOverlay::Line( tr.startpos, tr.endpos, 0,255,0, true, 10 );
-
-			if( tr.fraction == 1.0 && !tr.startsolid )
-			{
-				// Now trace down!
-				UTIL_TraceLine( vecCheckDir, vecCheckDir - Vector( 0, 0, 64 ), MASK_PLAYERSOLID, this, COLLISION_GROUP_NONE, &tr );
-
-				//NDebugOverlay::Line( tr.startpos, tr.endpos, 0,255,0, true, 10 );
-
-				if( tr.fraction == 1.0 && !tr.startsolid )
-				{
-					// !!!HACKHACK
-					// I KNOW, I KNOW, this is definitely not the right way to do this,
-					// but I'm prototyping! (sjb)
-					Vector vecNewVelocity = GetAbsVelocity();
-					vecNewVelocity.z += 250;
-					SetAbsVelocity( vecNewVelocity );
-				}
-			}
-		}
-	}
-
 	VPROF_SCOPE_BEGIN( "CHL2_Player::PreThink-Speed" );
 	HandleSpeedChanges();
-#ifdef HL2_EPISODIC
-	HandleArmorReduction();
-#endif
 
-	if( sv_stickysprint.GetBool() && m_bIsAutoSprinting )
-	{
-		// If we're ducked and not in the air
-		if( IsDucked() && GetGroundEntity() != NULL )
-		{
-			StopSprinting();
-		}
-		// Stop sprinting if the player lets off the stick for a moment.
-		else if( GetStickDist() == 0.0f )
-		{
-			if( gpGlobals->curtime > m_fAutoSprintMinTime )
-			{
-				StopSprinting();
-			}
-		}
-		else
-		{
-			// Stop sprinting one half second after the player stops inputting with the move stick.
-			m_fAutoSprintMinTime = gpGlobals->curtime + 0.5f;
-		}
-	}
-	else if ( IsSprinting() )
+	if ( IsSprinting() )
 	{
 		// Disable sprint while ducked unless we're in the air (jumping)
 		if ( IsDucked() && ( GetGroundEntity() != NULL ) && !IsDucking() )
@@ -1220,12 +1149,6 @@ void CHL2_Player::StopSprinting( void )
 	}
 
 	m_fIsSprinting = false;
-
-	if ( sv_stickysprint.GetBool() )
-	{
-		m_bIsAutoSprinting = false;
-		m_fAutoSprintMinTime = 0.0f;
-	}
 }
 
 
@@ -1775,19 +1698,6 @@ void CHL2_Player::SuitPower_Update( void )
 	else if( m_HL2Local.m_bitsActiveDevices )
 	{
 		float flPowerLoad = m_flSuitPowerLoad;
-
-		//Since stickysprint quickly shuts off sprint if it isn't being used, this isn't an issue.
-		if ( !sv_stickysprint.GetBool() )
-		{
-			if( SuitPower_IsDeviceActive(SuitDeviceSprint) )
-			{
-				if( !fabs(GetAbsVelocity().x) && !fabs(GetAbsVelocity().y) )
-				{
-					// If player's not moving, don't drain sprint juice.
-					flPowerLoad -= SuitDeviceSprint.GetDeviceDrainRate();
-				}
-			}
-		}
 
 		if( SuitPower_IsDeviceActive(SuitDeviceFlashlight) )
 		{
