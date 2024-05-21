@@ -41,6 +41,7 @@
 #include "physics_collisionevent.h"
 #include "gamestats.h"
 #include "vehicle_base.h"
+#include "usermessages.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -1725,12 +1726,20 @@ void CBreakableProp::Break( CBaseEntity *pBreaker, const CTakeDamageInfo &info )
 
 	if ( m_iszBreakModelMessage != NULL_STRING )
 	{
-		CPVSFilter filter( GetAbsOrigin() );
-		UserMessageBegin( filter, STRING( m_iszBreakModelMessage ) );
-		WRITE_SHORT( GetModelIndex() );
-		WRITE_VEC3COORD( GetAbsOrigin() );
-		WRITE_ANGLES( GetAbsAngles() );
-		MessageEnd();
+		int breakmodelmessage = usermessages->LookupUserMessage(STRING(m_iszBreakModelMessage));
+		if (breakmodelmessage == -1)
+		{
+			Warning("CBreakableProp::Break invalid break model message: (%s)\n", m_iszBreakModelMessage);
+		}
+		else
+		{
+			CPVSFilter filter(GetAbsOrigin());
+			UserMessageBegin(filter, STRING(m_iszBreakModelMessage));
+			WRITE_SHORT(GetModelIndex());
+			WRITE_VEC3COORD(GetAbsOrigin());
+			WRITE_ANGLES(GetAbsAngles());
+			MessageEnd();
+		}
 
 #ifndef HL2MP
 		UTIL_Remove( this );
