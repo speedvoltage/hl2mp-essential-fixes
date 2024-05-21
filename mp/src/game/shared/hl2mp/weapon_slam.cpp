@@ -377,7 +377,6 @@ void CWeapon_SLAM::TripmineAttach( void )
 	AngleVectors( angles, &vecAiming );
 
 	trace_t tr;
-
 	UTIL_TraceLine( vecSrc, vecSrc + (vecAiming * 128), MASK_SOLID, pOwner, COLLISION_GROUP_NONE, &tr );
 	
 	if (tr.fraction < 1.0)
@@ -387,6 +386,13 @@ void CWeapon_SLAM::TripmineAttach( void )
 		{
 
 #ifndef CLIENT_DLL
+			CBaseEntity *pEntity = tr.m_pEnt;
+			CBaseCombatCharacter *pBCC = ToBaseCombatCharacter(pEntity);
+			if (pBCC)
+			{
+				return;
+			}
+
 			QAngle angles;
 			VectorAngles(tr.plane.normal, angles);
 
