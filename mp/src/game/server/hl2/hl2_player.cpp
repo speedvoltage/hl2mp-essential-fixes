@@ -417,6 +417,11 @@ void CHL2_Player::HandleSpeedChanges(void)
 {
 	int buttonsChanged = m_afButtonPressed | m_afButtonReleased;
 	
+	if (GetWaterLevel() == 3)
+	{
+		StopSprinting();
+	}
+
 	if ((buttonsChanged & IN_SPEED))
 	{
 		// The state of the sprint/run button has changed.
