@@ -3194,12 +3194,12 @@ void CTriggerCamera::Enable( void )
 	}
 
 
-	pPlayer->SetViewEntity( this );
+	pPlayer->SetViewEntity(this);
 
 	// Hide the player's viewmodel
-	if ( pPlayer->GetActiveWeapon() )
+	if (pPlayer->GetActiveWeapon())
 	{
-		pPlayer->GetActiveWeapon()->AddEffects( EF_NODRAW );
+		pPlayer->GetActiveWeapon()->AddEffects(EF_NODRAW);
 	}
 
 	// Only track if we have a target
