@@ -404,6 +404,11 @@ void CWeaponFrag::CheckThrowPosition(CBasePlayer *pPlayer, const Vector &vecEye,
 	trace_t tr;
 
 	UTIL_TraceHull(vecEye, vecSrc, mins, maxs, pPlayer->PhysicsSolidMaskForEntity(), pPlayer, pPlayer->GetCollisionGroup(), &tr);
+
+	if (tr.DidHit())
+	{
+		vecSrc = tr.endpos;
+	}
 }
 
 void DropPrimedFragGrenade( CHL2MP_Player *pPlayer, CBaseCombatWeapon *pGrenade )
