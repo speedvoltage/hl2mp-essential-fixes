@@ -6605,6 +6605,8 @@ void CAI_BaseNPC::CheckPhysicsContacts()
 	if ( GetMoveType() == MOVETYPE_STEP && VPhysicsGetObject())
 	{
 		IPhysicsObject *pPhysics = VPhysicsGetObject();
+		if (!pPhysics)
+			return;
 		IPhysicsFrictionSnapshot *pSnapshot = pPhysics->CreateFrictionSnapshot();
 		CBaseEntity *pGroundEntity = GetGroundEntity();
 		float heightCheck = GetAbsOrigin().z + GetHullMaxs().z;

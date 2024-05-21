@@ -1615,6 +1615,18 @@ void CNPC_Barnacle::BitePrey( void )
 		return;
 	}
 
+	if (pVictim->IsPlayer())
+	{
+		CBasePlayer *pPlayer = static_cast<CBasePlayer*>(pVictim);
+		if (pPlayer->IsObserver()) // Barnacles will no longer bite spectators
+		{
+			LostPrey(true);
+			m_flDigestFinish = 0;
+			pPlayer->SetMoveType(MOVETYPE_NOCLIP);
+			return;
+		}
+	}
+
 	EmitSound( "NPC_Barnacle.FinalBite" );
 
 	m_flVictimHeight = GetEnemy()->WorldAlignSize().z;

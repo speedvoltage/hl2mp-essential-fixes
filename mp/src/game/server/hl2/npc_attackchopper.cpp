@@ -3719,7 +3719,8 @@ void CNPC_AttackHelicopter::Event_Killed( const CTakeDamageInfo &info )
 	m_lifeState			= LIFE_DYING;
 
 	CSoundEnvelopeController &controller = CSoundEnvelopeController::GetController();
-	controller.SoundChangeVolume( m_pGunFiringSound, 0.0, 0.1f );
+	if (m_pGunFiringSound)
+		controller.SoundChangeVolume(m_pGunFiringSound, 0.0, 0.1f);
 
 	if( GetCrashPoint() == NULL )
 	{
@@ -3735,7 +3736,13 @@ void CNPC_AttackHelicopter::Event_Killed( const CTakeDamageInfo &info )
 
 			CPASAttenuationFilter filter( this );
 			m_pRotorSound = controller.SoundCreate( filter, entindex(), "NPC_AttackHelicopter.EngineFailure" );
-			controller.Play( m_pRotorSound, 1.0, 100 );
+			if (m_pRotorSound)
+			{
+				controller.SoundDestroy(m_pRotorSound);
+				CPASAttenuationFilter filter(this);
+				m_pRotorSound = controller.SoundCreate(filter, entindex(), "NPC_AttackHelicopter.EngineFailure");
+				controller.Play(m_pRotorSound, 1.0, 100);
+			}
 
 			// Tailspin!!
 			SetActivity( ACT_HELICOPTER_CRASHING );

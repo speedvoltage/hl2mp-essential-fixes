@@ -769,9 +769,16 @@ void CBaseHeadcrab::RunTask( const Task_t *pTask )
 			break;
 
 		case TASK_HEADCRAB_DROWN:
-			if( gpGlobals->curtime > m_flTimeDrown )
+			if (GetWaterLevel() != 0)
 			{
-				OnTakeDamage( CTakeDamageInfo( this, this, m_iHealth * 2, DMG_DROWN ) );
+				if (gpGlobals->curtime > m_flTimeDrown)
+				{
+					OnTakeDamage(CTakeDamageInfo(this, this, m_iHealth * 2, DMG_DROWN));
+				}
+			}
+			else
+			{
+				TaskComplete();
 			}
 			break;
 
@@ -1496,9 +1503,17 @@ void CBaseHeadcrab::StartTask( const Task_t *pTask )
 
 		case TASK_HEADCRAB_DROWN:
 		{
-			// Set the gravity really low here! Sink slowly
-			SetGravity( UTIL_ScaleForGravity( 80 ) );
-			m_flTimeDrown = gpGlobals->curtime + 4;
+			if (GetWaterLevel() != 0)
+			{
+				// Set the gravity really low here! Sink slowly
+				SetGravity(UTIL_ScaleForGravity(80));
+				m_flTimeDrown = gpGlobals->curtime + 4;
+			}
+			else
+			{
+				SetGravity(1.0f);
+				m_flTimeDrown = 0;
+			}
 			break;
 		}
 

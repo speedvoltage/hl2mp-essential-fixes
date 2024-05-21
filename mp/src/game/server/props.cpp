@@ -59,7 +59,6 @@ extern CBaseEntity *FindPickerEntity( CBasePlayer *pPlayer );
 
 
 ConVar g_debug_doors( "g_debug_doors", "0" );
-ConVar breakable_disable_gib_limit( "breakable_disable_gib_limit", "0" );
 ConVar breakable_multiplayer( "breakable_multiplayer", "1" );
 
 // AI Interaction for being hit by a physics object
@@ -1764,14 +1763,14 @@ void CBreakableProp::Break( CBaseEntity *pBreaker, const CTakeDamageInfo &info )
 			te->PhysicsProp( filter, -1, GetModelIndex(), m_nSkin, GetAbsOrigin(), GetAbsAngles(), velocity, true, GetEffects() );
 			break;
 		case MULTIPLAYER_BREAK_SERVERSIDE:	// server-side break
-			if ( m_PerformanceMode != PM_NO_GIBS || breakable_disable_gib_limit.GetBool() )
+			if ( m_PerformanceMode != PM_NO_GIBS)
 			{
 				PropBreakableCreateAll( GetModelIndex(), pPhysics, params, this, -1, ( m_PerformanceMode == PM_FULL_GIBS ), false );
 			}
 			break;
 		case MULTIPLAYER_BREAK_BOTH:	// pieces break from both dlls
 			te->PhysicsProp( filter, -1, GetModelIndex(), m_nSkin, GetAbsOrigin(), GetAbsAngles(), velocity, true, GetEffects() );
-			if ( m_PerformanceMode != PM_NO_GIBS || breakable_disable_gib_limit.GetBool() )
+			if ( m_PerformanceMode != PM_NO_GIBS )
 			{
 				PropBreakableCreateAll( GetModelIndex(), pPhysics, params, this, -1, ( m_PerformanceMode == PM_FULL_GIBS ), false );
 			}
@@ -1779,7 +1778,7 @@ void CBreakableProp::Break( CBaseEntity *pBreaker, const CTakeDamageInfo &info )
 		}
 	}
 	// no damage/damage force? set a burst of 100 for some movement
-	else if ( m_PerformanceMode != PM_NO_GIBS || breakable_disable_gib_limit.GetBool() )
+	else if ( m_PerformanceMode != PM_NO_GIBS )
 	{
 		PropBreakableCreateAll( GetModelIndex(), pPhysics, params, this, -1, ( m_PerformanceMode == PM_FULL_GIBS ) );
 	}
