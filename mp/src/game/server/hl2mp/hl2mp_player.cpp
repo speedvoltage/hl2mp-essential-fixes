@@ -1517,17 +1517,28 @@ CON_COMMAND( timeleft, "prints the time remaining in the match" )
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
 
 	int iTimeRemaining = (int)HL2MPRules()->GetMapRemainingTime();
-    
-	if ( iTimeRemaining == 0 )
+	int iFragLimit = fraglimit.GetInt();
+
+	if (iTimeRemaining == 0 && iFragLimit == 0)
 	{
-		if ( pPlayer )
-		{
-			ClientPrint( pPlayer, HUD_PRINTTALK, "This game has no timelimit." );
-		}
-		else
-		{
-			Msg( "* No Time Limit *\n" );
-		}
+		ClientPrint(pPlayer, HUD_PRINTTALK, "No time limit for this game.");
+	}
+	else if (iTimeRemaining > 0 && iFragLimit > 0)
+	{
+		int iMinutes, iSeconds, iFrags;
+		iMinutes = iTimeRemaining / 60;
+		iSeconds = iTimeRemaining % 60;
+		iFrags = iFragLimit;
+
+		char minutes[8];
+		char seconds[8];
+		char frags[8];
+
+		Q_snprintf(minutes, sizeof(minutes), "%d", iMinutes);
+		Q_snprintf(seconds, sizeof(seconds), "%2.2d", iSeconds);
+		Q_snprintf(frags, sizeof(frags), "%d", iFrags);
+
+		ClientPrint(pPlayer, HUD_PRINTTALK, "Time left in map: %s1:%s2, or after a player reaches %s3 frags.", minutes, seconds, frags);
 	}
 	else
 	{
@@ -1538,18 +1549,11 @@ CON_COMMAND( timeleft, "prints the time remaining in the match" )
 		char minutes[8];
 		char seconds[8];
 
-		Q_snprintf( minutes, sizeof(minutes), "%d", iMinutes );
-		Q_snprintf( seconds, sizeof(seconds), "%2.2d", iSeconds );
+		Q_snprintf(minutes, sizeof(minutes), "%d", iMinutes);
+		Q_snprintf(seconds, sizeof(seconds), "%2.2d", iSeconds);
 
-		if ( pPlayer )
-		{
-			ClientPrint( pPlayer, HUD_PRINTTALK, "Time left in map: %s1:%s2", minutes, seconds );
-		}
-		else
-		{
-			Msg( "Time Remaining:  %s:%s\n", minutes, seconds );
-		}
-	}	
+		ClientPrint(pPlayer, HUD_PRINTTALK, "Time left in map: %s1:%s2", minutes, seconds);
+	}
 }
 
 

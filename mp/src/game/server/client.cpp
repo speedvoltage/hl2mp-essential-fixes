@@ -35,6 +35,7 @@
 #include "datacache/imdlcache.h"
 #include "basemultiplayerplayer.h"
 #include "voice_gamemgr.h"
+#include "hl2mp_player.h"
 
 #ifdef TF_DLL
 #include "tf_player.h"
@@ -115,39 +116,86 @@ void ClientKill( edict_t *pEdict, const Vector &vecForce, bool bExplode = false 
 	pPlayer->CommitSuicide( vecForce, bExplode );
 }
 
-char * CheckChatText( CBasePlayer *pPlayer, char *text )
+ConVar sv_chat_trigger("sv_chat_triggers", "1");
+
+char * CheckChatText(CBasePlayer *pPlayer, char *text)
 {
 	char *p = text;
 
 	// invalid if NULL or empty
-	if ( !text || !text[0] )
+	if (!text || !text[0])
 		return NULL;
 
-	int length = Q_strlen( text );
+	int length = Q_strlen(text);
 
 	// remove quotes (leading & trailing) if present
 	if (*p == '"')
 	{
 		p++;
-		length -=2;
+		length -= 2;
 		p[length] = 0;
 	}
 
 	// cut off after 127 chars
-	if ( length > 127 )
+	if (length > 127)
 		text[127] = 0;
 
-	GameRules()->CheckChatText( pPlayer, p );
+	GameRules()->CheckChatText(pPlayer, p);
 
+	if (sv_chat_trigger.GetBool())
+	{
+		if (FStrEq(p, "timeleft"))
+		{
+			int iTimeRemaining = (int)HL2MPRules()->GetMapRemainingTime();
+			int iFragLimit = fraglimit.GetInt();
+
+			if (iTimeRemaining == 0 && iFragLimit == 0)
+			{
+				ClientPrint(pPlayer, HUD_PRINTTALK, "No time limit for this game.");
+			}
+			else if (iTimeRemaining > 0 && iFragLimit > 0)
+			{
+				int iMinutes, iSeconds, iFrags;
+				iMinutes = iTimeRemaining / 60;
+				iSeconds = iTimeRemaining % 60;
+				iFrags = iFragLimit;
+
+				char minutes[8];
+				char seconds[8];
+				char frags[8];
+
+				Q_snprintf(minutes, sizeof(minutes), "%d", iMinutes);
+				Q_snprintf(seconds, sizeof(seconds), "%2.2d", iSeconds);
+				Q_snprintf(frags, sizeof(frags), "%d", iFrags);
+
+				ClientPrint(pPlayer, HUD_PRINTTALK, "Time left in map: %s1:%s2, or after a player reaches %s3 frags.", minutes, seconds, frags);
+			}
+			else
+			{
+				int iMinutes, iSeconds;
+				iMinutes = iTimeRemaining / 60;
+				iSeconds = iTimeRemaining % 60;
+
+				char minutes[8];
+				char seconds[8];
+
+				Q_snprintf(minutes, sizeof(minutes), "%d", iMinutes);
+				Q_snprintf(seconds, sizeof(seconds), "%2.2d", iSeconds);
+
+				ClientPrint(pPlayer, HUD_PRINTTALK, "Time left in map: %s1:%s2", minutes, seconds);
+			}
+		}
+
+		else if (FStrEq(p, "nextmap"))
+		{
+			char sMap[64];
+			MultiplayRules()->GetNextLevelName(sMap, sizeof(sMap), false);
+			ClientPrint(pPlayer, HUD_PRINTTALK, "Next map: %s1", sMap);
+		}
+	}
 	return p;
 }
 
-//// HOST_SAY
-// String comes in as
-// say blah blah blah
-// or as
-// blah blah blah
-//
 void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 {
 	CBasePlayer *client;
