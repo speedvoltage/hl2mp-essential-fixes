@@ -38,6 +38,8 @@ ConVar sv_motd_unload_on_dismissal( "sv_motd_unload_on_dismissal", "0", 0, "If e
 extern CBaseEntity*	FindPickerEntityClass( CBasePlayer *pPlayer, char *classname );
 extern bool			g_fGameOver;
 
+extern ConVar sv_game_description;
+
 void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 {
 	pPlayer->InitialSpawn();
@@ -104,10 +106,7 @@ Returns the descriptive name of this .dll.  E.g., Half-Life, or Team Fortress 2
 */
 const char *GetGameDescription()
 {
-	if ( g_pGameRules ) // this function may be called before the world has spawned, and the game rules initialized
-		return g_pGameRules->GetGameDescription();
-	else
-		return "Half-Life 2 Deathmatch";
+	return sv_game_description.GetString();
 }
 
 //-----------------------------------------------------------------------------
