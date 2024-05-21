@@ -1404,27 +1404,6 @@ void CHL2_Player::CommanderUpdate()
 		m_HL2Local.m_iSquadMemberCount = GetNumSquadCommandables();
 		m_HL2Local.m_iSquadMedicCount = GetNumSquadCommandableMedics();
 		m_HL2Local.m_fSquadInFollowMode = bFollowMode;
-
-		// debugging code for displaying extra squad indicators
-		/*
-		char *pszMoving = "";
-		AISquadIter_t iter;
-		for ( CAI_BaseNPC *pAllyNpc = m_pPlayerAISquad->GetFirstMember(&iter); pAllyNpc; pAllyNpc = m_pPlayerAISquad->GetNextMember(&iter) )
-		{
-			if ( pAllyNpc->IsCommandMoving() )
-			{
-				pszMoving = "<-";
-				break;
-			}
-		}
-
-		NDebugOverlay::ScreenText(
-			0.932, 0.919, 
-			CFmtStr( "%d|%c%s", GetNumSquadCommandables(), ( bFollowMode ) ? 'F' : 'S', pszMoving ),
-			255, 128, 0, 128,
-			0 );
-		*/
-
 	}
 	else
 	{
