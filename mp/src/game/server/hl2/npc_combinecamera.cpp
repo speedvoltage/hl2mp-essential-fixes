@@ -198,8 +198,8 @@ protected:
 
 	QAngle m_vecGoalAngles;
 
-	CSprite *m_pEyeGlow;
-	CSprite *m_pEyeFlash;
+	CHandle<CSprite> m_pEyeGlow;
+	CHandle<CSprite> m_pEyeFlash;
 
 	DECLARE_DATADESC();
 };
@@ -741,6 +741,9 @@ void CNPC_CombineCamera::TrackTarget( CBaseEntity *pTarget )
 //-----------------------------------------------------------------------------
 void CNPC_CombineCamera::MaintainEye()
 {
+	if (m_pEyeFlash == NULL)
+		return;
+
 	// Angry cameras take a few pictures of their target.
 	if ((m_bAngry) && (m_nClickCount <= 3))
 	{
@@ -1024,6 +1027,9 @@ void CNPC_CombineCamera::InputDisable(inputdata_t &inputdata)
 //-----------------------------------------------------------------------------
 void CNPC_CombineCamera::SetAngry(bool bAngry)
 {
+	if (m_pEyeFlash == NULL)
+		return;
+
 	if ((bAngry) && (!m_bAngry))
 	{
 		m_bAngry = true;

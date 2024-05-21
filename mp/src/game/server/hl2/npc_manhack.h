@@ -250,8 +250,8 @@ private:
 
 	float			m_flBladeSpeed;
 
-	CSprite			*m_pEyeGlow;
-	CSprite			*m_pLightGlow;
+	CHandle<CSprite>			m_pEyeGlow;
+	CHandle<CSprite>			m_pLightGlow;
 	
 	CHandle<SmokeTrail>	m_hSmokeTrail;
 
