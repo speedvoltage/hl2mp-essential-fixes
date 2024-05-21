@@ -2058,6 +2058,9 @@ void CHL2_Player::InputDisableFlashlight( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 void CHL2_Player::InputEnableFlashlight( inputdata_t &inputdata )
 {
+	if (!FlashlightIsOn())
+		FlashlightTurnOn();
+
 	SetFlashlightEnabled( true );
 }
 

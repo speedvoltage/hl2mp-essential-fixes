@@ -157,6 +157,12 @@ void CWeapon_SLAM::Precache( void )
 void CWeapon_SLAM::SetPickupTouch( void )
 {
 	SetTouch(&CWeapon_SLAM::SlamTouch);
+
+	if (GetSpawnFlags() & SF_NORESPAWN)
+	{
+		SetThink(&CWeapon_SLAM::SUB_Remove);
+		SetNextThink(gpGlobals->curtime + 30.0f);
+	}
 }
 
 //-----------------------------------------------------------------------------
