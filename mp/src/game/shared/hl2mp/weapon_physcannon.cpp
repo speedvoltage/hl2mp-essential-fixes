@@ -2896,6 +2896,8 @@ float CWeaponPhysCannon::GetLoadPercentage( void )
 //-----------------------------------------------------------------------------
 CSoundPatch *CWeaponPhysCannon::GetMotorSound( void )
 {
+	IPredictionSystem::SuppressHostEvents(NULL);
+
 	if ( m_sndMotor == NULL )
 	{
 		CPASAttenuationFilter filter( this );
