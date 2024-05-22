@@ -2841,6 +2841,7 @@ void CAI_ChangeHintGroup::InputActivate( inputdata_t &inputdata )
 #define SF_CAMERA_PLAYER_SNAP_TO		16
 #define SF_CAMERA_PLAYER_NOT_SOLID		32
 #define SF_CAMERA_PLAYER_INTERRUPT		64
+#define SF_CAMERA_PLAYER_LOOK			128 // Allow player look to pan/tilt the point_viewcontrol
 
 
 //-----------------------------------------------------------------------------
@@ -2885,7 +2886,7 @@ private:
 	float m_deceleration;
 	int	  m_state;
 	Vector m_vecMoveDir;
-
+	QAngle m_angOldPlrView; // To save & restore the player's view for the new SF
 
 	string_t m_iszTargetAttachment;
 	int	  m_iAttachmentIndex;
@@ -3198,6 +3199,12 @@ void CTriggerCamera::Enable( void )
 		SetAbsVelocity( vec3_origin );
 	}
 
+	// If we borrow their look then save the player's old view and point them our way.
+	if (HasSpawnFlags(SF_CAMERA_PLAYER_LOOK))
+	{
+		m_angOldPlrView = m_hPlayer->EyeAngles();
+		((CBasePlayer*)m_hPlayer.Get())->SnapEyeAngles(GetAbsAngles());
+	}
 
 	pPlayer->SetViewEntity(this);
 
@@ -3207,8 +3214,8 @@ void CTriggerCamera::Enable( void )
 		pPlayer->GetActiveWeapon()->AddEffects(EF_NODRAW);
 	}
 
-	// Only track if we have a target
-	if (m_hTarget || (m_moveDistance > 0 && m_pPath) || HasSpawnFlags(SF_CAMERA_PLAYER_INTERRUPT))
+	// Only track if we have a target or we need to track the player's look
+	if (m_hTarget || HasSpawnFlags(SF_CAMERA_PLAYER_LOOK))
 	{
 		// follow the player down
 		SetThink( &CTriggerCamera::FollowTarget );
@@ -3231,6 +3238,12 @@ void CTriggerCamera::Disable( void )
 		if ( HasSpawnFlags( SF_CAMERA_PLAYER_NOT_SOLID ) )
 		{
 			m_hPlayer->RemoveSolidFlags( FSOLID_NOT_SOLID );
+		}
+
+		// If we borrowed their look then put back the player's old view.
+		if (HasSpawnFlags(SF_CAMERA_PLAYER_LOOK))
+		{
+			((CBasePlayer*)m_hPlayer.Get())->SnapEyeAngles(m_angOldPlrView);
 		}
 
 		((CBasePlayer*)m_hPlayer.Get())->SetViewEntity( m_hPlayer );
@@ -3283,11 +3296,22 @@ void CTriggerCamera::FollowTarget( )
 	if (m_hPlayer == NULL)
 		return;
 
-	if ( m_hTarget == NULL )
+	// Disable if there's no target and this camera isn't tracking player look
+	if (m_hTarget == NULL && !HasSpawnFlags(SF_CAMERA_PLAYER_LOOK))
 	{
 		Disable();
 		return;
 	}
+
+	// New camera SF can track the player's look direction // TODO: Limit yaw to <360?
+	if (HasSpawnFlags(SF_CAMERA_PLAYER_LOOK))
+	{
+		SetAbsAngles(m_hPlayer->EyeAngles());
+		SetNextThink(gpGlobals->curtime);
+		return;
+	}
+
+
 
 	if ((!HasSpawnFlags(SF_CAMERA_PLAYER_INFINITE_WAIT) && (m_flReturnTime < gpGlobals->curtime)) || (!m_hTarget && !m_pPath))
 	{
