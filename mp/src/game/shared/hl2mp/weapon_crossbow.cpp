@@ -22,6 +22,7 @@
 
 #include "weapon_hl2mpbasehlmpcombatweapon.h"
 #include "effect_dispatch_data.h"
+#include "func_break.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -234,6 +235,14 @@ void CCrossbowBolt::BoltTouch(CBaseEntity *pOther)
 			{
 				if (pOther->GetCollisionGroup() == COLLISION_GROUP_BREAKABLE_GLASS)
 					return;
+
+				// Go through thin material types
+				if (FClassnameIs(pOther, "func_breakable") || FClassnameIs(pOther, "func_breakable_surf"))
+				{
+					CBreakable* pOtherEntity = static_cast<CBreakable*> (pOther);
+					if ((pOtherEntity->GetMaterialType() == matGlass) || (pOtherEntity->GetMaterialType() == matWeb))
+						return;
+				}
 
 				Vector vReflection = 2.0f * tr.plane.normal * hitDot + vecDir;
 
