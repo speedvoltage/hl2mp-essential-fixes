@@ -4536,7 +4536,29 @@ void CBasePlayer::PostThink()
 {
 	if (IsObserver())
 	{
+		m_Local.m_iHideHUD = HIDEHUD_HEALTH;
 		ShowViewPortPanel("specmenu", false);
+
+		if (m_iObserverMode == OBS_MODE_POI || m_iObserverMode == OBS_MODE_FIXED)
+		{
+			// Removes a pointless second third person view.
+			m_iObserverMode = OBS_MODE_ROAMING;
+		}
+
+		if (m_iObserverLastMode == OBS_MODE_ROAMING)
+		{
+			SetMoveType(MOVETYPE_OBSERVER);
+		}
+
+		if (m_iObserverMode != OBS_MODE_IN_EYE)
+		{
+			m_Local.m_iHideHUD = HIDEHUD_CROSSHAIR;
+		}
+		else
+		{
+			m_Local.m_iHideHUD &= ~HIDEHUD_CROSSHAIR;
+		}
+
 	}
 
 	m_vecSmoothedVelocity = m_vecSmoothedVelocity * SMOOTHING_FACTOR + GetAbsVelocity() * ( 1 - SMOOTHING_FACTOR );
@@ -6418,6 +6440,12 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 		else
 		{
 			// switch to next spec mode if no parameter given
+
+			CBaseEntity * target = FindNextObserverTarget(false);
+
+			if (!target)
+				return false;
+
  			mode = GetObserverMode() + 1;
 			
 			if ( mode > LAST_PLAYER_OBSERVERMODE )
@@ -6459,6 +6487,10 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 			{
 				SetObserverTarget( target );
 			}
+			else
+			{
+				SetObserverMode(OBS_MODE_ROAMING);
+			}
 		}
 		else if ( GetObserverMode() == OBS_MODE_FREEZECAM )
 		{
@@ -6476,6 +6508,10 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 			if ( target )
 			{
 				SetObserverTarget( target );
+			}
+			else
+			{
+				SetObserverMode(OBS_MODE_ROAMING);
 			}
 		}
 		else if ( GetObserverMode() == OBS_MODE_FREEZECAM )
@@ -6506,6 +6542,10 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 			if ( IsValidObserverTarget( target ) )
 			{
 				SetObserverTarget( target );
+			}
+			else
+			{
+				SetObserverMode(OBS_MODE_ROAMING);
 			}
 		}
 		
