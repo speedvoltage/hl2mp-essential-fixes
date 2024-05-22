@@ -1418,10 +1418,11 @@ bool CWeaponRPG::HasAnyAmmo( void )
 //-----------------------------------------------------------------------------
 bool CWeaponRPG::WeaponShouldBeLowered( void )
 {
+#ifndef CLIENT_DLL
 	// Lower us if we're out of ammo
 	if ( !HasAnyAmmo() )
 		return true;
-	
+#endif
 	return BaseClass::WeaponShouldBeLowered();
 }
 
@@ -1440,9 +1441,11 @@ void CWeaponRPG::PrimaryAttack( void )
 	if ( m_hMissile != NULL )
 		return;
 
+#ifndef CLIENT_DLL 
 	// Can't be reloading
 	if ( GetActivity() == ACT_VM_RELOAD )
 		return;
+#endif
 
 	Vector vecOrigin;
 	Vector vecForward;
@@ -1536,8 +1539,10 @@ void CWeaponRPG::SuppressGuiding( bool state )
 //-----------------------------------------------------------------------------
 bool CWeaponRPG::Lower( void )
 {
+#ifndef CLIENT_DLL
 	if ( m_hMissile != NULL )
 		return false;
+#endif
 
 	return BaseClass::Lower();
 }
@@ -1547,6 +1552,9 @@ bool CWeaponRPG::Lower( void )
 //-----------------------------------------------------------------------------
 void CWeaponRPG::ItemPostFrame( void )
 {
+	IPredictionSystem::SuppressHostEvents(NULL);
+
+#ifndef CLIENT_DLL 
 	BaseClass::ItemPostFrame();
 
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
@@ -1578,6 +1586,7 @@ void CWeaponRPG::ItemPostFrame( void )
 	{
 		StopGuiding();
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1819,12 +1828,14 @@ void CWeaponRPG::CreateLaserPointer( void )
 //-----------------------------------------------------------------------------
 void CWeaponRPG::NotifyRocketDied( void )
 {
+#ifndef CLIENT_DLL
 	m_hMissile = NULL;
 
 	if ( GetActivity() == ACT_VM_RELOAD )
 		return;
 
 	Reload();
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1832,6 +1843,7 @@ void CWeaponRPG::NotifyRocketDied( void )
 //-----------------------------------------------------------------------------
 bool CWeaponRPG::Reload( void )
 {
+#ifndef CLIENT_DLL 
 	CBaseCombatCharacter *pOwner = GetOwner();
 	
 	if ( pOwner == NULL )
@@ -1846,6 +1858,7 @@ bool CWeaponRPG::Reload( void )
 	{
 		SendWeaponAnim(ACT_VM_RELOAD);
 	}
+#endif
 
 	return true;
 }
