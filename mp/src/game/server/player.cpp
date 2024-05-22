@@ -69,6 +69,7 @@
 #include "dt_utlvector_send.h"
 #include "vote_controller.h"
 #include "ai_speech.h"
+#include "multiplay_gamerules.h"
 
 #if defined USES_ECON_ITEMS
 #include "econ_wearable.h"
@@ -120,6 +121,7 @@ extern ConVar sv_maxunlag;
 extern ConVar sv_turbophysics;
 extern ConVar *sv_maxreplay;
 extern ConVar mp_suitvoice;
+extern ConVar mp_ear_ringing;
 
 extern CServerGameDLL g_ServerGameDLL;
 
@@ -1448,7 +1450,10 @@ void CBasePlayer::OnDamagedByExplosion( const CTakeDamageInfo &info )
 		random->RandomInt( 32, 34 );
 
 	CSingleUserRecipientFilter user( this );
-	enginesound->SetPlayerDSP( user, effect, false );
+	if (mp_ear_ringing.GetBool())
+	{
+		enginesound->SetPlayerDSP(user, effect, false);
+	}
 }
 
 //=========================================================

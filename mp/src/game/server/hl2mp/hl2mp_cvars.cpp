@@ -42,3 +42,9 @@ ConVar sv_game_description(
 	"Classic Deathmatch",
 	FCVAR_GAMEDLL,
 	"Sets the game description");
+
+ConVar mp_ear_ringing(
+	"mp_ear_ringing",
+	"0",
+	FCVAR_GAMEDLL | FCVAR_REPLICATED,
+	"If non-zero, produce ringing sound caused by explosion/blast damage");
