@@ -437,7 +437,7 @@ void CHL2_Player::RemoveSuit( void )
 void CHL2_Player::HandleSpeedChanges(void)
 {
 	int buttonsChanged = m_afButtonPressed | m_afButtonReleased;
-	
+
 	if (GetWaterLevel() == 3)
 	{
 		StopSprinting();
@@ -782,6 +782,12 @@ void CHL2_Player::PostThink( void )
 	if ( !g_fGameOver && !IsPlayerLockedInPlace() && IsAlive() )
 	{
 		 HandleAdmireGlovesAnimation();
+	}
+
+	if (FlashlightIsOn() && (g_pGameRules && g_pGameRules->IsMultiplayer() && !g_pGameRules->FAllowFlashlight()))
+	{
+		FlashlightTurnOff();
+		return;
 	}
 }
 
@@ -1880,6 +1886,11 @@ int CHL2_Player::FlashlightIsOn( void )
 //-----------------------------------------------------------------------------
 void CHL2_Player::FlashlightTurnOn( void )
 {
+	if ((g_pGameRules && g_pGameRules->IsMultiplayer() && !g_pGameRules->FAllowFlashlight()))
+	{
+		return;
+	}
+
 	if( m_bFlashlightDisabled )
 		return;
 
@@ -1893,8 +1904,11 @@ void CHL2_Player::FlashlightTurnOn( void )
 		return;
 #endif
 
-	AddEffects( EF_DIMLIGHT );
-	EmitSound( "HL2Player.FlashLightOn" );
+	if (IsAlive())
+	{
+		AddEffects(EF_DIMLIGHT);
+		EmitSound("HL2Player.FlashLightOn");
+	}
 
 	variant_t flashlighton;
 	flashlighton.SetFloat( m_HL2Local.m_flSuitPower / 100.0f );
