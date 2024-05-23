@@ -67,6 +67,8 @@ public:
 	virtual bool UsesFilter( void ){ return ( m_hFilter.Get() != NULL ); }
 	virtual bool PassesTriggerFilters(CBaseEntity *pOther);
 	virtual void StartTouch(CBaseEntity *pOther);
+	virtual void OnStartTouch(CBaseEntity* pOther) {}
+	virtual void OnEndTouch(CBaseEntity* pOther) {}
 	virtual void EndTouch(CBaseEntity *pOther);
 	virtual void StartTouchAll() {}
 	virtual void EndTouchAll() {}
