@@ -2290,7 +2290,7 @@ bool CBasePlayer::StartObserverMode(int mode)
 	
     AddSolidFlags( FSOLID_NOT_SOLID );
 
-	SetObserverMode( mode );
+	SetObserverMode(OBS_MODE_ROAMING);
 
 	if ( gpGlobals->eLoadType != MapLoad_Background )
 	{
