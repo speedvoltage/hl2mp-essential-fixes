@@ -4537,7 +4537,6 @@ void CBasePlayer::PostThink()
 	if (IsObserver())
 	{
 		m_Local.m_iHideHUD = HIDEHUD_HEALTH;
-		ShowViewPortPanel("specmenu", false);
 
 		if (m_iObserverMode == OBS_MODE_POI || m_iObserverMode == OBS_MODE_FIXED)
 		{
