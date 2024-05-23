@@ -8,6 +8,7 @@
 #include "cbase.h"
 #include "npcevent.h"
 #include "in_buttons.h"
+#include "te_effect_dispatch.h"
 
 #ifdef CLIENT_DLL
 	#include "c_hl2mp_player.h"
@@ -32,7 +33,8 @@ public:
 
 	CWeapon357( void );
 
-	void	PrimaryAttack( void );
+	void	Operator_HandleAnimEvent(animevent_t *pEvent, CBaseCombatCharacter *pOperator);
+	void	PrimaryAttack(void);
 	DECLARE_NETWORKCLASS(); 
 	DECLARE_PREDICTABLE();
 
@@ -88,6 +90,33 @@ CWeapon357::CWeapon357( void )
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
+void CWeapon357::Operator_HandleAnimEvent(animevent_t *pEvent, CBaseCombatCharacter *pOperator)
+{
+	CBasePlayer *pOwner = ToBasePlayer(GetOwner());
+
+	switch (pEvent->event)
+	{
+	case EVENT_WEAPON_RELOAD:
+	{
+		CEffectData data;
+
+		// Emit six spent shells
+		for (int i = 0; i < 6; i++)
+		{
+			IPredictionSystem::SuppressHostEvents(NULL);
+
+			data.m_vOrigin = pOwner->WorldSpaceCenter() + RandomVector(-4, 4);
+			data.m_vAngles = QAngle(90, random->RandomInt(0, 360), 0);
+			data.m_nEntIndex = entindex();
+
+			DispatchEffect("ShellEject", data);
+		}
+
+		break;
+	}
+	}
+}
+
 void CWeapon357::PrimaryAttack( void )
 {
 	// Only the player fires this way so we can cast
