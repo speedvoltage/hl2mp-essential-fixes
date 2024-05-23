@@ -912,7 +912,7 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 {
 	LadderRespawnFix();
 
-	bool bKill = false;
+	// bool bKill = false;
 	bool bWasSpectator = false;
 
 	if ( HL2MPRules()->IsTeamplay() != true && iTeam != TEAM_SPECTATOR )
@@ -925,7 +925,7 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	{
 		if ( iTeam != GetTeamNumber() && GetTeamNumber() != TEAM_UNASSIGNED )
 		{
-			bKill = true;
+			// bKill = true;
 		}
 	}
 
@@ -974,10 +974,10 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 		State_Transition( STATE_OBSERVER_MODE );
 	}
 
-	if ( bKill == true )
+	/*if ( bKill == true )
 	{
 		CommitSuicide();
-	}
+	}*/
 }
 
 bool CHL2MP_Player::HandleCommand_JoinTeam(int team)
