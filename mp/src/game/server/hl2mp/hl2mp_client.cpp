@@ -45,6 +45,10 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 	pPlayer->InitialSpawn();
 	pPlayer->Spawn();
 
+	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+	{
+		pPlayer->SetObserverMode(OBS_MODE_ROAMING);
+	}
 
 	char sName[128];
 	Q_strncpy( sName, pPlayer->GetPlayerName(), sizeof( sName ) );

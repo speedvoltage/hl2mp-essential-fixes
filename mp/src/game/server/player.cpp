@@ -6446,7 +6446,7 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 			CBaseEntity * target = FindNextObserverTarget(false);
 
 			if (!target)
-				return false;
+				return true;
 
  			mode = GetObserverMode() + 1;
 			
