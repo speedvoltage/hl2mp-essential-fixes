@@ -340,7 +340,8 @@ bool CMultiplayRules::Init()
 	// load all default values
 		BaseClass::RefreshSkillData( forceUpdate );
 
-	// override some values for multiplay.
+		ConVarRef suitcharger("sk_suitcharger");
+		suitcharger.GetInt();
 	}
 
 
