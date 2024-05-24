@@ -100,7 +100,7 @@ ConVar sv_allow_point_servercommand ( "sv_allow_point_servercommand",
                                       "official",
 #else
                                       // Other games may use this in their official maps, and only TF exposes IsValveMap() currently
-                                      "always",
+                                      "disallow",
 #endif // TF_DLL
                                       FCVAR_NONE,
                                       "Allow use of point_servercommand entities in map. Potentially dangerous for untrusted maps.\n"
