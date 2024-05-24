@@ -120,7 +120,7 @@ void ReInstallGameRules()
 	CreateGameRulesObject("CHL2MPRules");
 }
 
-ConVar sv_chat_trigger("sv_chat_triggers", "1");
+ConVar sv_chat_trigger("sv_chat_triggers", "1", FCVAR_NOTIFY);
 ConVar mp_allow_teamplay_changes("mp_allow_teamplay_changes", "0", FCVAR_NOTIFY);
 
 float g_iCanToggleTP;
