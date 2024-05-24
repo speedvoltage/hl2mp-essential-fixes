@@ -123,6 +123,8 @@ void ReInstallGameRules()
 ConVar sv_chat_trigger("sv_chat_triggers", "1");
 ConVar mp_allow_teamplay_changes("mp_allow_teamplay_changes", "0", FCVAR_NOTIFY);
 
+float g_iCanToggleTP;
+
 CON_COMMAND(tp, "Switch teamplay status on the fly.")
 {
 	CBasePlayer *pPlayer = ToBasePlayer(UTIL_GetCommandClient());
@@ -135,12 +137,20 @@ CON_COMMAND(tp, "Switch teamplay status on the fly.")
 			return;
 		}
 
+		if (gpGlobals->curtime < g_iCanToggleTP)
+		{
+			char szReturnString[128];
+			Q_snprintf(szReturnString, sizeof(szReturnString), "Please wait %d more seconds before trying to switch game modes.\n", (int)(g_iCanToggleTP - gpGlobals->curtime));
+			ClientPrint(pPlayer, HUD_PRINTCONSOLE, szReturnString);
+			return;
+		}
+
 		if (HL2MPRules()->IsTeamplay() == false)
 		{
 			teamplay.SetValue(1);
 			ReInstallGameRules();
 			HL2MPRules()->RestartGame();
-			UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been enabled.\n");
+			UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been enabled.\n");		
 		}
 
 		else
@@ -161,6 +171,7 @@ CON_COMMAND(tp, "Switch teamplay status on the fly.")
 			}
 			UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been disabled.\n");
 		}
+		g_iCanToggleTP = gpGlobals->curtime + 5.0f;
 	}
 }
 
@@ -173,6 +184,14 @@ CON_COMMAND(toggle_teamplay, "Switch teamplay status on the fly.")
 		if (pPlayer && pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
 		{
 			ClientPrint(pPlayer, HUD_PRINTTALK, "Spectators cannot toggle teamplay.\n");
+			return;
+		}
+
+		if (gpGlobals->curtime < g_iCanToggleTP)
+		{
+			char szReturnString[128];
+			Q_snprintf(szReturnString, sizeof(szReturnString), "Please wait %d more seconds before trying to switch game modes.\n", (int)(g_iCanToggleTP - gpGlobals->curtime));
+			ClientPrint(pPlayer, HUD_PRINTCONSOLE, szReturnString);
 			return;
 		}
 
@@ -202,6 +221,7 @@ CON_COMMAND(toggle_teamplay, "Switch teamplay status on the fly.")
 			}
 			UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been disabled.\n");
 		}
+		g_iCanToggleTP = gpGlobals->curtime + 5.0f;
 	}
 }
 
@@ -239,30 +259,40 @@ char * CheckChatText(CBasePlayer *pPlayer, char *text)
 			}
 			else
 			{
-				if (HL2MPRules()->IsTeamplay() == false)
+				if (gpGlobals->curtime > g_iCanToggleTP)
 				{
-					teamplay.SetValue(1);
-					ReInstallGameRules();
-					HL2MPRules()->RestartGame();
-					UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been enabled.\n");
+					if (HL2MPRules()->IsTeamplay() == false)
+					{
+						teamplay.SetValue(1);
+						ReInstallGameRules();
+						HL2MPRules()->RestartGame();
+						UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been enabled.\n");
+					}
+					else
+					{
+						teamplay.SetValue(0);
+						ReInstallGameRules();
+						HL2MPRules()->RestartGame();
+
+						// loop through all players
+						for (int i = 1; i <= gpGlobals->maxClients; i++)
+						{
+							CBasePlayer *pPlayer = UTIL_PlayerByIndex(i);
+
+							if (pPlayer)
+							{
+								pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
+							}
+						}
+						UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been disabled.\n");
+					}
+					g_iCanToggleTP = gpGlobals->curtime + 5.0f;
 				}
 				else
 				{
-					teamplay.SetValue(0);
-					ReInstallGameRules();
-					HL2MPRules()->RestartGame();
-
-					// loop through all players
-					for (int i = 1; i <= gpGlobals->maxClients; i++)
-					{
-						CBasePlayer *pPlayer = UTIL_PlayerByIndex(i);
-
-						if (pPlayer)
-						{
-							pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
-						}
-					}
-					UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been disabled.\n");
+					char szReturnString[128];
+					Q_snprintf(szReturnString, sizeof(szReturnString), "Please wait %d more seconds before trying to switch game modes.\n", (int)(g_iCanToggleTP - gpGlobals->curtime));
+					ClientPrint(pPlayer, HUD_PRINTTALK, szReturnString);
 				}
 			}
 		}
