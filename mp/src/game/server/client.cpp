@@ -115,8 +115,95 @@ void ClientKill( edict_t *pEdict, const Vector &vecForce, bool bExplode = false 
 	CBasePlayer *pPlayer = static_cast<CBasePlayer*>( GetContainingEntity( pEdict ) );
 	pPlayer->CommitSuicide( vecForce, bExplode );
 }
+void ReInstallGameRules()
+{
+	CreateGameRulesObject("CHL2MPRules");
+}
 
 ConVar sv_chat_trigger("sv_chat_triggers", "1");
+ConVar mp_allow_teamplay_changes("mp_allow_teamplay_changes", "0", FCVAR_NOTIFY);
+
+CON_COMMAND(tp, "Switch teamplay status on the fly.")
+{
+	CBasePlayer *pPlayer = ToBasePlayer(UTIL_GetCommandClient());
+
+	if (mp_allow_teamplay_changes.GetBool())
+	{
+		if (pPlayer && pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+		{
+			ClientPrint(pPlayer, HUD_PRINTTALK, "Spectators cannot toggle teamplay.\n");
+			return;
+		}
+
+		if (HL2MPRules()->IsTeamplay() == false)
+		{
+			teamplay.SetValue(1);
+			ReInstallGameRules();
+			HL2MPRules()->RestartGame();
+			UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been enabled.\n");
+		}
+
+		else
+		{
+			teamplay.SetValue(0);
+			ReInstallGameRules();
+			HL2MPRules()->RestartGame();
+
+			// loop through all players
+			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			{
+				CBasePlayer *pPlayer = UTIL_PlayerByIndex(i);
+
+				if (pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
+				{
+					pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
+				}
+			}
+			UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been disabled.\n");
+		}
+	}
+}
+
+CON_COMMAND(toggle_teamplay, "Switch teamplay status on the fly.")
+{
+	CBasePlayer *pPlayer = ToBasePlayer(UTIL_GetCommandClient());
+
+	if (mp_allow_teamplay_changes.GetBool())
+	{
+		if (pPlayer && pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+		{
+			ClientPrint(pPlayer, HUD_PRINTTALK, "Spectators cannot toggle teamplay.\n");
+			return;
+		}
+
+		if (HL2MPRules()->IsTeamplay() == false)
+		{
+			teamplay.SetValue(1);
+			ReInstallGameRules();
+			HL2MPRules()->RestartGame();
+			UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been enabled.\n");
+		}
+
+		else
+		{
+			teamplay.SetValue(0);
+			ReInstallGameRules();
+			HL2MPRules()->RestartGame();
+
+			// loop through all players
+			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			{
+				CBasePlayer *pPlayer = UTIL_PlayerByIndex(i);
+
+				if (pPlayer)
+				{
+					pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
+				}
+			}
+			UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been disabled.\n");
+		}
+	}
+}
 
 char * CheckChatText(CBasePlayer *pPlayer, char *text)
 {
@@ -141,6 +228,45 @@ char * CheckChatText(CBasePlayer *pPlayer, char *text)
 		text[127] = 0;
 
 	GameRules()->CheckChatText(pPlayer, p);
+
+	if (mp_allow_teamplay_changes.GetBool())
+	{
+		if (FStrEq(p, "!tp") || FStrEq(p, "!teamplay"))
+		{
+			if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+			{
+				ClientPrint(pPlayer, HUD_PRINTTALK, "Spectators cannot toggle teamplay.\n");
+			}
+			else
+			{
+				if (HL2MPRules()->IsTeamplay() == false)
+				{
+					teamplay.SetValue(1);
+					ReInstallGameRules();
+					HL2MPRules()->RestartGame();
+					UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been enabled.\n");
+				}
+				else
+				{
+					teamplay.SetValue(0);
+					ReInstallGameRules();
+					HL2MPRules()->RestartGame();
+
+					// loop through all players
+					for (int i = 1; i <= gpGlobals->maxClients; i++)
+					{
+						CBasePlayer *pPlayer = UTIL_PlayerByIndex(i);
+
+						if (pPlayer)
+						{
+							pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
+						}
+					}
+					UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been disabled.\n");
+				}
+			}
+		}
+	}
 
 	if (sv_chat_trigger.GetBool())
 	{
