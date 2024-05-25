@@ -131,7 +131,7 @@ CON_COMMAND(tp, "Switch teamplay status on the fly.")
 
 	if (mp_allow_teamplay_changes.GetBool())
 	{
-		if (pPlayer && pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+		if (pPlayer && pPlayer->GetTeamNumber() == TEAM_SPECTATOR && pPlayer->IsHLTV())
 		{
 			ClientPrint(pPlayer, HUD_PRINTTALK, "Spectators cannot toggle teamplay.\n");
 			return;
@@ -140,7 +140,7 @@ CON_COMMAND(tp, "Switch teamplay status on the fly.")
 		if (gpGlobals->curtime < g_iCanToggleTP)
 		{
 			char szReturnString[128];
-			Q_snprintf(szReturnString, sizeof(szReturnString), "Please wait %d more seconds before trying to switch game modes.\n", (int)(g_iCanToggleTP - gpGlobals->curtime));
+			Q_snprintf(szReturnString, sizeof(szReturnString), "Please wait %d more second%s before trying to switch game modes.\n", (int)(g_iCanToggleTP - gpGlobals->curtime), (int)(g_iCanToggleTP - gpGlobals->curtime) > 1 ? "s" : "");
 			ClientPrint(pPlayer, HUD_PRINTCONSOLE, szReturnString);
 			return;
 		}
@@ -166,7 +166,10 @@ CON_COMMAND(tp, "Switch teamplay status on the fly.")
 
 				if (pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
 				{
-					pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
+					if (!pPlayer->IsHLTV()) // Don't let SourceTV join the game.
+					{
+						pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
+					}
 				}
 			}
 			UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been disabled.\n");
@@ -181,7 +184,7 @@ CON_COMMAND(toggle_teamplay, "Switch teamplay status on the fly.")
 
 	if (mp_allow_teamplay_changes.GetBool())
 	{
-		if (pPlayer && pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+		if (pPlayer && pPlayer->GetTeamNumber() == TEAM_SPECTATOR && pPlayer->IsHLTV())
 		{
 			ClientPrint(pPlayer, HUD_PRINTTALK, "Spectators cannot toggle teamplay.\n");
 			return;
@@ -190,7 +193,7 @@ CON_COMMAND(toggle_teamplay, "Switch teamplay status on the fly.")
 		if (gpGlobals->curtime < g_iCanToggleTP)
 		{
 			char szReturnString[128];
-			Q_snprintf(szReturnString, sizeof(szReturnString), "Please wait %d more seconds before trying to switch game modes.\n", (int)(g_iCanToggleTP - gpGlobals->curtime));
+			Q_snprintf(szReturnString, sizeof(szReturnString), "Please wait %d more second%s before trying to switch game modes.\n", (int)(g_iCanToggleTP - gpGlobals->curtime), (int)(g_iCanToggleTP - gpGlobals->curtime) > 1 ? "s" : "");
 			ClientPrint(pPlayer, HUD_PRINTCONSOLE, szReturnString);
 			return;
 		}
@@ -214,9 +217,12 @@ CON_COMMAND(toggle_teamplay, "Switch teamplay status on the fly.")
 			{
 				CBasePlayer *pPlayer = UTIL_PlayerByIndex(i);
 
-				if (pPlayer)
+				if (pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
 				{
-					pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
+					if (!pPlayer->IsHLTV()) // Don't let SourceTV join the game.
+					{
+						pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
+					}
 				}
 			}
 			UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been disabled.\n");
@@ -253,7 +259,7 @@ char * CheckChatText(CBasePlayer *pPlayer, char *text)
 	{
 		if (FStrEq(p, "!tp") || FStrEq(p, "!teamplay"))
 		{
-			if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+			if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR && pPlayer->IsHLTV())
 			{
 				ClientPrint(pPlayer, HUD_PRINTTALK, "Spectators cannot toggle teamplay.\n");
 			}
@@ -279,7 +285,7 @@ char * CheckChatText(CBasePlayer *pPlayer, char *text)
 						{
 							CBasePlayer *pPlayer = UTIL_PlayerByIndex(i);
 
-							if (pPlayer)
+							if (pPlayer && !pPlayer->IsHLTV()) // Don't let SourceTV join the game.
 							{
 								pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
 							}
@@ -291,7 +297,7 @@ char * CheckChatText(CBasePlayer *pPlayer, char *text)
 				else
 				{
 					char szReturnString[128];
-					Q_snprintf(szReturnString, sizeof(szReturnString), "Please wait %d more seconds before trying to switch game modes.\n", (int)(g_iCanToggleTP - gpGlobals->curtime));
+					Q_snprintf(szReturnString, sizeof(szReturnString), "Please wait %d more second%s before trying to switch game modes.\n", (int)(g_iCanToggleTP - gpGlobals->curtime), (int)(g_iCanToggleTP - gpGlobals->curtime) > 1 ? "s" : "");
 					ClientPrint(pPlayer, HUD_PRINTTALK, szReturnString);
 				}
 			}
