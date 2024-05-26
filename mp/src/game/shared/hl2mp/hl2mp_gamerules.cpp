@@ -293,7 +293,6 @@ ConVar sv_timeleft_enable("sv_timeleft_enable", "1", 0, "Enable/Disable time lef
 ConVar sv_timeleft_r("sv_timeleft_red", "255", 0, "Red intensity.", true, 0.0, true, 255.0);
 ConVar sv_timeleft_g("sv_timeleft_green", "255", 0, "Green intensity.", true, 0.0, true, 255.0);
 ConVar sv_timeleft_b("sv_timeleft_blue", "255", 0, "Blue intensity.", true, 0.0, true, 255.0);
-ConVar sv_timeleft_a("sv_timeleft_alpha", "255", 0, "Alpha/Intensity.", true, 0.0, true, 255.0);
 ConVar sv_timeleft_channel("sv_timeleft_channel", "0", 0, "Alpha/Intensity.", true, 0.0, true, 5.0); // Channels go from 0 to 5 (6 total channels).
 ConVar sv_timeleft_x("sv_timeleft_x", "-1");
 ConVar sv_timeleft_y("sv_timeleft_y", "0.01");
@@ -334,7 +333,7 @@ void CHL2MPRules::Think( void )
 				textParams.r1 = sv_timeleft_r.GetInt();
 				textParams.g1 = sv_timeleft_g.GetInt();
 				textParams.b1 = sv_timeleft_b.GetInt();
-				textParams.a1 = sv_timeleft_a.GetInt();
+				textParams.a1 = 255;
 				textParams.x = sv_timeleft_x.GetFloat();
 				textParams.y = sv_timeleft_y.GetFloat();
 				textParams.effect = 0;
