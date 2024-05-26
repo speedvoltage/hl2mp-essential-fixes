@@ -62,11 +62,11 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 	}
 
 	// notify other clients of player joining the game
-	UTIL_ClientPrintAll( HUD_PRINTNOTIFY, "#Game_connected", sName[0] != 0 ? sName : "<unconnected>" );
+	UTIL_ClientPrintAll( HUD_PRINTTALK, "\x04%s1 \x01is connected.", sName[0] != 0 ? sName : "<unconnected>" );
 
 	if ( HL2MPRules()->IsTeamplay() == true )
 	{
-		ClientPrint( pPlayer, HUD_PRINTTALK, "You are on team %s1\n", pPlayer->GetTeam()->GetName() );
+		ClientPrint( pPlayer, HUD_PRINTTALK, "You are on team \x05%s1\n", pPlayer->GetTeam()->GetName() );
 	}
 
 	// If on a custom game mode that puts players in team spectator on connect, strip suit and weapons too
