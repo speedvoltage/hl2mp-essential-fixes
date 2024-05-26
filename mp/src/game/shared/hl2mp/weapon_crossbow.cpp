@@ -377,6 +377,8 @@ void CCrossbowBolt::BoltTouch(CBaseEntity *pOther)
 //-----------------------------------------------------------------------------
 void CCrossbowBolt::BubbleThink( void )
 {
+	AddEFlags( EFL_NO_WATER_VELOCITY_CHANGE );
+
 	QAngle angNewAngles;
 
 	VectorAngles( GetAbsVelocity(), angNewAngles );
