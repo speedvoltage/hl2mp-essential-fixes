@@ -921,14 +921,6 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 		iTeam = TEAM_UNASSIGNED;
 	}
 
-	if ( HL2MPRules()->IsTeamplay() == true )
-	{
-		if ( iTeam != GetTeamNumber() && GetTeamNumber() != TEAM_UNASSIGNED )
-		{
-			// bKill = true;
-		}
-	}
-
 	if (this->GetTeamNumber() == TEAM_SPECTATOR)
 	{
 		bWasSpectator = true;
@@ -941,6 +933,16 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	if ( HL2MPRules()->IsTeamplay() == true )
 	{
 		SetPlayerTeamModel();
+
+		// Little bit dirty, but this will work for now.
+		if (iTeam == TEAM_REBELS)
+		{
+			engine->ClientCommand(edict(), "cl_playermodel models/humans/group03/female_04.mdl\n");
+		}
+		else
+		{
+			engine->ClientCommand(edict(), "cl_playermodel models/combine_soldier.mdl\n");
+		}
 	}
 	else
 	{
@@ -973,11 +975,6 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 
 		State_Transition( STATE_OBSERVER_MODE );
 	}
-
-	/*if ( bKill == true )
-	{
-		CommitSuicide();
-	}*/
 }
 
 bool CHL2MP_Player::HandleCommand_JoinTeam(int team)
