@@ -1108,7 +1108,7 @@ CON_COMMAND( give, "Give item to player.\n\tArguments: <item_name>" )
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-CON_COMMAND( fov, "Change players FOV" )
+CON_COMMAND( fov_desired, "Change players FOV" )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() );
 	if ( pPlayer && sv_cheats->GetBool() )

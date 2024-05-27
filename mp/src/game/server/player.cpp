@@ -8533,7 +8533,7 @@ float CBasePlayer::GetFOVDistanceAdjustFactorForNetworking()
 //-----------------------------------------------------------------------------
 void CBasePlayer::SetDefaultFOV( int FOV )
 {
-	m_iDefaultFOV = ( FOV == 0 ) ? g_pGameRules->DefaultFOV() : FOV;
+	m_iDefaultFOV = (FOV == 0) ? g_pGameRules->DefaultFOV() : FOV;
 }
 
 //-----------------------------------------------------------------------------
