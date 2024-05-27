@@ -117,3 +117,13 @@ config.cfg
 /mp/src/game/server/Debug_mod_hl2mp/gamerules.new.obj.enc
 /mp/src/game/server/Debug_mod_hl2mp/weapon_physcannon.obj.enc
 /mp/src/.vs/games/v16
+*.vsidx
+*.db
+*.db-shm
+*.db-wal
+*.opendb
+*.json
+*.bin
+*.txt
+*.pdb
+*.lib
