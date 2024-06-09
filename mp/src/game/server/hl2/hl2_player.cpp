@@ -434,6 +434,8 @@ void CHL2_Player::RemoveSuit( void )
 	m_HL2Local.m_bDisplayReticle = false;
 }
 
+bool bMv = true;
+
 void CHL2_Player::HandleSpeedChanges(void)
 {
 	int buttonsChanged = m_afButtonPressed | m_afButtonReleased;
@@ -442,6 +444,16 @@ void CHL2_Player::HandleSpeedChanges(void)
 	{
 		StopSprinting();
 	}
+
+	if (bMv)
+	{
+		bMv = false;
+		if (IsDucked())
+			StopSprinting();
+	}
+
+	if (!IsDucked() && !bMv)
+		bMv = true;
 
 	if ((buttonsChanged & IN_SPEED))
 	{
@@ -453,7 +465,7 @@ void CHL2_Player::HandleSpeedChanges(void)
 				StopSprinting();
 			}
 			else if ((m_afButtonPressed & IN_SPEED) && !IsSprinting())
-			{
+			{			
 				if (CanSprint())
 				{
 					StartSprinting();
