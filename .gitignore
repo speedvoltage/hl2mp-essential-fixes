@@ -127,3 +127,4 @@ config.cfg
 *.txt
 *.pdb
 *.lib
+mp/src/game/server/Release_mod_hl2mp/vc120.pdb

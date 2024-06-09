@@ -1671,12 +1671,6 @@ void CWeaponPhysCannon::PuntVPhysics( CBaseEntity *pEntity, const Vector &vecFor
 			return;
 		}
 				
-		if( forward.z < 0 )
-		{
-			//reflect, but flatten the trajectory out a bit so it's easier to hit standing targets
-			forward.z *= -0.65f;
-		}
-				
 		// NOTE: Do this first to enable motion (if disabled) - so forces will work
 		// Tell the object it's been punted
 		Physgun_OnPhysGunPickup( pEntity, pOwner, PUNTED_BY_CANNON );
