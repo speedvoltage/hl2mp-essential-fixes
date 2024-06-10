@@ -434,26 +434,34 @@ void CHL2_Player::RemoveSuit( void )
 	m_HL2Local.m_bDisplayReticle = false;
 }
 
-bool bMv = true;
-
 void CHL2_Player::HandleSpeedChanges(void)
 {
 	int buttonsChanged = m_afButtonPressed | m_afButtonReleased;
+	int iDucked = 0;
 
 	if (GetWaterLevel() == 3)
 	{
 		StopSprinting();
 	}
 
-	if (bMv)
+	if (m_Local.m_bDucking)
 	{
-		bMv = false;
-		if (IsDucked())
-			StopSprinting();
+		iDucked = gpGlobals->curtime + 1;
 	}
 
-	if (!IsDucked() && !bMv)
-		bMv = true;
+	if (IsDucked())
+	{
+		if (m_nButtons & IN_DUCK)
+		{
+			Msg("Holding duck key\n");
+		}
+
+		if (iDucked < gpGlobals->curtime && (m_nButtons & IN_DUCK))
+		{
+			StopSprinting();
+		}
+		Msg("Ducked\n");
+	}
 
 	if ((buttonsChanged & IN_SPEED))
 	{
