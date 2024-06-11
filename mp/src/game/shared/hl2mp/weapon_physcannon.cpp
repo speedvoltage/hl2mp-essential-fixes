@@ -2402,7 +2402,6 @@ void CWeaponPhysCannon::DetachObject( bool playSound, bool wasLaunched )
 
 	m_bActive = false;
 	m_hAttachedObject = NULL;
-
 	
 	if ( playSound )
 	{
