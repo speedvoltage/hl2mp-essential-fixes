@@ -1,12 +1,6 @@
 name: Dedicated
 
-on:
-  pull_request:
-    branches:
-      - master
-  push:
-    branches:
-      - linux
+on: [push, pull_request]
 
 jobs:
   linux:
