@@ -2800,6 +2800,11 @@ void CBaseCombatWeapon::RecvProxy_WeaponState( const CRecvProxyData *pData, void
 	pWeapon->m_iState = pData->m_Value.m_Int;
 	pWeapon->UpdateVisibility();
 }
+static void RecvProxy_WeaponOwner(const CRecvProxyData* pData, void* pStruct, void* pOut)
+{
+	RecvProxy_IntToEHandle(pData, pStruct, pOut);
+	((CBaseCombatWeapon*)pStruct)->UpdateVisibility();
+}
 #endif
 
 #if PREDICTION_ERROR_CHECK_LEVEL > 1
