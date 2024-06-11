@@ -24,7 +24,7 @@ jobs:
         with:
           args: make GITHUB_ACTIONS=1 -f mp/src/dedicated.mak
       - name: Upload artifacts
-        uses: actions/upload-artifacts@v4
+        uses: actions/upload-artifact@v4
         with:
           name: Linux-x86
           path: |
