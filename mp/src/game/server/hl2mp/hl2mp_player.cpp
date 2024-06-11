@@ -960,6 +960,7 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 
 	if ( iTeam == TEAM_SPECTATOR )
 	{
+		// Thanks No Air and Adrian for this!
 		ForceDropOfCarriedPhysObjects(NULL);
 
 		StopZooming();
