@@ -16,7 +16,7 @@ jobs:
       - name: Sanitize paths in Makefiles
         run: |
           sed -e "s|${{ github.workspace }}/||g" -i mp/src/dedicated.mak
-          sed -e "s|${{ github.workspace }}/||g" -i mp/src/game/server/server_hl2mp_linux32.mak
+          sed -e "s|${{ github.workspace }}||g" -i mp/src/game/server/server_linux32_hl2mp.mak
           sed -e "s|${{ github.workspace }}/||g" -i mp/src/mathlib/mathlib_linux32.mak
           sed -e "s|${{ github.workspace }}/||g" -i mp/src/tier1/tier1_linux32.mak
       - name: Build
