@@ -457,6 +457,11 @@ void CHL2_Player::HandleSpeedChanges(void)
 		}
 	}
 
+	if (IsDucked() && m_Local.m_bDucking && (m_nButtons & IN_DUCK))
+	{
+		StopSprinting();
+	}
+
 	if ((buttonsChanged & IN_SPEED))
 	{
 		// The state of the sprint/run button has changed.
