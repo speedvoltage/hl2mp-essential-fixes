@@ -910,7 +910,7 @@ bool CHL2MP_Player::BumpWeapon( CBaseCombatWeapon *pWeapon )
 
 void CHL2MP_Player::ChangeTeam( int iTeam )
 {
-	LadderRespawnFix();
+	LadderRespawnFix();		
 
 	// bool bKill = false;
 	bool bWasSpectator = false;
@@ -939,7 +939,7 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 		{
 			engine->ClientCommand(edict(), "cl_playermodel models/humans/group03/female_04.mdl\n");
 		}
-		else
+		else if (iTeam == TEAM_COMBINE)
 		{
 			engine->ClientCommand(edict(), "cl_playermodel models/combine_soldier.mdl\n");
 		}
