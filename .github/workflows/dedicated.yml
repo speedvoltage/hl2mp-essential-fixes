@@ -22,7 +22,7 @@ jobs:
       - name: Build
         uses: docker://registry.gitlab.steamos.cloud/steamrt/scout/sdk/i386:latest
         with:
-          args: make GITHUB_ACTIONS=1 -f mp/src/dedicated.mak
+          args: make CFG=release GITHUB_ACTIONS=1 -f mp/src/dedicated.mak
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
