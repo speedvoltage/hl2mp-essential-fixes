@@ -7526,7 +7526,7 @@ void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent)
 		event->SetInt("oldteam", GetTeamNumber() );
 		event->SetInt("disconnect", IsDisconnecting());
 		event->SetInt("autoteam", bAutoTeam );
-		event->SetInt("silent", bSilent );
+		event->SetInt("silent", true );
 		event->SetString("name", GetPlayerName() );
 
 		gameeventmanager->FireEvent( event );
@@ -7542,6 +7542,13 @@ void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent)
 	if ( iTeamNum )
 	{
 		GetGlobalTeam( iTeamNum )->AddPlayer( this );
+
+		if (iTeamNum == 3)
+			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x7" "FF3D42" "%s1 \x01joined team" "\x7" "FF3D42" " Rebels.", this->GetPlayerName());
+		if (iTeamNum == 2)
+			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x7" "9FCAF2" "%s1 \x01joined team" "\x7" "9FCAF2" " Combine.", this->GetPlayerName());
+		if (iTeamNum == 1)
+			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x7" "FF811C" "%s1 \x01joined team" "\x7" "FF811C" " Spectators.", this->GetPlayerName());
 	}
 
 	BaseClass::ChangeTeam( iTeamNum );

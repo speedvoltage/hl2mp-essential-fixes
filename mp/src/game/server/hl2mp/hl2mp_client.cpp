@@ -62,11 +62,16 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 	}
 
 	// notify other clients of player joining the game
-	UTIL_ClientPrintAll( HUD_PRINTTALK, "\x04%s1 \x01is connected.", sName[0] != 0 ? sName : "<unconnected>" );
+	UTIL_ClientPrintAll( HUD_PRINTTALK, "\x7" "00BFFF" "%s1 \x01is connected.", sName[0] != 0 ? sName : "<unconnected>" );
 
 	if ( HL2MPRules()->IsTeamplay() == true )
 	{
-		ClientPrint( pPlayer, HUD_PRINTTALK, "You are on team \x05%s1\n", pPlayer->GetTeam()->GetName() );
+		if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+			ClientPrint( pPlayer, HUD_PRINTTALK, "\x7" "00BFFF" "You are on team" "\x7" "FF811C" " %s1.\n", pPlayer->GetTeam()->GetName() );
+		else if (pPlayer->GetTeamNumber() == TEAM_COMBINE)
+			ClientPrint(pPlayer, HUD_PRINTTALK, "\x7" "00BFFF" "You are on team" "\x7" "9FCAF2" " %s1.\n", pPlayer->GetTeam()->GetName());
+		else if (pPlayer->GetTeamNumber() == TEAM_REBELS)
+			ClientPrint(pPlayer, HUD_PRINTTALK, "\x7" "00BFFF" "You are on team" "\x7" "FF3D42" " %s1.\n", pPlayer->GetTeam()->GetName());
 	}
 
 	// If on a custom game mode that puts players in team spectator on connect, strip suit and weapons too
@@ -99,7 +104,6 @@ void ClientActive( edict_t *pEdict, bool bLoadGame )
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer( CBaseEntity::Instance( pEdict ) );
 	FinishClientPutInServer( pPlayer );
 }
-
 
 /*
 ===============
