@@ -35,6 +35,7 @@ extern IFileSystem* filesystem;
 static ConVar dispcoll_drawplane("dispcoll_drawplane", "0");
 #endif
 
+ConVar sv_allow_bunnyhop("sv_allow_bunnyhop", "0", FCVAR_REPLICATED | FCVAR_NOTIFY);
 
 // tickcount currently isn't set during prediction, although gpGlobals->curtime and
 // gpGlobals->frametime are. We should probably set tickcount (to player->m_nTickBase),
@@ -2408,7 +2409,7 @@ bool CGameMovement::CheckJumpButton(void)
 		return false;
 #endif
 
-	if (mv->m_nOldButtons & IN_JUMP)
+	if (mv->m_nOldButtons & IN_JUMP && !sv_allow_bunnyhop.GetBool())
 		return false;		// don't pogo stick
 
 	// Cannot jump will in the unduck transition.

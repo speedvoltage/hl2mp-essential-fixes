@@ -1108,7 +1108,8 @@ CON_COMMAND( give, "Give item to player.\n\tArguments: <item_name>" )
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-CON_COMMAND( fov_desired, "Change players FOV" )
+// Doesn't do us any good, better to use a plugin that stores that info into a database
+/*CON_COMMAND(fov_desired, "Change players FOV")
 {
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() );
 	if ( pPlayer && sv_cheats->GetBool() )
@@ -1123,8 +1124,7 @@ CON_COMMAND( fov_desired, "Change players FOV" )
 			ClientPrint( pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs( "\"fov\" is \"%d\"\n", pPlayer->GetFOV() ) );
 		}
 	}
-}
-
+}*/
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
