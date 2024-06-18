@@ -150,7 +150,7 @@ CON_COMMAND(tp, "Switch teamplay status on the fly.")
 			teamplay.SetValue(1);
 			ReInstallGameRules();
 			HL2MPRules()->RestartGame();
-			UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been enabled.\n");		
+			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 enabled\x01.\n");		
 		}
 
 		else
@@ -172,7 +172,7 @@ CON_COMMAND(tp, "Switch teamplay status on the fly.")
 					}
 				}
 			}
-			UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been disabled.\n");
+			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 disabled\x01.\n");
 		}
 		g_iCanToggleTP = gpGlobals->curtime + 5.0f;
 	}
@@ -203,7 +203,7 @@ CON_COMMAND(toggle_teamplay, "Switch teamplay status on the fly.")
 			teamplay.SetValue(1);
 			ReInstallGameRules();
 			HL2MPRules()->RestartGame();
-			UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been enabled.\n");
+			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 enabled\x01.\n");
 		}
 
 		else
@@ -225,7 +225,7 @@ CON_COMMAND(toggle_teamplay, "Switch teamplay status on the fly.")
 					}
 				}
 			}
-			UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been disabled.\n");
+			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 disabled\x01.\n");
 		}
 		g_iCanToggleTP = gpGlobals->curtime + 5.0f;
 	}
@@ -272,7 +272,7 @@ char * CheckChatText(CBasePlayer *pPlayer, char *text)
 						teamplay.SetValue(1);
 						ReInstallGameRules();
 						HL2MPRules()->RestartGame();
-						UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been enabled.\n");
+						UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 enabled\x01.\n");
 					}
 					else
 					{
@@ -290,7 +290,7 @@ char * CheckChatText(CBasePlayer *pPlayer, char *text)
 								pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
 							}
 						}
-						UTIL_ClientPrintAll(HUD_PRINTTALK, "Teamplay has been disabled.\n");
+						UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 disabled\x01.\n");
 					}
 					g_iCanToggleTP = gpGlobals->curtime + 5.0f;
 				}

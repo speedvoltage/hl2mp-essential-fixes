@@ -1376,6 +1376,13 @@ void CWeaponPhysCannon::OnRestore()
 //-----------------------------------------------------------------------------
 void CWeaponPhysCannon::UpdateOnRemove(void)
 {
+#ifdef CLIENT_DLL
+	if (m_hOldAttachedObject != NULL)
+	{
+		m_hOldAttachedObject->VPhysicsDestroyObject();
+	}
+#endif // CLIENT_DLL
+
 	DestroyEffects( );
 	BaseClass::UpdateOnRemove();
 }
@@ -2373,19 +2380,13 @@ void CWeaponPhysCannon::DetachObject( bool playSound, bool wasLaunched )
 	if ( m_bActive == false )
 		return;
 
-	CHL2MP_Player *pOwner = (CHL2MP_Player *)ToBasePlayer( GetOwner() );
-	if( pOwner != NULL )
-	{
-		pOwner->EnableSprint( true );
-	}
-
-	CBaseEntity *pObject = m_grabController.GetAttached();
+	CBaseEntity* pObject = m_grabController.GetAttached();
 
 	m_grabController.DetachEntity( wasLaunched );
 
 	if ( pObject != NULL )
 	{
-		Pickup_OnPhysGunDrop( pObject, pOwner, wasLaunched ? LAUNCHED_BY_CANNON : DROPPED_BY_CANNON );
+		Pickup_OnPhysGunDrop(pObject, GetPlayerOwner(), wasLaunched ? LAUNCHED_BY_CANNON : DROPPED_BY_CANNON);
 	}
 
 	// Stop our looping sound
@@ -2655,13 +2656,6 @@ void CWeaponPhysCannon::DoEffectIdle( void )
 //-----------------------------------------------------------------------------
 void CWeaponPhysCannon::ItemPostFrame()
 {
-	// Peter: Stops an exploit/bug where players can hold an object 
-	// from the physcannon silently (no physcannon holding noise)
-	if (m_bOpen == false)
-	{
-		DetachObject();
-	}
-
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
 	if ( pOwner == NULL )
 	{
@@ -2707,7 +2701,7 @@ void CWeaponPhysCannon::ItemPostFrame()
 		}
 	}
 	
-	if (( pOwner->m_nButtons & IN_ATTACK2 ) == 0 )
+	if ((pOwner->m_nButtons & IN_ATTACK2) == 0 && CanPerformSecondaryAttack())
 	{
 		m_nAttack2Debounce = 0;
 	}
