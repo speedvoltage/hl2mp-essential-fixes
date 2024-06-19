@@ -1093,7 +1093,7 @@ CON_COMMAND( give, "Give item to player.\n\tArguments: <item_name>" )
 			}
 		}
 
-		// Dirty hack to avoid suit playing it's pickup sound
+		// Dirty hack to avoid suit playing its pickup sound
 		if ( !Q_stricmp( item_to_give, "item_suit" ) )
 		{
 			pPlayer->EquipSuit( false );
@@ -1104,7 +1104,6 @@ CON_COMMAND( give, "Give item to player.\n\tArguments: <item_name>" )
 		pPlayer->GiveNamedItem( STRING(iszItem) );
 	}
 }
-
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
