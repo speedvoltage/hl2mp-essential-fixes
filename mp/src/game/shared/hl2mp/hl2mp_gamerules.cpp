@@ -42,7 +42,6 @@ extern void respawn(CBaseEntity *pEdict, bool fCopyCorpse);
 extern bool FindInList( const char **pStrings, const char *pToFind );
 
 ConVar sv_hl2mp_weapon_respawn_time("sv_hl2mp_weapon_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
-ConVar sv_hl2mp_rpg_respawn_time( "sv_hl2mp_rpg_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_hl2mp_item_respawn_time( "sv_hl2mp_item_respawn_time", "30", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 
@@ -265,10 +264,7 @@ float CHL2MPRules::FlWeaponRespawnTime( CBaseCombatWeapon *pWeapon )
 		}
 	}
 
-	if ((FClassnameIs(pWeapon, "weapon_rpg")))
-		return sv_hl2mp_rpg_respawn_time.GetFloat();	
-	else
-		return sv_hl2mp_weapon_respawn_time.GetFloat();
+	return sv_hl2mp_weapon_respawn_time.GetFloat();
 #endif
 
 	return 0;		// weapon respawns almost instantly
