@@ -165,7 +165,6 @@ CON_COMMAND(tp, "Switch teamplay status on the fly.")
 			}
 			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 disabled\x01.\n");
 		}
-		g_iCanToggleTP = gpGlobals->curtime + 5.0f;
 	}
 }
 
@@ -210,7 +209,6 @@ CON_COMMAND(toggle_teamplay, "Switch teamplay status on the fly.")
 			}
 			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 disabled\x01.\n");
 		}
-		g_iCanToggleTP = gpGlobals->curtime + 5.0f;
 	}
 }
 
@@ -273,7 +271,6 @@ char* CheckChatText(CBasePlayer* pPlayer, char* text)
 					}
 					UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 disabled\x01.\n");
 				}
-				g_iCanToggleTP = gpGlobals->curtime + 5.0f;
 			}
 		}
 	}
