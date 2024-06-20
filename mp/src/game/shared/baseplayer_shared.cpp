@@ -60,7 +60,6 @@
 	extern ConVar sv_pushaway_max_force;
 	extern ConVar sv_pushaway_force;
 	extern ConVar sv_turbophysics;
-	extern ConVar sv_footsteps;
 
 	class CUsePushFilter : public CTraceFilterEntitiesOnly
 	{
@@ -534,7 +533,7 @@ void CBasePlayer::UpdateStepSound( surfacedata_t *psurface, const Vector &vecOri
 	if ( GetMoveType() == MOVETYPE_NOCLIP || GetMoveType() == MOVETYPE_OBSERVER )
 		return;
 
-	if (!footsteps.GetBool())
+	if (!sv_footsteps.GetFloat())
 		return;
 
 	speed = VectorLength( vecVelocity );
@@ -668,7 +667,7 @@ void CBasePlayer::UpdateStepSound( surfacedata_t *psurface, const Vector &vecOri
 //-----------------------------------------------------------------------------
 void CBasePlayer::PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, float fvol, bool force )
 {
-	if (!footsteps.GetBool())
+	if (gpGlobals->maxClients > 1 && !sv_footsteps.GetFloat())
 		return;
 
 #if defined( CLIENT_DLL )

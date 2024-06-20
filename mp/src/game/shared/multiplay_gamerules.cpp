@@ -1088,10 +1088,10 @@ bool CMultiplayRules::Init()
 
 	bool CMultiplayRules::PlayFootstepSounds( CBasePlayer *pl )
 	{
-		if (!footsteps.GetBool())
+		if (footsteps.GetInt() == 0)
 			return false;
 
-		if ( pl->IsOnLadder() || pl->GetAbsVelocity().Length2D() > 220 )
+		if ( pl->IsOnLadder() || pl->GetAbsVelocity().Length2D() > 150 )
 			return true;  // only make step sounds in multiplayer if the player is moving fast enough
 
 		return false;
