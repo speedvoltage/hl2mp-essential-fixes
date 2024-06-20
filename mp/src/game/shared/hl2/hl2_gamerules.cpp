@@ -127,7 +127,8 @@ ConVar	sk_max_smg1				( "sk_max_smg1","0", FCVAR_REPLICATED);
 ConVar	sk_plr_dmg_buckshot		( "sk_plr_dmg_buckshot","0", FCVAR_REPLICATED);	
 ConVar	sk_npc_dmg_buckshot		( "sk_npc_dmg_buckshot","0", FCVAR_REPLICATED);
 ConVar	sk_max_buckshot			( "sk_max_buckshot","0", FCVAR_REPLICATED);
-ConVar	sk_plr_num_shotgun_pellets( "sk_plr_num_shotgun_pellets","7", FCVAR_REPLICATED);
+ConVar	sk_plr_num_shotgun_pellets("sk_plr_num_shotgun_pellets", "9", FCVAR_REPLICATED);
+ConVar	sk_plr_num_shotgun_pellets_alt( "sk_plr_num_shotgun_pellets_alt","15", FCVAR_REPLICATED);
 
 ConVar	sk_plr_dmg_rpg_round	( "sk_plr_dmg_rpg_round","0", FCVAR_REPLICATED);
 ConVar	sk_npc_dmg_rpg_round	( "sk_npc_dmg_rpg_round","0", FCVAR_REPLICATED);

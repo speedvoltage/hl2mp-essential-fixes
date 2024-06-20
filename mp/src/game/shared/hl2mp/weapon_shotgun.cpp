@@ -22,6 +22,7 @@
 
 extern ConVar sk_auto_reload_time;
 extern ConVar sk_plr_num_shotgun_pellets;
+extern ConVar sk_plr_num_shotgun_pellets_alt;
 
 class CWeaponShotgun : public CBaseHL2MPCombatWeapon
 {
@@ -40,7 +41,7 @@ private:
 public:
 	virtual const Vector& GetBulletSpread(void)
 	{
-		static Vector cone = VECTOR_CONE_10DEGREES;
+		static Vector cone = VECTOR_CONE_15DEGREES;
 		return cone;
 	}
 
@@ -320,17 +321,11 @@ void CWeaponShotgun::PrimaryAttack(void)
 	pPlayer->SetAnimation(PLAYER_ATTACK1);
 
 	Vector	vecSrc = pPlayer->Weapon_ShootPosition();
-	Vector	vecAiming = pPlayer->GetAutoaimVector(AUTOAIM_10DEGREES);
+	Vector	vecAiming = pPlayer->GetAutoaimVector(AUTOAIM_SCALE_DEFAULT);
 
-	FireBulletsInfo_t info(7, vecSrc, vecAiming, GetBulletSpread(), MAX_TRACE_LENGTH, m_iPrimaryAmmoType);
-	info.m_pAttacker = pPlayer;
+	pPlayer->FireBullets(sk_plr_num_shotgun_pellets.GetInt(), vecSrc, vecAiming, GetBulletSpread(), MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0, -1, -1, 0, NULL, true, true);
 
-	// Fire the bullets, and force the first shot to be perfectly accuracy
-	pPlayer->FireBullets(info);
-
-	QAngle punch;
-	punch.Init(SharedRandomFloat("shotgunpax", -2, -1), SharedRandomFloat("shotgunpay", -2, 2), 0);
-	pPlayer->ViewPunch(punch);
+	pPlayer->ViewPunch(QAngle(random->RandomFloat(-2, -1), random->RandomFloat(-2, 2), 0));
 
 	if (!m_iClip1 && pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
 	{
@@ -372,14 +367,11 @@ void CWeaponShotgun::SecondaryAttack(void)
 	pPlayer->SetAnimation(PLAYER_ATTACK1);
 
 	Vector vecSrc = pPlayer->Weapon_ShootPosition();
-	Vector vecAiming = pPlayer->GetAutoaimVector(AUTOAIM_10DEGREES);
+	Vector vecAiming = pPlayer->GetAutoaimVector(AUTOAIM_SCALE_DEFAULT);
 
-	FireBulletsInfo_t info(12, vecSrc, vecAiming, GetBulletSpread(), MAX_TRACE_LENGTH, m_iPrimaryAmmoType);
-	info.m_pAttacker = pPlayer;
-
-	// Fire the bullets, and force the first shot to be perfectly accuracy
-	pPlayer->FireBullets(info);
-	pPlayer->ViewPunch(QAngle(SharedRandomFloat("shotgunsax", -5, 5), 0, 0));
+	// Fire the bullets
+	pPlayer->FireBullets(sk_plr_num_shotgun_pellets_alt.GetInt(), vecSrc, vecAiming, GetBulletSpread(), MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0, -1, -1, 0, NULL, false, false);
+	pPlayer->ViewPunch(QAngle(random->RandomFloat(-5, 5), 0, 0));
 
 	if (!m_iClip1 && pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
 	{
