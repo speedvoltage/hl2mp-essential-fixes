@@ -632,7 +632,7 @@ public:
 	void	InputKill( inputdata_t &data );
 	void	CrateThink( void );
 	
-	virtual int OnTakeDamage( const CTakeDamageInfo &info );
+	// virtual int OnTakeDamage( const CTakeDamageInfo &info );
 
 protected:
 
@@ -872,11 +872,12 @@ void CItem_AmmoCrate::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 //-----------------------------------------------------------------------------
 // Purpose: allows the crate to open up when hit by a crowbar
 //-----------------------------------------------------------------------------
-int CItem_AmmoCrate::OnTakeDamage( const CTakeDamageInfo &info )
+// Peter: It doesn't make sense?
+/*int CItem_AmmoCrate::OnTakeDamage(const CTakeDamageInfo& info)
 {
 	// don't actually take any damage
 	return 0;
-}
+}*/
 
 
 //-----------------------------------------------------------------------------
