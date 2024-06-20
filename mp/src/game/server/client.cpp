@@ -127,6 +127,9 @@ CON_COMMAND(tp, "Switch teamplay status on the fly.")
 {
 	CBasePlayer* pPlayer = ToBasePlayer(UTIL_GetCommandClient());
 
+	if (!pPlayer)
+		return;
+
 	if (mp_allow_teamplay_changes.GetBool())
 	{
 		// if !pPlayer -> don't do anything
@@ -157,10 +160,10 @@ CON_COMMAND(tp, "Switch teamplay status on the fly.")
 
 				if (pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
 				{
-					if (!pPlayer->IsHLTV()) // Don't let SourceTV join the game.
-					{
-						pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
-					}
+					if (pPlayer->IsHLTV()) // Don't let SourceTV join the game.
+						return;
+
+					pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
 				}
 			}
 			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 disabled\x01.\n");
@@ -171,6 +174,9 @@ CON_COMMAND(tp, "Switch teamplay status on the fly.")
 CON_COMMAND(toggle_teamplay, "Switch teamplay status on the fly.")
 {
 	CBasePlayer* pPlayer = ToBasePlayer(UTIL_GetCommandClient());
+
+	if (!pPlayer)
+		return;
 
 	if (mp_allow_teamplay_changes.GetBool())
 	{
@@ -201,10 +207,10 @@ CON_COMMAND(toggle_teamplay, "Switch teamplay status on the fly.")
 
 				if (pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
 				{
-					if (!pPlayer->IsHLTV()) // Don't let SourceTV join the game.
-					{
-						pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
-					}
+					if (pPlayer->IsHLTV()) // Don't let SourceTV join the game.
+						return;
+
+					pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
 				}
 			}
 			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 disabled\x01.\n");
@@ -264,7 +270,7 @@ char* CheckChatText(CBasePlayer* pPlayer, char* text)
 					{
 						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
 
-						if (pPlayer && !pPlayer->IsHLTV()) // Don't let SourceTV join the game.
+						if (pPlayer && !pPlayer->IsHLTV() && pPlayer->GetTeamNumber() != TEAM_SPECTATOR) // Don't let SourceTV join the game.
 						{
 							pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
 						}
@@ -426,12 +432,30 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 				Q_snprintf(text, sizeof(text), "\x7" "FF811C" "[Spectators] \x01%s: ", pszPlayerName);
 			else if (pPlayer->GetTeamNumber() == 1)
 				Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*SPEC* \x01%s: ", pszPlayerName);
+			if (g_pGameRules->IsTeamplay() == 0)
+			{
+				if (pPlayer->GetTeamNumber() != 1 && !pPlayer->IsAlive())
+					Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* \x01%s: ", pszPlayerName);
+				/*else if (pPlayer->GetTeamNumber() != 1 && pPlayer->IsAlive())
+					Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "%s \x01%s: ", pszPrefix, pszPlayerName);*/
+			}
 			else
-				Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "%s \x01%s: ", pszPrefix, pszPlayerName);
+			{
+				if (pPlayer->GetTeamNumber() == 2 && teamonly && !pPlayer->IsAlive())
+					Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* " "\x05[Combine] " "\x7" "9FCAF2" "%s:\x01 ", pszPlayerName);
+				else if (pPlayer->GetTeamNumber() == 2 && !pPlayer->IsAlive())
+					Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* " "\x7" "9FCAF2" "%s:\x01 ", pszPlayerName);
+				else if (pPlayer->GetTeamNumber() == 3 && teamonly && !pPlayer->IsAlive())
+					Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* " "\x05[Rebels] " "\x7" "FF3D42" "%s:\x01 ", pszPlayerName);
+				else if (pPlayer->GetTeamNumber() == 3 && !pPlayer->IsAlive())
+					Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* " "\x7" "FF3D42" "%s:\x01 ", pszPlayerName);
+			}
 		}
 	}
 	else
 	{
+		// Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* \x01%s: ", pszPlayerName);
+		
 		if (pPlayer->GetTeamNumber() == 2 && teamonly)
 			Q_snprintf(text, sizeof(text), "\x05[Combine] " "\x7" "9FCAF2" "%s:\x01 ", pszPlayerName);
 		else if (pPlayer->GetTeamNumber() == 2)
@@ -469,11 +493,22 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 		if (!(client->IsNetClient()))	// Not a client ? (should never be true)
 			continue;
 
-		if (teamonly && g_pGameRules->PlayerCanHearChat(client, pPlayer) != GR_TEAMMATE)
+		// if (g_pGameRules->IsTeamplay() == 0 && teamonly && client->GetTeamNumber() != 1 && pPlayer->GetTeamNumber() != 1)
+
+		if (teamonly && client->GetTeamNumber() == 1 && pPlayer->GetTeamNumber() == 1)
+		{
+			// Probably not the cleanest way, because it's essentially empty, but this seems to work for now
+		}
+
+		else if (teamonly && g_pGameRules->PlayerCanHearChat(client, pPlayer) != GR_TEAMMATE)
+		{
 			continue;
+		}
 
 		if (pPlayer && !client->CanHearAndReadChatFrom(pPlayer))
+		{
 			continue;
+		}
 
 		if (pPlayer && GetVoiceGameMgr() && GetVoiceGameMgr()->IsPlayerIgnoringPlayer(pPlayer->entindex(), i))
 			continue;

@@ -776,6 +776,11 @@ void CPropCombineBall::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup
 {
 	CDefaultPlayerPickupVPhysics::OnPhysGunPickup( pPhysGunUser, reason );
 
+	if (m_bHeld && pPhysGunUser != GetOwnerEntity())
+	{
+		return;
+	}
+
 	if ( m_nMaxBounces == -1 )
 	{
 		m_nMaxBounces = 0;
