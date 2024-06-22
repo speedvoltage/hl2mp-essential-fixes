@@ -35,8 +35,6 @@ extern IFileSystem* filesystem;
 static ConVar dispcoll_drawplane("dispcoll_drawplane", "0");
 #endif
 
-ConVar sv_allow_bunnyhop("sv_allow_bunnyhop", "0", FCVAR_REPLICATED | FCVAR_NOTIFY);
-
 // tickcount currently isn't set during prediction, although gpGlobals->curtime and
 // gpGlobals->frametime are. We should probably set tickcount (to player->m_nTickBase),
 // but we're REALLY close to shipping, so we can change that later and people can use
@@ -52,7 +50,8 @@ ConVar player_limit_jump_speed("player_limit_jump_speed", "1", FCVAR_REPLICATED)
 #endif
 
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
-ConVar sv_enable_bunnyhop("sv_enable_bunnyhop", "0", FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_CHEAT);
+ConVar sv_enable_bunnyhop("sv_enable_bunnyhop", "0",  FCVAR_NOTIFY | FCVAR_CHEAT);
+ConVar sv_allow_bunnyhop("sv_auto_bhop", "0", FCVAR_NOTIFY);
 #endif
 
 // option_duck_method is a carrier convar. Its sole purpose is to serve an easy-to-flip
