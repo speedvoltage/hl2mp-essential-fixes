@@ -325,6 +325,8 @@ void CCrossbowBolt::BoltTouch(CBaseEntity *pOther)
 
 				//FIXME: We actually want to stick (with hierarchy) to what we've hit
 				SetMoveType(MOVETYPE_NONE);
+				// ATTEMPT HOT BOLT FIX
+				speed = 0;
 
 				Vector vForward;
 
@@ -344,7 +346,8 @@ void CCrossbowBolt::BoltTouch(CBaseEntity *pOther)
 				AddEffects(EF_NODRAW);
 				SetTouch(NULL);
 				SetThink(&CCrossbowBolt::SUB_Remove);
-				SetNextThink(gpGlobals->curtime + 2.0f);
+				// ATTEMPT HOT BOLT FIX
+				SetNextThink(gpGlobals->curtime + 0.0f);
 
 				if (m_pGlowSprite != NULL)
 				{
