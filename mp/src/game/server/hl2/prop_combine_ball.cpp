@@ -772,14 +772,15 @@ void CPropCombineBall::SetBallAsLaunched( void )
 //-----------------------------------------------------------------------------
 // Lighten the mass so it's zippy toget to the gun
 //-----------------------------------------------------------------------------
+bool CPropCombineBall::OnAttemptPhysGunPickup(CBasePlayer* pPhysGunUser, PhysGunPickup_t reason)
+{
+	return (!m_bHeld || pPhysGunUser == GetOwnerEntity() ?
+		CDefaultPlayerPickupVPhysics::OnAttemptPhysGunPickup(pPhysGunUser, reason) : false);
+}
+
 void CPropCombineBall::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t reason )
 {
 	CDefaultPlayerPickupVPhysics::OnPhysGunPickup( pPhysGunUser, reason );
-
-	if (m_bHeld && pPhysGunUser != GetOwnerEntity())
-	{
-		return;
-	}
 
 	if ( m_nMaxBounces == -1 )
 	{
