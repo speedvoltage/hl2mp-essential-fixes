@@ -620,7 +620,7 @@ void CBasePlayer::UpdateStepSound( surfacedata_t *psurface, const Vector &vecOri
 		switch ( psurface->game.material )
 		{
 		default:
-		case CHAR_TEX_CONCRETE:						
+		case CHAR_TEX_CONCRETE:	
 			fvol = bWalking ? 0.2 : 0.5;
 			break;
 
@@ -678,6 +678,9 @@ void CBasePlayer::PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, flo
 #endif
 
 	if ( !psurface )
+		return;
+
+	if ((GetFlags() & FL_DUCKING) && GetMoveType() != MOVETYPE_LADDER)
 		return;
 
 	int nSide = m_Local.m_nStepside;
