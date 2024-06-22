@@ -438,6 +438,12 @@ void CHL2_Player::HandleSpeedChanges(void)
 {
 	int buttonsChanged = m_afButtonPressed | m_afButtonReleased;
 	int iDucked = 0;
+	
+	if (IsDucked() && IsSprinting())
+	{
+		b_ducksprint = true;
+	}
+
 
 	if (GetWaterLevel() == 3)
 	{
@@ -454,12 +460,14 @@ void CHL2_Player::HandleSpeedChanges(void)
 		if (iDucked < gpGlobals->curtime && (m_nButtons & IN_DUCK))
 		{
 			StopSprinting();
+			b_ducksprint = false;
 		}
 	}
 
 	if (IsDucked() && m_Local.m_bDucking && (m_nButtons & IN_DUCK))
 	{
 		StopSprinting();
+		b_ducksprint = false;
 	}
 
 	if ((buttonsChanged & IN_SPEED))
@@ -474,6 +482,10 @@ void CHL2_Player::HandleSpeedChanges(void)
 			else if ((m_afButtonPressed & IN_SPEED) && !IsSprinting())
 			{			
 				if (CanSprint())
+				{
+					StartSprinting();
+				}
+				else if (b_ducksprint)
 				{
 					StartSprinting();
 				}
