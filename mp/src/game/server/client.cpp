@@ -428,42 +428,47 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 		}
 		else
 		{
-			if (pPlayer->GetTeamNumber() == 1 && teamonly)
-				Q_snprintf(text, sizeof(text), "\x7" "FF811C" "[Spectators] \x01%s: ", pszPlayerName);
-			else if (pPlayer->GetTeamNumber() == 1)
-				Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*SPEC* \x01%s: ", pszPlayerName);
-			if (g_pGameRules->IsTeamplay() == 0)
+			Q_snprintf(text, sizeof(text), "%s %s: ", pszPrefix, pszPlayerName);
+
+			if (pPlayer)
 			{
-				if (pPlayer->GetTeamNumber() != 1 && !pPlayer->IsAlive())
-					Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* \x01%s: ", pszPlayerName);
-				/*else if (pPlayer->GetTeamNumber() != 1 && pPlayer->IsAlive())
-					Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "%s \x01%s: ", pszPrefix, pszPlayerName);*/
-			}
-			else
-			{
-				if (pPlayer->GetTeamNumber() == 2 && teamonly && !pPlayer->IsAlive())
-					Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* " "\x05[Combine] " "\x7" "9FCAF2" "%s:\x01 ", pszPlayerName);
-				else if (pPlayer->GetTeamNumber() == 2 && !pPlayer->IsAlive())
-					Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* " "\x7" "9FCAF2" "%s:\x01 ", pszPlayerName);
-				else if (pPlayer->GetTeamNumber() == 3 && teamonly && !pPlayer->IsAlive())
-					Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* " "\x05[Rebels] " "\x7" "FF3D42" "%s:\x01 ", pszPlayerName);
-				else if (pPlayer->GetTeamNumber() == 3 && !pPlayer->IsAlive())
-					Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* " "\x7" "FF3D42" "%s:\x01 ", pszPlayerName);
+				if (pPlayer->GetTeamNumber() == 1 && teamonly)
+					Q_snprintf(text, sizeof(text), "\x7" "FF811C" "[Spectators] \x01%s: ", pszPlayerName);
+				else if (pPlayer->GetTeamNumber() == 1)
+					Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*SPEC* \x01%s: ", pszPlayerName);
+
+				if (g_pGameRules->IsTeamplay() == 0)
+				{
+					if (pPlayer->GetTeamNumber() != 1 && !pPlayer->IsAlive())
+						Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* \x01%s: ", pszPlayerName);
+				}
+				else
+				{
+					if (pPlayer->GetTeamNumber() == 2 && teamonly && !pPlayer->IsAlive())
+						Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* " "\x05[Combine] " "\x7" "9FCAF2" "%s:\x01 ", pszPlayerName);
+					else if (pPlayer->GetTeamNumber() == 2 && !pPlayer->IsAlive())
+						Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* " "\x7" "9FCAF2" "%s:\x01 ", pszPlayerName);
+					else if (pPlayer->GetTeamNumber() == 3 && teamonly && !pPlayer->IsAlive())
+						Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* " "\x05[Rebels] " "\x7" "FF3D42" "%s:\x01 ", pszPlayerName);
+					else if (pPlayer->GetTeamNumber() == 3 && !pPlayer->IsAlive())
+						Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* " "\x7" "FF3D42" "%s:\x01 ", pszPlayerName);
+				}
 			}
 		}
 	}
 	else
-	{
-		// Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* \x01%s: ", pszPlayerName);
-		
-		if (pPlayer->GetTeamNumber() == 2 && teamonly)
-			Q_snprintf(text, sizeof(text), "\x05[Combine] " "\x7" "9FCAF2" "%s:\x01 ", pszPlayerName);
-		else if (pPlayer->GetTeamNumber() == 2)
-			Q_snprintf(text, sizeof(text), "\x7" "9FCAF2" "%s:\x01 ", pszPlayerName);
-		else if (pPlayer->GetTeamNumber() == 3 && teamonly)
-			Q_snprintf(text, sizeof(text), "\x05[Rebels] " "\x7" "FF3D42" "%s:\x01 ", pszPlayerName);
-		else if (pPlayer->GetTeamNumber() == 3)
-			Q_snprintf(text, sizeof(text), "\x7" "FF3D42" "%s:\x01 ", pszPlayerName);
+	{		
+		if (pPlayer)
+		{
+			if (pPlayer->GetTeamNumber() == 2 && teamonly)
+				Q_snprintf(text, sizeof(text), "\x05[Combine] " "\x7" "9FCAF2" "%s:\x01 ", pszPlayerName);
+			else if (pPlayer->GetTeamNumber() == 2)
+				Q_snprintf(text, sizeof(text), "\x7" "9FCAF2" "%s:\x01 ", pszPlayerName);
+			else if (pPlayer->GetTeamNumber() == 3 && teamonly)
+				Q_snprintf(text, sizeof(text), "\x05[Rebels] " "\x7" "FF3D42" "%s:\x01 ", pszPlayerName);
+			else if (pPlayer->GetTeamNumber() == 3)
+				Q_snprintf(text, sizeof(text), "\x7" "FF3D42" "%s:\x01 ", pszPlayerName);
+		}
 		else
 			Q_snprintf(text, sizeof(text), "%s: ", pszPlayerName);
 	}
