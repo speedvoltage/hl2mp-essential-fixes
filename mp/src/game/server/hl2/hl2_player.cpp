@@ -434,16 +434,17 @@ void CHL2_Player::RemoveSuit( void )
 	m_HL2Local.m_bDisplayReticle = false;
 }
 
+ConVar sv_ducksprint("sv_speedcrawl", "1", FCVAR_NOTIFY);
+
 void CHL2_Player::HandleSpeedChanges(void)
 {
 	int buttonsChanged = m_afButtonPressed | m_afButtonReleased;
 	int iDucked = 0;
-	
+
 	if (IsDucked() && IsSprinting())
 	{
 		b_ducksprint = true;
 	}
-
 
 	if (GetWaterLevel() == 3)
 	{
@@ -462,12 +463,18 @@ void CHL2_Player::HandleSpeedChanges(void)
 			StopSprinting();
 			b_ducksprint = false;
 		}
+
+		if (!sv_ducksprint.GetBool() && !m_Local.m_bDucking)
+		{
+			StopSprinting();
+		}
 	}
 
 	if (IsDucked() && m_Local.m_bDucking && (m_nButtons & IN_DUCK))
 	{
 		StopSprinting();
 		b_ducksprint = false;
+		
 	}
 
 	if ((buttonsChanged & IN_SPEED))
@@ -485,7 +492,7 @@ void CHL2_Player::HandleSpeedChanges(void)
 				{
 					StartSprinting();
 				}
-				else if (b_ducksprint)
+				else if (b_ducksprint && sv_ducksprint.GetBool())
 				{
 					StartSprinting();
 				}
