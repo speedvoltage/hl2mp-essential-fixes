@@ -1,43 +1,86 @@
-               SOURCE 1 SDK LICENSE
+Not all fixes and updates are listed here, only the most important ones.
 
-Source SDK Copyright(c) Valve Corp.  
+Fixes:
 
-THIS DOCUMENT DESCRIBES A CONTRACT BETWEEN YOU AND VALVE 
-CORPORATION ("Valve").  PLEASE READ IT BEFORE DOWNLOADING OR USING 
-THE SOURCE ENGINE SDK ("SDK"). BY DOWNLOADING AND/OR USING THE 
-SOURCE ENGINE SDK YOU ACCEPT THIS LICENSE. IF YOU DO NOT AGREE TO 
-THE TERMS OF THIS LICENSE PLEASE DON’T DOWNLOAD OR USE THE SDK.  
+Grenade corner clipping fixed.
+Spectator abuse fixes.
+Impulse 51 is now behind sv_cheats.
+Sprint delay is completely removed. Sprint as soon as you let go of your duck key.
+Completely remove suit and items when going in the spectators team to fix the 1 HP visual.
+Continue sprint after detatching an object held in the physcannon.
+Headcrab canister sound precache fixed.
+Player model fix when switching teams.
+Item and weapon respawn fixes.
+T-Pose in mid air fixed.
+Multiple server crash exploits fixed.
+Spectator: Observer mode fixes.
+Timeleft command fixed to display frag limit if set.
+Fix mp_forcerespawn bypass.
+Fixed props losing collisions when switching to spec while holding an object in the physcannon.
+Fixed spawning on ladders.
+Fixed breaking ladders if disconnecting or dying on them.
+Spawn fixes.
+Barrels no longer blow up if you yoyo and put them down gently.
+Fixed some console spam.
+Weapon fixes:
+  Re-add missing weapons sounds to physcannon, RPG, frag grenades and crossbow.
+  Fix SLAM ownership
+  Fix SLAM laser length
+  Fix floating SLAMs
+  Fix slow bolt on SLAMs.
+  Fix rocket slowing down in water.
+  Fix silently holding an object in the gravity gun.
+  Physcannon negative Z push fix. Object properly flings in the direction the player punts those objects towards.
+  Fix holt bolt launching players at really high speeds when stepping onto them.
+  Fix orbs pushing you when a second player shot it.
+  Don't let the AR2 be switched if an orb is being charged.
+  Don't let the RPG be switched if a live rocket is in the air.
+  Don't let the physcannon be switched if holding an object.
+  Fixed annoying snap eye angles at higher pings.
+  
+  
 
-  You may, free of charge, download and use the SDK to develop a modified Valve game 
-running on the Source engine.  You may distribute your modified Valve game in source and 
-object code form, but only for free. Terms of use for Valve games are found in the Steam 
-Subscriber Agreement located here: http://store.steampowered.com/subscriber_agreement/ 
+Updates:
 
-  You may copy, modify, and distribute the SDK and any modifications you make to the 
-SDK in source and object code form, but only for free.  Any distribution of this SDK must 
-include this LICENSE file and thirdpartylegalnotices.txt.  
- 
-  Any distribution of the SDK or a substantial portion of the SDK must include the above 
-copyright notice and the following: 
+Removed development only flags.
+Always recharge aux power if sv_infinite_aux_power is 1.
+Immediately spawn players when switching teams from spectators.
+Removal of MOTD on join.
+Impulse 101: Gives crossbow ammo.
+Allow movement speed to be adjusted with ConVars.
+Pre-OB movement re-instated.
+Recharge aux power if not moving while holding the sprint key.
+Restore the ability to set custom suit charger values with sk_suitcharger.
+No longer allow sprinting underwater.
+Suit drain rate is customizable with sv_sprint_drain_rate. 25 for HL2DM, 12.5 for HL2.
+Material based footstep sounds.
+No longer kill the player when switching teams (other than when switching to spectators).
+The following engine messages were updated:
+  Player SOME NAME has joined the game.
+  Player SOME NAME has left the game.
+  Player SOME NAME joined team TEAM HERE.
+They now use colors to stand out better.
+Chat was also updated to support more prefixes, such as *DEAD* when the player is currently dead. Team based messages now properly show the team name rather than just (TEAM) prefix.
+Spectators team chat has been fixed in DM mode (i.e. when teamplay is off).
+Shotgun revised to have a larger cone, but increased damaged.
+Give the frag grenade its proper grenade surface sound.
+Raise max players to 32.
 
-    DISCLAIMER OF WARRANTIES.  THE SOURCE SDK AND ANY 
-    OTHER MATERIAL DOWNLOADED BY LICENSEE IS PROVIDED 
-    "AS IS".  VALVE AND ITS SUPPLIERS DISCLAIM ALL 
-    WARRANTIES WITH RESPECT TO THE SDK, EITHER EXPRESS 
-    OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, IMPLIED 
-    WARRANTIES OF MERCHANTABILITY, NON-INFRINGEMENT, 
-    TITLE AND FITNESS FOR A PARTICULAR PURPOSE.  
 
-    LIMITATION OF LIABILITY.  IN NO EVENT SHALL VALVE OR 
-    ITS SUPPLIERS BE LIABLE FOR ANY SPECIAL, INCIDENTAL, 
-    INDIRECT, OR CONSEQUENTIAL DAMAGES WHATSOEVER 
-    (INCLUDING, WITHOUT LIMITATION, DAMAGES FOR LOSS OF 
-    BUSINESS PROFITS, BUSINESS INTERRUPTION, LOSS OF 
-    BUSINESS INFORMATION, OR ANY OTHER PECUNIARY LOSS) 
-    ARISING OUT OF THE USE OF OR INABILITY TO USE THE 
-    ENGINE AND/OR THE SDK, EVEN IF VALVE HAS BEEN 
-    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.  
- 
-       
-If you would like to use the SDK for a commercial purpose, please contact Valve at 
-sourceengine@valvesoftware.com.
+Additions:
+
+Suit voice. Controlled by mp_suitvoice.
+Set the game description seen in the browser with sv_game_description.
+Additional outputs for item_healthcharger: OnFull, OnHalfEmpty, OnEmpty
+Chat triggers for "timeleft" and "nextmap". Chat triggers controlled with sv_chat_triggers.
+Allow for removing the tinnitus DSP effect caused explosion with mp_ear_ringing.
+Allow for starting with no weapons with mp_noweapons.
+Trigger_catapult.
+Trigger_userinput.
+Make DM/TDM mode changes instantaneous instead of relying on map restart. Use mp_allow_teamplay_changes to enable or disable, then use chat trigger "!tp", "!teamplay" or console commands "toggle_teamplay", "tp" to toggle through having teamplay on or off.
+Allow or block point_servercommand entities with sv_allow_point_servercommand. Default is disallow. Use always or disallow.
+Timeleft on the HUD. Enable/Disable with sv_timeleft_enable and customize with sv_timeleft_r, sv_timeleft_g, sv_timeleft_b, sv_timeleft_channel, sv_timeleft_x, sv_timeleft_y.
+Speed crawl.
+Add the ability not to change the map when the game is over by reaching the time limit or frag limit with mp_change_level_on_game_over.
+
+
