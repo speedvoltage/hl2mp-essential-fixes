@@ -1552,7 +1552,6 @@ bool CWeaponRPG::Lower(void)
 //-----------------------------------------------------------------------------
 void CWeaponRPG::ItemPostFrame(void)
 {
-	IPredictionSystem::SuppressHostEvents(NULL);
 
 #ifndef CLIENT_DLL 
 	BaseClass::ItemPostFrame();
