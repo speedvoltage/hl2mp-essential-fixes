@@ -468,6 +468,8 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 				Q_snprintf(text, sizeof(text), "\x05[Rebels] " "\x7" "FF3D42" "%s:\x01 ", pszPlayerName);
 			else if (pPlayer->GetTeamNumber() == 3)
 				Q_snprintf(text, sizeof(text), "\x7" "FF3D42" "%s:\x01 ", pszPlayerName);
+			else
+				Q_snprintf(text, sizeof(text), "%s: ", pszPlayerName);
 		}
 		else
 			Q_snprintf(text, sizeof(text), "%s: ", pszPlayerName);

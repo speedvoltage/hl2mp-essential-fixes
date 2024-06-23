@@ -1557,7 +1557,6 @@ void CWeaponPhysCannon::DryFire( void )
 {
 	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
 
-	IPredictionSystem::SuppressHostEvents(NULL);
 	WeaponSound( EMPTY );
 }
 
