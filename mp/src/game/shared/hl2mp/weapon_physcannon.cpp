@@ -1350,6 +1350,14 @@ void CWeaponPhysCannon::Precache( void )
 	PrecacheModel( PHYSCANNON_BEAM_SPRITE_NOZ );
 
 	PrecacheScriptSound( "Weapon_PhysCannon.HoldSound" );
+	PrecacheScriptSound("Weapon_PhysCannon.Launch");
+	PrecacheScriptSound("Weapon_PhysCannon.Charge");
+	PrecacheScriptSound("Weapon_PhysCannon.DryFire");
+	PrecacheScriptSound("Weapon_PhysCannon.Pickup");
+	PrecacheScriptSound("Weapon_PhysCannon.OpenClaws");
+	PrecacheScriptSound("Weapon_PhysCannon.CloseClaws");
+	PrecacheScriptSound("Weapon_PhysCannon.Drop");
+	PrecacheScriptSound("Weapon_PhysCannon.TooHeavy");
 
 	BaseClass::Precache();
 }
