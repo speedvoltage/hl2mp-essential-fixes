@@ -50,6 +50,8 @@
 
 REGISTER_GAMERULES_CLASS( CMultiplayRules );
 
+extern ConVar sv_footsteps;
+
 ConVar mp_chattime(
 		"mp_chattime", 
 		"10", 
@@ -1088,7 +1090,7 @@ bool CMultiplayRules::Init()
 
 	bool CMultiplayRules::PlayFootstepSounds( CBasePlayer *pl )
 	{
-		if (!footsteps.GetBool())
+		if (sv_footsteps.GetInt() == 0)
 			return false;
 
 		if ( pl->IsOnLadder() || pl->GetAbsVelocity().Length2D() > 220 )

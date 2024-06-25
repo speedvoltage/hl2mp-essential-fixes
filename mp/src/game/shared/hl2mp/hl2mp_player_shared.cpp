@@ -18,7 +18,7 @@
 #include "engine/IEngineSound.h"
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 
-ConVar sv_footsteps("sv_footsteps", "1", FCVAR_REPLICATED, "Left for compability, unused; Use mp_footsteps instead");
+extern ConVar sv_footsteps;
 
 const char *g_ppszPlayerSoundPrefixNames[PLAYER_SOUNDS_MAX] =
 {
@@ -34,7 +34,19 @@ const char *CHL2MP_Player::GetPlayerModelSoundPrefix( void )
 
 void CHL2MP_Player::PrecacheFootStepSounds( void )
 {
-	sv_footsteps.SetValue(0);
+	int iFootstepSounds = ARRAYSIZE(g_ppszPlayerSoundPrefixNames);
+	int i;
+
+	for (i = 0; i < iFootstepSounds; ++i)
+	{
+		char szFootStepName[128];
+
+		Q_snprintf(szFootStepName, sizeof(szFootStepName), "%s.RunFootstepLeft", g_ppszPlayerSoundPrefixNames[i]);
+		PrecacheScriptSound(szFootStepName);
+
+		Q_snprintf(szFootStepName, sizeof(szFootStepName), "%s.RunFootstepRight", g_ppszPlayerSoundPrefixNames[i]);
+		PrecacheScriptSound(szFootStepName);
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -58,7 +70,49 @@ Vector CHL2MP_Player::GetAttackSpread( CBaseCombatWeapon *pWeapon, CBaseEntity *
 //-----------------------------------------------------------------------------
 void CHL2MP_Player::PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, float fvol, bool force )
 {
-	BaseClass::PlayStepSound(vecOrigin, psurface, fvol, force);
+	if (gpGlobals->maxClients > 1 && !sv_footsteps.GetFloat())
+		return;
+
+#if defined( CLIENT_DLL )
+	// during prediction play footstep sounds only once
+	if (!prediction->IsFirstTimePredicted())
+		return;
+#endif
+
+	if (GetFlags() & FL_DUCKING)
+		return;
+
+	m_Local.m_nStepside = !m_Local.m_nStepside;
+
+	char szStepSound[128];
+
+	if (m_Local.m_nStepside)
+	{
+		Q_snprintf(szStepSound, sizeof(szStepSound), "%s.RunFootstepLeft", g_ppszPlayerSoundPrefixNames[m_iPlayerSoundType]);
+	}
+	else
+	{
+		Q_snprintf(szStepSound, sizeof(szStepSound), "%s.RunFootstepRight", g_ppszPlayerSoundPrefixNames[m_iPlayerSoundType]);
+	}
+
+	CSoundParameters params;
+	if (GetParametersForSound(szStepSound, params, NULL) == false)
+		return;
+
+	CRecipientFilter filter;
+	filter.AddRecipientsByPAS(vecOrigin);
+	filter.RemoveRecipient(this);
+
+	EmitSound_t ep;
+	ep.m_nChannel = CHAN_BODY;
+	ep.m_pSoundName = params.soundname;
+	ep.m_flVolume = fvol;
+	ep.m_SoundLevel = params.soundlevel;
+	ep.m_nFlags = 0;
+	ep.m_nPitch = params.pitch;
+	ep.m_pOrigin = &vecOrigin;
+
+	EmitSound(filter, entindex(), ep);
 }
 
 

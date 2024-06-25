@@ -60,7 +60,6 @@
 	extern ConVar sv_pushaway_max_force;
 	extern ConVar sv_pushaway_force;
 	extern ConVar sv_turbophysics;
-	extern ConVar sv_footsteps;
 
 	class CUsePushFilter : public CTraceFilterEntitiesOnly
 	{
@@ -534,7 +533,7 @@ void CBasePlayer::UpdateStepSound( surfacedata_t *psurface, const Vector &vecOri
 	if ( GetMoveType() == MOVETYPE_NOCLIP || GetMoveType() == MOVETYPE_OBSERVER )
 		return;
 
-	if (!footsteps.GetBool())
+	if (!sv_footsteps.GetFloat())
 		return;
 
 	speed = VectorLength( vecVelocity );
@@ -660,7 +659,6 @@ void CBasePlayer::UpdateStepSound( surfacedata_t *psurface, const Vector &vecOri
 	PlayStepSound( feet, psurface, fvol, false );
 }
 
-ConVar sv_crouched_footsteps_sounds("sv_crouched_footsteps_sounds", "1", FCVAR_GAMEDLL);
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : step - 
@@ -669,7 +667,7 @@ ConVar sv_crouched_footsteps_sounds("sv_crouched_footsteps_sounds", "1", FCVAR_G
 //-----------------------------------------------------------------------------
 void CBasePlayer::PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, float fvol, bool force )
 {
-	if (!footsteps.GetBool())
+	if (gpGlobals->maxClients > 1 && !sv_footsteps.GetFloat())
 		return;
 
 #if defined( CLIENT_DLL )
@@ -678,12 +676,8 @@ void CBasePlayer::PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, flo
 		return;
 #endif
 
-	if ( !psurface )
+	if (!psurface)
 		return;
-
-	if (!sv_crouched_footsteps_sounds.GetBool())
-		if ((GetFlags() & FL_DUCKING) && GetMoveType() != MOVETYPE_LADDER)
-			return;
 
 	int nSide = m_Local.m_nStepside;
 	unsigned short stepSoundName = nSide ? psurface->sounds.stepleft : psurface->sounds.stepright;

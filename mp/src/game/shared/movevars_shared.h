@@ -23,8 +23,7 @@ extern ConVar sv_accelerate;
 extern ConVar sv_airaccelerate;
 extern ConVar sv_wateraccelerate;
 extern ConVar sv_waterfriction;
-extern ConVar footsteps;
-extern ConVar sv_footsteps; // used ONLY for footstep hack for client
+extern ConVar sv_footsteps;
 extern ConVar sv_rollspeed;
 extern ConVar sv_rollangle;
 extern ConVar sv_friction;

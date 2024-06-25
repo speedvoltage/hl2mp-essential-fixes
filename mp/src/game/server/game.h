@@ -25,7 +25,6 @@ extern ConVar	fraglimit;
 extern ConVar	falldamage;
 extern ConVar	weaponstay;
 extern ConVar	forcerespawn;
-extern ConVar	footsteps;
 extern ConVar	flashlight;
 extern ConVar	aimcrosshair;
 extern ConVar	decalfrequency;
