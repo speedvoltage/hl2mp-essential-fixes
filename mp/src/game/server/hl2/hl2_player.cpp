@@ -402,7 +402,7 @@ void CHL2_Player::CheckSuitZoom( void )
 	//Adrian - No zooming without a suit!
 	if ( IsSuitEquipped() )
 	{
-		if ( m_afButtonReleased & IN_ZOOM )
+		if ( m_afButtonReleased & IN_ZOOM)
 		{
 			StopZooming();
 		}	
