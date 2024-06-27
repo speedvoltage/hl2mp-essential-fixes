@@ -22,8 +22,6 @@
 #define CWeapon357 C_Weapon357
 #endif
 
-ConVar sv_allow_357_zoom("sv_allow_357_zoom", "1");
-
 //-----------------------------------------------------------------------------
 // CWeapon357
 //-----------------------------------------------------------------------------
@@ -37,7 +35,6 @@ public:
 
 	void	Operator_HandleAnimEvent(animevent_t *pEvent, CBaseCombatCharacter *pOperator);
 	void	PrimaryAttack(void);
-	void	SecondaryAttack(void);
 
 	DECLARE_NETWORKCLASS(); 
 	DECLARE_PREDICTABLE();
@@ -180,15 +177,4 @@ void CWeapon357::PrimaryAttack( void )
 		// HEV suit - indicate out of ammo condition
 		pPlayer->SetSuitUpdate( "!HEV_AMO0", FALSE, 0 ); 
 	}
-}
-
-void CWeapon357::SecondaryAttack(void)
-{
-	if (!sv_allow_357_zoom.GetBool())
-		return;
-
-  // Handle zoom
-	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
-
-	pPlayer->SetFOV(pPlayer, 50);
 }
