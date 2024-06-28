@@ -462,18 +462,32 @@ void CHL2_Player::HandleSpeedChanges(void)
 		{
 			StopSprinting();
 			b_ducksprint = false;
+			m_nButtons &= ~IN_SPEED;
 		}
 
 		if (!sv_ducksprint.GetBool() && !m_Local.m_bDucking)
 		{
 			StopSprinting();
+			m_nButtons &= ~IN_SPEED;
 		}
 	}
 
 	if (IsDucked() && m_Local.m_bDucking && (m_nButtons & IN_DUCK))
 	{
 		StopSprinting();
-		b_ducksprint = false;		
+		b_ducksprint = false;	
+		m_nButtons &= ~IN_SPEED;
+	}
+
+	// If a player ducks during the unduck animation, m_bDucking stays true when it shouldn't. 
+	// Attempt to rectify this wrong behavior.
+	if ((this->GetFlags() & FL_DUCKING) && (this->GetFlags() & FL_ANIMDUCKING))
+	{
+		m_Local.m_bDucking = false;
+	}
+	else if ((this->GetFlags() & FL_DUCKING) && !(this->GetFlags() & FL_ANIMDUCKING))
+	{
+		m_Local.m_bDucking = true;
 	}
 
 	if ((buttonsChanged & IN_SPEED))
@@ -491,7 +505,7 @@ void CHL2_Player::HandleSpeedChanges(void)
 				{
 					StartSprinting();
 				}
-				else if (b_ducksprint && sv_ducksprint.GetBool())
+				else if (b_ducksprint && sv_ducksprint.GetBool() && !(m_nButtons & IN_DUCK))
 				{
 					StartSprinting();
 				}
