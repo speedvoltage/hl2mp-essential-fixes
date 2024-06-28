@@ -1,7 +1,18 @@
+Courtesey fixes already provided by:
+Hrgve: https://github.com/hrgve/hl2dm-bugfix (forked)
+Tyabus: https://github.com/tyabus/source-sdk-2013-multiplayer-fixes
+weaponcubemap: https://github.com/weaponcubemap/source-sdk-2013
+Adrian: https://github.com/Adrianilloo/SourceSDK2013
+
+Additional thanks to No Air for providing assistance where needed.
+
+Additional fixes were provided in complement of the above.
+
 Not all fixes and updates are listed here, only the most important ones.
 
 Fixes:
 
+General server crash fixes.
 Grenade corner clipping fixed.
 Spectator abuse fixes.
 Impulse 51 is now behind sv_cheats.
@@ -22,6 +33,7 @@ Fixed breaking ladders if disconnecting or dying on them.
 Spawn fixes.
 Barrels no longer blow up if you yoyo and put them down gently.
 Fixed some console spam.
+Fix props ownership abuses.
 Weapon fixes:
   Re-add missing weapons sounds to physcannon, RPG, frag grenades and crossbow.
   Fix SLAM ownership
@@ -33,6 +45,7 @@ Weapon fixes:
   Physcannon negative Z push fix. Object properly flings in the direction the player punts those objects towards.
   Fix holt bolt launching players at really high speeds when stepping onto them.
   Fix orbs pushing you when a second player shot it.
+  Fix orbs levitating in the air when a player disconnects while holding one.
   Don't let the AR2 be switched if an orb is being charged.
   Don't let the RPG be switched if a live rocket is in the air.
   Don't let the physcannon be switched if holding an object.
@@ -42,6 +55,7 @@ Weapon fixes:
 
 Updates:
 
+Default the tickrate to 100.
 Removed development only flags.
 Always recharge aux power if sv_infinite_aux_power is 1.
 Immediately spawn players when switching teams from spectators.

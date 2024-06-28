@@ -2755,6 +2755,7 @@ void CServerGameClients::ClientDisconnect( edict_t *pEdict )
 
 			if ( g_pGameRules )
 			{
+				player->ForceDropOfCarriedPhysObjects(NULL);
 				g_pGameRules->ClientDisconnected( pEdict );
 				gamestats->Event_PlayerDisconnected( player );
 				UTIL_ClientPrintAll(HUD_PRINTTALK, "\x7" "00BFFF" "%s1 \x01has disconnected.", player->GetPlayerName());
