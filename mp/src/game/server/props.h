@@ -16,6 +16,8 @@
 #include "player_pickup.h"
 #include "positionwatcher.h"
 
+#define BREAKABLE_PROP_MAIN_INFLUENCE_TIME 2.0f
+
 //=============================================================================================================
 // PROP TYPES
 //=============================================================================================================
@@ -154,7 +156,7 @@ public:
 protected:
 
 	bool			UpdateHealth( int iNewHealth, CBaseEntity *pActivator );
-	virtual void	OnBreak( const Vector &vecVelocity, const AngularImpulse &angVel, CBaseEntity *pBreaker ) {}
+	virtual void	OnBreak(const Vector& vecVelocity, const AngularImpulse& angVel, CBaseEntity* pBreaker);
 
 protected:
 
@@ -193,7 +195,7 @@ public:
 	virtual void OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t reason );
 	virtual void OnPhysGunDrop( CBasePlayer *pPhysGunUser, PhysGunDrop_t reason );
 	virtual AngularImpulse	PhysGunLaunchAngularImpulse();
-	virtual	CBasePlayer *HasPhysicsAttacker( float dt );
+	virtual	CBasePlayer* HasPhysicsAttacker(float dt = BREAKABLE_PROP_MAIN_INFLUENCE_TIME);
 
 #ifdef HL2_EPISODIC
 	void CreateFlare( float flLifetime );
@@ -385,6 +387,7 @@ public:
 private:
 	// Compute impulse to apply to the enabled entity.
 	void ComputeEnablingImpulse( int index, gamevcollisionevent_t *pEvent );
+	void ClearThrownState();
 
 	COutputEvent m_MotionEnabled;
 	COutputEvent m_OnAwakened;

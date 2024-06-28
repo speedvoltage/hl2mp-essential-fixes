@@ -473,8 +473,7 @@ void CHL2_Player::HandleSpeedChanges(void)
 	if (IsDucked() && m_Local.m_bDucking && (m_nButtons & IN_DUCK))
 	{
 		StopSprinting();
-		b_ducksprint = false;
-		
+		b_ducksprint = false;		
 	}
 
 	if ((buttonsChanged & IN_SPEED))
