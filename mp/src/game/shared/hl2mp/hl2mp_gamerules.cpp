@@ -32,6 +32,7 @@
 #include "voice_gamemgr.h"
 #include "hl2mp_gameinterface.h"
 #include "hl2mp_cvars.h"
+#include <networkstringtable_gamedll.h>
 
 #ifdef DEBUG	
 #include "hl2mp_bot_temp.h"
@@ -204,8 +205,6 @@ CHL2MPRules::CHL2MPRules()
 	m_tmNextPeriodicThink = 0;
 	m_flRestartGameTime = 0;
 	m_bCompleteReset = false;
-	m_bHeardAllPlayersReady = false;
-	m_bAwaitingReadyRestart = false;
 	m_bChangelevelDone = false;
 
 #endif
@@ -415,7 +414,6 @@ void CHL2MPRules::Think(void)
 
 	if (gpGlobals->curtime > m_tmNextPeriodicThink)
 	{
-		CheckAllPlayersReady();
 		CheckRestartGame();
 		m_tmNextPeriodicThink = gpGlobals->curtime + 1.0;
 	}
@@ -423,15 +421,6 @@ void CHL2MPRules::Think(void)
 	if (m_flRestartGameTime > 0.0f && m_flRestartGameTime <= gpGlobals->curtime)
 	{
 		RestartGame();
-	}
-
-	if (m_bAwaitingReadyRestart && m_bHeardAllPlayersReady)
-	{
-		UTIL_ClientPrintAll(HUD_PRINTCENTER, "All players ready. Game will restart in 5 seconds");
-		UTIL_ClientPrintAll(HUD_PRINTCONSOLE, "All players ready. Game will restart in 5 seconds");
-
-		m_flRestartGameTime = gpGlobals->curtime + 5;
-		m_bAwaitingReadyRestart = false;
 	}
 
 	ManageObjectRelocation();
@@ -1095,7 +1084,7 @@ void CHL2MPRules::RestartGame()
 		m_flGameStartTime.GetForModify() = 0.0f;
 	}
 
-	if (!mp_change_level_on_game_over.GetBool() && !g_fGameOver)
+	if (!g_fGameOver)
 	{
 		CleanUpMap();
 
@@ -1248,17 +1237,6 @@ void CHL2MPRules::CleanUpMap()
 	MapEntity_ParseAllEntities(engine->GetMapEntitiesString(), &filter, true);
 }
 
-void CHL2MPRules::CheckChatForReadySignal(CHL2MP_Player* pPlayer, const char* chatmsg)
-{
-	if (m_bAwaitingReadyRestart && FStrEq(chatmsg, mp_ready_signal.GetString()))
-	{
-		if (!pPlayer->IsReady())
-		{
-			pPlayer->SetReady(true);
-		}
-	}
-}
-
 void CHL2MPRules::CheckRestartGame(void)
 {
 	// Restart the game if specified by the server
@@ -1283,45 +1261,6 @@ void CHL2MPRules::CheckRestartGame(void)
 		m_bCompleteReset = true;
 		mp_restartgame.SetValue(0);
 	}
-
-	if (mp_readyrestart.GetBool())
-	{
-		m_bAwaitingReadyRestart = true;
-		m_bHeardAllPlayersReady = false;
-
-
-		const char* pszReadyString = mp_ready_signal.GetString();
-
-
-		// Don't let them put anything malicious in there
-		if (pszReadyString == NULL || Q_strlen(pszReadyString) > 16)
-		{
-			pszReadyString = "ready";
-		}
-
-		IGameEvent* event = gameeventmanager->CreateEvent("hl2mp_ready_restart");
-		if (event)
-			gameeventmanager->FireEvent(event);
-
-		mp_readyrestart.SetValue(0);
-
-		// cancel any restart round in progress
-		m_flRestartGameTime = -1;
-	}
-}
-
-void CHL2MPRules::CheckAllPlayersReady(void)
-{
-	for (int i = 1; i <= gpGlobals->maxClients; i++)
-	{
-		CHL2MP_Player* pPlayer = (CHL2MP_Player*)UTIL_PlayerByIndex(i);
-
-		if (!pPlayer)
-			continue;
-		if (!pPlayer->IsReady())
-			return;
-	}
-	m_bHeardAllPlayersReady = true;
 }
 
 //-----------------------------------------------------------------------------
