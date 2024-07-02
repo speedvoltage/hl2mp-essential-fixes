@@ -82,12 +82,6 @@ void sv_allow_point_servercommand_changed(IConVar* pConVar, const char* pOldStri
 	{
 		sAllowPointServerCommand = eAllowAlways;
 	}
-#ifdef TF_DLL
-	else if (V_strcasecmp(pNewValue, "official") == 0)
-	{
-		sAllowPointServerCommand = eAllowOfficial;
-	}
-#endif // TF_DLL
 	else
 	{
 		sAllowPointServerCommand = eAllowNever;

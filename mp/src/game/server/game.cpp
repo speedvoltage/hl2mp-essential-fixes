@@ -8,6 +8,7 @@
 #include "cbase.h"
 #include "game.h"
 #include "physics.h"
+#include "hl2mp_player.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -24,13 +25,45 @@ void MapCycleFileChangedCallback( IConVar *var, const char *pOldString, float fl
 	}
 }
 
+void UpdateGameRules()
+{
+	CreateGameRulesObject("CHL2MPRules");
+}
+
+void mp_teamplay_changed(IConVar* pConVar, const char* pOldString, float flOldValue)
+{
+	if ((teamplay.GetInt() == 0 && g_pGameRules->IsTeamplay() == 1) || (teamplay.GetInt() == 1 && g_pGameRules->IsTeamplay() == 0) || (teamplay.GetInt() > 1 && g_pGameRules->IsTeamplay() == 0))
+	{
+		UpdateGameRules();
+		HL2MPRules()->RestartGame();
+
+		// loop through all players
+		for (int i = 1; i <= gpGlobals->maxClients; i++)
+		{
+			if (!teamplay.GetBool())
+			{
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+				if (pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
+				{
+					if (pPlayer->IsHLTV()) // Don't let SourceTV join the game.
+						return;
+
+					pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
+				}
+			}
+		}
+	}
+}
+
+
 ConVar	displaysoundlist( "displaysoundlist","0" );
 ConVar  mapcyclefile( "mapcyclefile", "mapcycle.txt", FCVAR_NONE, "Name of the .txt file used to cycle the maps on multiplayer servers ", MapCycleFileChangedCallback );
 ConVar  servercfgfile( "servercfgfile","server.cfg" );
 ConVar  lservercfgfile( "lservercfgfile","listenserver.cfg" );
 
 // multiplayer server rules
-ConVar	teamplay( "mp_teamplay","0" );
+ConVar	teamplay("mp_teamplay", "0", FCVAR_NOTIFY, "Should teamplay settings be on or off", mp_teamplay_changed);
 ConVar	falldamage( "mp_falldamage","0", FCVAR_NOTIFY );
 ConVar	weaponstay( "mp_weaponstay","0", FCVAR_NOTIFY );
 ConVar	forcerespawn( "mp_forcerespawn","1", FCVAR_NOTIFY );
