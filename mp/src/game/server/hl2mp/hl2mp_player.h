@@ -110,11 +110,6 @@ public:
 
 	void Reset();
 
-	bool IsReady();
-	void SetReady( bool bReady );
-
-	void CheckChatText( char *p, int bufsize );
-
 	void State_Transition( HL2MPPlayerState newState );
 	void State_Enter( HL2MPPlayerState newState );
 	void State_Leave();
@@ -165,7 +160,6 @@ private:
 	CUtlDict<float,int>	m_RateLimitLastCommandTimes;
 
     bool m_bEnterObserver;
-	bool m_bReady;
 };
 
 inline CHL2MP_Player *ToHL2MPPlayer( CBaseEntity *pEntity )

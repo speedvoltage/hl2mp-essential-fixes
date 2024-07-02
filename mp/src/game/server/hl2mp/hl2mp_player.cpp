@@ -110,7 +110,6 @@ CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 	m_iSpawnInterpCounter = 0;
 
     m_bEnterObserver = false;
-	m_bReady = false;
 
 	BaseClass::ChangeTeam( 0 );
 	
@@ -343,8 +342,6 @@ void CHL2MP_Player::Spawn(void)
 	m_Local.m_bDucked = false;
 
 	SetPlayerUnderwater(false);
-
-	m_bReady = false;
 }
 
 void CHL2MP_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize )
@@ -1563,43 +1560,6 @@ void CHL2MP_Player::Reset()
 {	
 	ResetDeathCount();
 	ResetFragCount();
-}
-
-bool CHL2MP_Player::IsReady()
-{
-	return m_bReady;
-}
-
-void CHL2MP_Player::SetReady( bool bReady )
-{
-	m_bReady = bReady;
-}
-
-void CHL2MP_Player::CheckChatText( char *p, int bufsize )
-{
-	//Look for escape sequences and replace
-
-	char *buf = new char[bufsize];
-	int pos = 0;
-
-	// Parse say text for escape sequences
-	for ( char *pSrc = p; pSrc != NULL && *pSrc != 0 && pos < bufsize-1; pSrc++ )
-	{
-		// copy each char across
-		buf[pos] = *pSrc;
-		pos++;
-	}
-
-	buf[pos] = '\0';
-
-	// copy buf back into p
-	Q_strncpy( p, buf, bufsize );
-
-	delete[] buf;	
-
-	const char *pReadyCheck = p;
-
-	HL2MPRules()->CheckChatForReadySignal( this, pReadyCheck );
 }
 
 void CHL2MP_Player::State_Transition( HL2MPPlayerState newState )
