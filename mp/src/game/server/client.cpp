@@ -433,25 +433,25 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 			if (pPlayer)
 			{
 				if (pPlayer->GetTeamNumber() == 1 && teamonly)
-					Q_snprintf(text, sizeof(text), "\x7" "FF811C" "[Spectators] \x01%s: ", pszPlayerName);
+					Q_snprintf(text, sizeof(text), "\x05[Spectators] \x01%s: ", pszPlayerName);
 				else if (pPlayer->GetTeamNumber() == 1)
-					Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*SPEC* \x01%s: ", pszPlayerName);
+					Q_snprintf(text, sizeof(text), "*SPEC* %s: ", pszPlayerName);
 
 				if (g_pGameRules->IsTeamplay() == 0)
 				{
 					if (pPlayer->GetTeamNumber() != 1 && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* \x01%s: ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), "*DEAD* %s: ", pszPlayerName);
 				}
 				else
 				{
 					if (pPlayer->GetTeamNumber() == 2 && teamonly && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* " "\x05[Combine] " "\x7" "9FCAF2" "%s:\x01 ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), "\x01*DEAD* \x05[Combine] \x03%s:\x01 ", pszPlayerName);
 					else if (pPlayer->GetTeamNumber() == 2 && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* " "\x7" "9FCAF2" "%s:\x01 ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), "\x01*DEAD* \x03%s:\x01 ", pszPlayerName);
 					else if (pPlayer->GetTeamNumber() == 3 && teamonly && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* " "\x05[Rebels] " "\x7" "FF3D42" "%s:\x01 ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), "\x01*DEAD* \x05[Rebels] \x03%s:\x01 ", pszPlayerName);
 					else if (pPlayer->GetTeamNumber() == 3 && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), "\x7" "FFFFFF" "*DEAD* " "\x7" "FF3D42" "%s:\x01 ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), "\x01*DEAD* \x03%s:\x01 ", pszPlayerName);
 				}
 			}
 		}
@@ -461,13 +461,13 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 		if (pPlayer)
 		{
 			if (pPlayer->GetTeamNumber() == 2 && teamonly)
-				Q_snprintf(text, sizeof(text), "\x05[Combine] " "\x7" "9FCAF2" "%s:\x01 ", pszPlayerName);
+				Q_snprintf(text, sizeof(text), "\x05[Combine] \x03%s:\x01 ", pszPlayerName);
 			else if (pPlayer->GetTeamNumber() == 2)
-				Q_snprintf(text, sizeof(text), "\x7" "9FCAF2" "%s:\x01 ", pszPlayerName);
+				Q_snprintf(text, sizeof(text), "\x03%s:\x01 ", pszPlayerName);
 			else if (pPlayer->GetTeamNumber() == 3 && teamonly)
-				Q_snprintf(text, sizeof(text), "\x05[Rebels] " "\x7" "FF3D42" "%s:\x01 ", pszPlayerName);
+				Q_snprintf(text, sizeof(text), "\x05[Rebels] \x03%s:\x01 ", pszPlayerName);
 			else if (pPlayer->GetTeamNumber() == 3)
-				Q_snprintf(text, sizeof(text), "\x7" "FF3D42" "%s:\x01 ", pszPlayerName);
+				Q_snprintf(text, sizeof(text), "\x03%s:\x01 ", pszPlayerName);
 			else
 				Q_snprintf(text, sizeof(text), "%s: ", pszPlayerName);
 		}

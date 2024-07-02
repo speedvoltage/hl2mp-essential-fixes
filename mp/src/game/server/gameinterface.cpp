@@ -2658,7 +2658,7 @@ bool CServerGameClients::ClientConnect( edict_t *pEdict, const char *pszName, co
 	if ( !g_pGameRules )
 		return false;
 
-	UTIL_ClientPrintAll(HUD_PRINTTALK, "\x7" "00BFFF" "%s1 \x01has joined the game.", pszName[0] != 0 ? pszName : "<unconnected>");
+	UTIL_PrintToAllClients(CHAT_DEFAULT "%s1 " CHAT_CONTEXT "has joined the game.", pszName[0] != 0 ? pszName : "<unconnected>");
 	
 	return g_pGameRules->ClientConnected( pEdict, pszName, pszAddress, reject, maxrejectlen );
 }
@@ -2758,7 +2758,7 @@ void CServerGameClients::ClientDisconnect( edict_t *pEdict )
 				player->ForceDropOfCarriedPhysObjects(NULL);
 				g_pGameRules->ClientDisconnected( pEdict );
 				gamestats->Event_PlayerDisconnected( player );
-				UTIL_ClientPrintAll(HUD_PRINTTALK, "\x7" "00BFFF" "%s1 \x01has disconnected.", player->GetPlayerName());
+				UTIL_PrintToAllClients(CHAT_DEFAULT "%s1 " CHAT_CONTEXT "has disconnected.", player->GetPlayerName());
 			}
 		}
 

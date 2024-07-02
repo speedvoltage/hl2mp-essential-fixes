@@ -34,6 +34,7 @@
 void Host_Say( edict_t *pEdict, bool teamonly );
 
 ConVar sv_motd_unload_on_dismissal( "sv_motd_unload_on_dismissal", "0", 0, "If enabled, the MOTD contents will be unloaded when the player closes the MOTD." );
+ConVar sv_show_motd_on_connect("sv_show_motd_on_connect", "0", 0, "If enabled, shows the MOTD to the player when fully put into the server.");
 
 extern CBaseEntity*	FindPickerEntityClass( CBasePlayer *pPlayer, char *classname );
 extern bool			g_fGameOver;
@@ -62,16 +63,32 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 	}
 
 	// notify other clients of player joining the game
-	UTIL_ClientPrintAll( HUD_PRINTTALK, "\x7" "00BFFF" "%s1 \x01is connected.", sName[0] != 0 ? sName : "<unconnected>" );
+	UTIL_PrintToAllClients(CHAT_DEFAULT "%s1 " CHAT_CONTEXT "is connected.", sName[0] != 0 ? sName : "<unconnected>");
 
-	if ( HL2MPRules()->IsTeamplay() == true )
+	if (sv_show_motd_on_connect.GetBool())
 	{
+		const ConVar* hostname = cvar->FindVar("hostname");
+		const char* title = (hostname) ? hostname->GetString() : "MESSAGE OF THE DAY";
+
+		KeyValues* data = new KeyValues("data");
+		data->SetString("title", title);		// info panel title
+		data->SetString("type", "1");			// show userdata from stringtable entry
+		data->SetString("msg", "motd");		// use this stringtable entry
+
+		pPlayer->ShowViewPortPanel(PANEL_INFO, true, data);
+
+		data->deleteThis();
+	}
+
+	if (HL2MPRules()->IsTeamplay() == true)
+	{
+		pPlayer->SetNextThink(gpGlobals->curtime + 0.1f);
 		if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
-			ClientPrint( pPlayer, HUD_PRINTTALK, "\x7" "00BFFF" "You are on team" "\x7" "FF811C" " %s1.\n", pPlayer->GetTeam()->GetName() );
+			ClientPrint(pPlayer, HUD_PRINTTALK, "\x01You are on team \x05%s1\x01.\n", pPlayer->GetTeam()->GetName());
 		else if (pPlayer->GetTeamNumber() == TEAM_COMBINE)
-			ClientPrint(pPlayer, HUD_PRINTTALK, "\x7" "00BFFF" "You are on team" "\x7" "9FCAF2" " %s1.\n", pPlayer->GetTeam()->GetName());
+			ClientPrint(pPlayer, HUD_PRINTTALK, "\x01You are on team \x05%s1\x01.\n", pPlayer->GetTeam()->GetName());
 		else if (pPlayer->GetTeamNumber() == TEAM_REBELS)
-			ClientPrint(pPlayer, HUD_PRINTTALK, "\x7" "00BFFF" "You are on team" "\x7" "FF3D42" " %s1.\n", pPlayer->GetTeam()->GetName());
+			ClientPrint(pPlayer, HUD_PRINTTALK, "\x01You are on team \x05%s1\x01.\n", pPlayer->GetTeam()->GetName());
 	}
 
 	// If on a custom game mode that puts players in team spectator on connect, strip suit and weapons too
@@ -167,7 +184,7 @@ void respawn( CBaseEntity *pEdict, bool fCopyCorpse )
 		if ( gpGlobals->curtime > pPlayer->GetDeathTime() + DEATH_ANIMATION_TIME )
 		{		
 			// respawn player
-			pPlayer->Spawn();			
+			pPlayer->Spawn();
 		}
 		else
 		{

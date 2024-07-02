@@ -6446,7 +6446,7 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 			CBaseEntity * target = FindNextObserverTarget(false);
 
 			if (!target)
-				return true;
+				return true;				
 
  			mode = GetObserverMode() + 1;
 			
@@ -7539,19 +7539,21 @@ void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent)
 	}
 
 	if (iTeamNum == 0 && gpGlobals->teamplay == 0 && !this->IsDisconnecting())
-		UTIL_ClientPrintAll(HUD_PRINTTALK, "\x7" "F7FF7F" "%s1 \x01joined team" "\x7" "F7FF7F" " Players.", this->GetPlayerName());
-
+		UTIL_PrintToAllClients(CHAT_UNASSIGNED "%s1 " CHAT_CONTEXT "joined team " CHAT_UNASSIGNED "Players.", this->GetPlayerName());
+		//UTIL_ClientPrintAll(HUD_PRINTTALK, "\x7" "F7FF7F" "%s1 \x01joined team" "\x07" "F7FF7F" " Players.", this->GetPlayerName());
+	else if (iTeamNum == 3 && gpGlobals->teamplay != 0 && !this->IsDisconnecting())
+		UTIL_PrintToAllClients(CHAT_RED "%s1 " CHAT_CONTEXT "joined team " CHAT_RED "Rebels.", this->GetPlayerName());
+		//UTIL_ClientPrintAll(HUD_PRINTTALK, "\x7" "FF3D42" "%s1 \x01joined team" "\x7" "FF3D42" " Rebels.", this->GetPlayerName());
+	else if (iTeamNum == 2 && gpGlobals->teamplay != 0 && !this->IsDisconnecting())
+		UTIL_PrintToAllClients(CHAT_BLUE "%s1 " CHAT_CONTEXT "joined team " CHAT_BLUE "Combine.", this->GetPlayerName());
+		// UTIL_ClientPrintAll(HUD_PRINTTALK, "\x7" "9FCAF2" "%s1 \x01joined team" "\x7" "9FCAF2" " Combine.", this->GetPlayerName());
+	else if (iTeamNum == 1 && !this->IsDisconnecting())
+		UTIL_PrintToAllClients(CHAT_SPEC "%s1 " CHAT_CONTEXT "joined team " CHAT_SPEC "Spectators.", this->GetPlayerName());
+		// UTIL_ClientPrintAll(HUD_PRINTTALK, "\x7" "FF811C" "%s1 \x01joined team" "\x7" "FF811C" " Spectators.", this->GetPlayerName());
 	// Are we being added to a team?
 	if ( iTeamNum )
 	{
 		GetGlobalTeam( iTeamNum )->AddPlayer( this );
-
-		if (iTeamNum == 3 && gpGlobals->teamplay != 0 && !this->IsDisconnecting())
-			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x7" "FF3D42" "%s1 \x01joined team" "\x7" "FF3D42" " Rebels.", this->GetPlayerName());
-		else if (iTeamNum == 2 && gpGlobals->teamplay != 0 && !this->IsDisconnecting())
-			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x7" "9FCAF2" "%s1 \x01joined team" "\x7" "9FCAF2" " Combine.", this->GetPlayerName());
-		else if (iTeamNum == 1 && !this->IsDisconnecting())
-			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x7" "FF811C" "%s1 \x01joined team" "\x7" "FF811C" " Spectators.", this->GetPlayerName());
 	}
 
 	BaseClass::ChangeTeam( iTeamNum );

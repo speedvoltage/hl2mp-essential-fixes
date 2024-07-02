@@ -1139,6 +1139,28 @@ void UTIL_ClientPrintAll( int msg_dest, const char *msg_name, const char *param1
 	UTIL_ClientPrintFilter( filter, msg_dest, msg_name, param1, param2, param3, param4 );
 }
 
+void UTIL_PrintToAllClients(const char* msg, const char* param1, const char* param2, const char* param3, const char* param4)
+{
+	if (msg)
+	{
+		CReliableBroadcastRecipientFilter filter;
+		UTIL_SayText2Filter(filter, NULL, true, msg, param1, param2, param3, param4);
+	}
+}
+
+void UTIL_PrintToClient(CBasePlayer* player, const char* msg, const char* param1, const char* param2, const char* param3, const char* param4)
+{
+	if (!player)
+		return;
+
+	if (msg)
+	{
+		CSingleUserRecipientFilter user(player);
+		user.MakeReliable();
+		UTIL_SayText2Filter(user, NULL, true, msg, param1, param2, param3, param4);
+	}
+}
+
 void ClientPrint( CBasePlayer *player, int msg_dest, const char *msg_name, const char *param1, const char *param2, const char *param3, const char *param4 )
 {
 	if ( !player )

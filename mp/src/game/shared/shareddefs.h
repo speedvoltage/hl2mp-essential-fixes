@@ -124,9 +124,19 @@ public:
 #define	MAX_AMMO_TYPES	32		// ???
 #define MAX_AMMO_SLOTS  32		// not really slots
 
+#ifndef COLOR
+#define COLOR(x)				"\x07"#x
+#endif
+
+#define CHAT_DEFAULT COLOR(FFB200)
+#define CHAT_SPEC COLOR(FF811C)
+#define CHAT_UNASSIGNED COLOR(F7FF7F)
+#define CHAT_RED COLOR(FF3D42)
+#define CHAT_BLUE COLOR(9FCAF2)
+#define CHAT_CONTEXT COLOR(00BFFF)
 #define HUD_PRINTNOTIFY		1
 #define HUD_PRINTCONSOLE	2
-#define HUD_PRINTTALK		3
+#define HUD_PRINTTALK		3 
 #define HUD_PRINTCENTER		4
 
 // Vote creation or processing failure codes
