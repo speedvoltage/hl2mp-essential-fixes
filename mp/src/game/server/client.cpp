@@ -109,10 +109,6 @@ void ClientKill(edict_t* pEdict, const Vector& vecForce, bool bExplode = false)
 	CBasePlayer* pPlayer = static_cast<CBasePlayer*>(GetContainingEntity(pEdict));
 	pPlayer->CommitSuicide(vecForce, bExplode);
 }
-void ReInstallGameRules()
-{
-	CreateGameRulesObject("CHL2MPRules");
-}
 
 ConVar sv_chat_trigger("sv_chat_triggers", "1", FCVAR_NOTIFY);
 ConVar mp_allow_teamplay_changes("mp_allow_teamplay_changes", "0", FCVAR_NOTIFY);
@@ -136,16 +132,12 @@ CON_COMMAND(tp, "Switch teamplay status on the fly.")
 		if (HL2MPRules()->IsTeamplay() == false)
 		{
 			teamplay.SetValue(1);
-			ReInstallGameRules();
-			HL2MPRules()->RestartGame();
 			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 enabled\x01.\n");
 		}
 
 		else
 		{
 			teamplay.SetValue(0);
-			ReInstallGameRules();
-			HL2MPRules()->RestartGame();
 
 			// loop through all players
 			for (int i = 1; i <= gpGlobals->maxClients; i++)
@@ -183,16 +175,12 @@ CON_COMMAND(toggle_teamplay, "Switch teamplay status on the fly.")
 		if (HL2MPRules()->IsTeamplay() == false)
 		{
 			teamplay.SetValue(1);
-			ReInstallGameRules();
-			HL2MPRules()->RestartGame();
 			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 enabled\x01.\n");
 		}
 
 		else
 		{
 			teamplay.SetValue(0);
-			ReInstallGameRules();
-			HL2MPRules()->RestartGame();
 
 			// loop through all players
 			for (int i = 1; i <= gpGlobals->maxClients; i++)
@@ -249,15 +237,11 @@ char* CheckChatText(CBasePlayer* pPlayer, char* text)
 				if (HL2MPRules()->IsTeamplay() == false)
 				{
 					teamplay.SetValue(1);
-					ReInstallGameRules();
-					HL2MPRules()->RestartGame();
 					UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 enabled\x01.\n");
 				}
 				else
 				{
 					teamplay.SetValue(0);
-					ReInstallGameRules();
-					HL2MPRules()->RestartGame();
 
 					// loop through all players
 					for (int i = 1; i <= gpGlobals->maxClients; i++)
