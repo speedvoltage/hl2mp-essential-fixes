@@ -1585,7 +1585,6 @@ void CWeaponPhysCannon::PrimaryFireEffect( void )
 	UTIL_ScreenFade( pOwner, white, 0.1f, 0.0f, FFADE_IN );
 #endif
 
-	IPredictionSystem::SuppressHostEvents(NULL);
 	WeaponSound( SINGLE );
 }
 
@@ -2901,8 +2900,6 @@ float CWeaponPhysCannon::GetLoadPercentage( void )
 //-----------------------------------------------------------------------------
 CSoundPatch *CWeaponPhysCannon::GetMotorSound( void )
 {
-	IPredictionSystem::SuppressHostEvents(NULL);
-
 	if ( m_sndMotor == NULL )
 	{
 		CPASAttenuationFilter filter( this );
