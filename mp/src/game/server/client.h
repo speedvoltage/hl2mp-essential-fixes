@@ -24,7 +24,7 @@ void ClientCommand( CBasePlayer *pSender, const CCommand &args );
 void ClientPrecache( void );
 // Game specific precaches
 void ClientGamePrecache( void );
-const char *GetGameDescription( void );
+const char* GetGameDescription(void);
 void Host_Say( edict_t *pEdict, bool teamonly );
 
 #endif		// CLIENT_H

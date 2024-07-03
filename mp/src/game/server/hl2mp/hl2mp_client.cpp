@@ -39,8 +39,6 @@ ConVar sv_show_motd_on_connect("sv_show_motd_on_connect", "0", 0, "If enabled, s
 extern CBaseEntity*	FindPickerEntityClass( CBasePlayer *pPlayer, char *classname );
 extern bool			g_fGameOver;
 
-extern ConVar sv_game_description;
-
 void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 {
 	pPlayer->InitialSpawn();
@@ -124,14 +122,15 @@ void ClientActive( edict_t *pEdict, bool bLoadGame )
 
 /*
 ===============
-const char *GetGameDescription()
-
-Returns the descriptive name of this .dll.  E.g., Half-Life, or Team Fortress 2
+Purpose: Returns the descriptive name of this .dll.  E.g., Half-Life, or Team Fortress 2
 ===============
 */
-const char *GetGameDescription()
+const char* GetGameDescription()
 {
-	return sv_game_description.GetString();
+	if (g_pGameRules) // this function may be called before the world has spawned, and the game rules initialized
+		return g_pGameRules->GetGameDescription();
+	else
+		return "Half-Life 2 Deathmatch";
 }
 
 //-----------------------------------------------------------------------------

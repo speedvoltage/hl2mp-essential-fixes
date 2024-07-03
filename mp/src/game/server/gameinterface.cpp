@@ -89,6 +89,7 @@
 #include "tier3/tier3.h"
 #include "serverbenchmark_base.h"
 #include "querycache.h"
+#include "hl2mp_gamerules.h"
 
 
 #ifdef TF_DLL
@@ -1409,10 +1410,21 @@ ServerClass* CServerGameDLL::GetAllServerClasses()
 	return g_pServerClassHead;
 }
 
+void sv_game_description_changed(IConVar* pConVar, const char* pOldString, float flOldValue)
+{
+	GetGameDescription();
+}
+
+ConVar sv_game_description(
+	"sv_game_description",
+	"Classic Deathmatch",
+	FCVAR_GAMEDLL,
+	"Sets the game description",
+	sv_game_description_changed);
 
 const char *CServerGameDLL::GetGameDescription( void )
 {
-	return ::GetGameDescription();
+	return sv_game_description.GetString();
 }
 
 void CServerGameDLL::CreateNetworkStringTables( void )

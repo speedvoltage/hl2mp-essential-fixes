@@ -21,12 +21,6 @@ ConVar mp_suitvoice(
 	FCVAR_GAMEDLL,
 	"If non-zero, game will enable suit notifications");
 
-ConVar sv_game_description(
-	"sv_game_description",
-	"Classic Deathmatch",
-	FCVAR_GAMEDLL,
-	"Sets the game description");
-
 ConVar mp_ear_ringing(
 	"mp_ear_ringing",
 	"0",
