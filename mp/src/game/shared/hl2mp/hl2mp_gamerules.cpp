@@ -43,6 +43,16 @@ extern void respawn(CBaseEntity* pEdict, bool fCopyCorpse);
 extern bool FindInList(const char** pStrings, const char* pToFind);
 
 ConVar sv_hl2mp_weapon_respawn_time("sv_hl2mp_weapon_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_crowbar_respawn_time("sv_crowbar_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_stunstick_respawn_time("sv_stunstick_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_pistol_respawn_time("sv_pistol_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_357_respawn_time("sv_357_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_smg1_respawn_time("sv_smg1_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_ar2_respawn_time("sv_ar2_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_shotgun_respawn_time("sv_shotgun_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_crossbow_respawn_time("sv_crossbow_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_frag_respawn_time("sv_frag_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_rpg_respawn_time("sv_rpg_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 ConVar sv_hl2mp_item_respawn_time("sv_hl2mp_item_respawn_time", "30", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 ConVar mp_change_level_on_game_over("mp_change_level_on_game_over", "0", FCVAR_GAMEDLL);
@@ -264,10 +274,29 @@ float CHL2MPRules::FlWeaponRespawnTime(CBaseCombatWeapon* pWeapon)
 		}
 	}
 
-	return sv_hl2mp_weapon_respawn_time.GetFloat();
+	if ((FClassnameIs(pWeapon, "weapon_rpg")))
+		return sv_rpg_respawn_time.GetFloat();
+	else if ((FClassnameIs(pWeapon, "weapon_crowbar")))
+		return sv_crowbar_respawn_time.GetFloat();
+	else if ((FClassnameIs(pWeapon, "weapon_stunstick")))
+		return sv_stunstick_respawn_time.GetFloat();
+	else if ((FClassnameIs(pWeapon, "weapon_pistol")))
+		return sv_pistol_respawn_time.GetFloat();
+	else if ((FClassnameIs(pWeapon, "weapon_357")))
+		return sv_357_respawn_time.GetFloat();
+	else if ((FClassnameIs(pWeapon, "weapon_smg1")))
+		return sv_smg1_respawn_time.GetFloat();
+	else if ((FClassnameIs(pWeapon, "weapon_ar2")))
+		return sv_ar2_respawn_time.GetFloat();
+	else if ((FClassnameIs(pWeapon, "weapon_shotgun")))
+		return sv_shotgun_respawn_time.GetFloat();
+	else if ((FClassnameIs(pWeapon, "weapon_crossbow")))
+		return sv_crossbow_respawn_time.GetFloat();
+	else if ((FClassnameIs(pWeapon, "weapon_frag")))
+		return sv_frag_respawn_time.GetFloat();
+	else
+		return sv_hl2mp_weapon_respawn_time.GetFloat();
 #endif
-
-	return 0;		// weapon respawns almost instantly
 }
 
 
