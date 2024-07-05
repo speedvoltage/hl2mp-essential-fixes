@@ -884,31 +884,6 @@ void CBreakable::ResetOnGroundFlags(void)
 			pList[i]->SetGroundEntity( (CBaseEntity *)NULL );
 		}
 	}
-
-#ifdef PORTAL
-	// !!! HACK  This should work!
-	// Tell touching portals to fizzle
-	int iPortalCount = CProp_Portal_Shared::AllPortals.Count();
-	if( iPortalCount != 0 )
-	{
-		Vector vMin, vMax;
-		CollisionProp()->WorldSpaceAABB( &vMin, &vMax );
-
-		Vector vBoxCenter = ( vMin + vMax ) * 0.5f;
-		Vector vBoxExtents = ( vMax - vMin ) * 0.5f;
-
-		CProp_Portal **pPortals = CProp_Portal_Shared::AllPortals.Base();
-		for( int i = 0; i != iPortalCount; ++i )
-		{
-			CProp_Portal *pTempPortal = pPortals[i];
-			if( UTIL_IsBoxIntersectingPortal( vBoxCenter, vBoxExtents, pTempPortal ) )
-			{
-				pTempPortal->DoFizzleEffect( PORTAL_FIZZLE_KILLED, false );
-				pTempPortal->Fizzle();
-			}
-		}
-	}
-#endif
 }
 
 

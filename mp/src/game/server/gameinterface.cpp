@@ -1422,7 +1422,7 @@ ConVar sv_game_description(
 	"Sets the game description",
 	sv_game_description_changed);
 
-const char *CServerGameDLL::GetGameDescription( void )
+const char* CServerGameDLL::GetGameDescription(void)
 {
 	return sv_game_description.GetString();
 }

@@ -910,12 +910,11 @@ int CHL2MPRules::PlayerRelationship(CBaseEntity* pPlayer, CBaseEntity* pTarget)
 	return GR_NOTTEAMMATE;
 }
 
+extern ConVar sv_game_description;
+
 const char* CHL2MPRules::GetGameDescription(void)
 {
-	if (IsTeamplay())
-		return "Team Deathmatch";
-
-	return "Deathmatch";
+	return sv_game_description.GetString();
 }
 
 bool CHL2MPRules::IsConnectedUserInfoChangeAllowed(CBasePlayer* pPlayer)
