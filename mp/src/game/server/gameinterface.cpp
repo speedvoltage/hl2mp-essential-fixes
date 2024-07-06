@@ -1411,7 +1411,7 @@ ServerClass* CServerGameDLL::GetAllServerClasses()
 }
 
 void sv_game_description_changed(IConVar* pConVar, const char* pOldString, float flOldValue)
-{
+{	
 	GetGameDescription();
 }
 

@@ -1055,45 +1055,138 @@ CON_COMMAND(say_team, "Display player message to team")
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-CON_COMMAND(give, "Give item to player.\n\tArguments: <item_name>")
+struct ClassNamePrefix_t
 {
-	CBasePlayer* pPlayer = ToBasePlayer(UTIL_GetCommandClient());
-	if (pPlayer
-		&& (gpGlobals->maxClients == 1 || sv_cheats->GetBool())
-		&& args.ArgC() >= 2)
+	ClassNamePrefix_t(const char* pszPrefix, bool bKeepPrefix) : m_pszPrefix(pszPrefix), m_bKeepPrefix(bKeepPrefix)
 	{
-		char item_to_give[256];
-		Q_strncpy(item_to_give, args[1], sizeof(item_to_give));
-		Q_strlower(item_to_give);
-
-		// Don't allow regular users to create point_servercommand entities for the same reason as blocking ent_fire
-		if (!Q_stricmp(item_to_give, "point_servercommand"))
-		{
-			if (engine->IsDedicatedServer())
-			{
-				// We allow people with disabled autokick to do it, because they already have rcon.
-				if (pPlayer->IsAutoKickDisabled() == false)
-					return;
-			}
-			else if (gpGlobals->maxClients > 1)
-			{
-				// On listen servers with more than 1 player, only allow the host to create point_servercommand.
-				CBasePlayer* pHostPlayer = UTIL_GetListenServerHost();
-				if (pPlayer != pHostPlayer)
-					return;
-			}
-		}
-
-		// Dirty hack to avoid suit playing its pickup sound
-		if (!Q_stricmp(item_to_give, "item_suit"))
-		{
-			pPlayer->EquipSuit(false);
-			return;
-		}
-
-		string_t iszItem = AllocPooledString(item_to_give);	// Make a copy of the classname
-		pPlayer->GiveNamedItem(STRING(iszItem));
+		m_nLength = strlen(pszPrefix);
 	}
+
+	const char* m_pszPrefix;
+	size_t m_nLength;
+	bool m_bKeepPrefix;
+};
+
+// Add class name prefixes to show in the "give" command autocomplete here
+static ClassNamePrefix_t s_pEntityPrefixes[] =
+{
+	ClassNamePrefix_t("item_", false),
+	ClassNamePrefix_t("weapon_", false),
+};
+
+static int StringSortFunc(const void* p1, const void* p2)
+{
+	const char* psz1 = (const char*)p1;
+	const char* psz2 = (const char*)p2;
+
+	return V_stricmp(psz1, psz2);
+}
+
+int GiveAutocomplete(const char* partial, char commands[COMMAND_COMPLETION_MAXITEMS][COMMAND_COMPLETION_ITEM_LENGTH])
+{
+	// Find the first space in our input
+	const char* firstSpace = V_strstr(partial, " ");
+	if (!firstSpace)
+		return 0;
+
+	int commandLength = firstSpace - partial;
+
+	// Extract the command name from the input
+	char commandName[COMMAND_COMPLETION_ITEM_LENGTH];
+	V_StrSlice(partial, 0, commandLength, commandName, sizeof(commandName));
+
+	// Calculate the length of the command string (minus the command name)
+	partial += commandLength + 1;
+	int partialLength = V_strlen(partial);
+
+	// Grab the factory dictionary
+	if (!EntityFactoryDictionary())
+		return 0;
+
+	const EntityFactoryDict_t& factoryDict = EntityFactoryDictionary()->GetFactoryDictionary();
+	int numMatches = 0;
+
+	// Iterate through all entity factories
+	for (int i = factoryDict.First(); i != factoryDict.InvalidIndex() && numMatches < COMMAND_COMPLETION_MAXITEMS; i = factoryDict.Next(i))
+	{
+		const char* pszClassName = factoryDict.GetElementName(i);
+
+		// See if this entity classname has a prefix that we show in the
+		// autocomplete
+		// TODO: optimise by caching all autocompletable classnames into a hash
+		// table on first run
+		int j;
+		const ClassNamePrefix_t* pPrefix = NULL;
+
+		for (j = 0; j < ARRAYSIZE(s_pEntityPrefixes); ++j)
+		{
+			pPrefix = &s_pEntityPrefixes[j];
+
+			if (Q_strncmp(pszClassName, pPrefix->m_pszPrefix, pPrefix->m_nLength))
+				continue;
+
+			break;
+		}
+
+		// If this entity factory had no prefixes, we could not find the prefix, skip this entity
+		if (j == ARRAYSIZE(s_pEntityPrefixes))
+			continue;
+
+		// Skip past the prefix if it shouldn't be kept
+		if (!pPrefix->m_bKeepPrefix)
+			pszClassName += pPrefix->m_nLength;
+
+		// Does this entity match our partial completion?
+		if (Q_strnicmp(pszClassName, partial, partialLength))
+			continue;
+
+		Q_snprintf(commands[numMatches++], COMMAND_COMPLETION_ITEM_LENGTH, "%s %s", commandName, pszClassName);
+	}
+
+	// Sort the commands alphabetically
+	qsort(commands, numMatches, COMMAND_COMPLETION_ITEM_LENGTH, StringSortFunc);
+
+	return numMatches;
+}
+
+CON_COMMAND_F_COMPLETION(give, "Give item to player. Syntax: <item name>", FCVAR_CHEAT, GiveAutocomplete)
+{
+	CBasePlayer* pPlayer = UTIL_GetCommandClient();
+	if (!pPlayer)
+		return;
+
+	if (args.ArgC() != 2)
+		return;
+
+	char pszClassName[64];
+	Q_strncpy(pszClassName, args.Arg(1), sizeof(pszClassName));
+
+	for (int i = 0; i < ARRAYSIZE(s_pEntityPrefixes) && !CanCreateEntityClass(pszClassName); ++i)
+	{
+		// If we keep the prefix in the autocomplete, there's no point
+		// checking this prefix
+		if (s_pEntityPrefixes[i].m_bKeepPrefix)
+			continue;
+
+		Q_snprintf(pszClassName, sizeof(pszClassName), "%s%s", s_pEntityPrefixes[i].m_pszPrefix, args.Arg(1));
+	}
+
+	// If this is class name does not have an entity factory, complain to the
+	// client
+	if (!CanCreateEntityClass(pszClassName))
+	{
+		ClientPrint(pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs("give: Unknown entity \"%s\"\n", args.Arg(1)));
+		return;
+	}
+
+	// Dirty hack to avoid suit playing its pickup sound
+	if (FStrEq(pszClassName, "item_suit"))
+	{
+		pPlayer->EquipSuit(false);
+		return;
+	}
+
+	pPlayer->GiveNamedItem(pszClassName);
 }
 
 //------------------------------------------------------------------------------
