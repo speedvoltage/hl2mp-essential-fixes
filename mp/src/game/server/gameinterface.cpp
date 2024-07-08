@@ -1147,7 +1147,7 @@ void CServerGameDLL::GameServerSteamAPIActivated( void )
 #ifndef NO_STEAM
 	steamgameserverapicontext->Clear();
 	steamgameserverapicontext->Init();
-	if ( steamgameserverapicontext->SteamGameServer() && engine->IsDedicatedServer() )
+	if (steamgameserverapicontext->SteamGameServer() && engine->IsDedicatedServer())
 	{
 		steamgameserverapicontext->SteamGameServer()->GetGameplayStats();
 	}
@@ -1410,9 +1410,29 @@ ServerClass* CServerGameDLL::GetAllServerClasses()
 	return g_pServerClassHead;
 }
 
+// No Air: Set the new game description in the master server browser
+bool SetGameDescription(const char* gameDescription)
+{
+	static auto pSteamClient = SteamClient();
+
+	if (pSteamClient)
+	{
+		static auto srv = pSteamClient->GetISteamGameServer(1, 1, STEAMGAMESERVER_INTERFACE_VERSION);
+
+		if (srv)
+		{
+			srv->SetGameDescription(gameDescription);
+			return true;
+		}
+	}
+	return false;
+}
+
+// Peter: Set the description with a cvar, then call SetGameDescription
 void sv_game_description_changed(IConVar* pConVar, const char* pOldString, float flOldValue)
-{	
-	GetGameDescription();
+{
+	SetGameDescription(((ConVar*)pConVar)->GetString());
+	Msg("Game description updated to %s\n", ((ConVar*)pConVar)->GetString());
 }
 
 ConVar sv_game_description(
