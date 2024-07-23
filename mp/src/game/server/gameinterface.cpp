@@ -1422,9 +1422,15 @@ bool SetGameDescription(const char* gameDescription)
 		if (srv)
 		{
 			srv->SetGameDescription(gameDescription);
+			Msg("Game description updated to %s\n", gameDescription);
 			return true;
 		}
+		else
+			Msg("Couldn't set game description: GetISteamGameServer error.\n");
 	}
+	else
+		Msg("Couldn't set game description: SteamClient error.\n");
+
 	return false;
 }
 
@@ -1432,7 +1438,7 @@ bool SetGameDescription(const char* gameDescription)
 void sv_game_description_changed(IConVar* pConVar, const char* pOldString, float flOldValue)
 {
 	SetGameDescription(((ConVar*)pConVar)->GetString());
-	Msg("Game description updated to %s\n", ((ConVar*)pConVar)->GetString());
+	// Msg("Game description updated to %s\n", ((ConVar*)pConVar)->GetString());
 }
 
 ConVar sv_game_description(
