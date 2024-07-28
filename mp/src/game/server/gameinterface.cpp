@@ -215,6 +215,7 @@ static ConVar *g_pcv_hideServer = NULL;
 
 ConVar sv_show_client_connect_msg("sv_show_client_connect_msg", "1", 0, "For showing a public message in chat when a player connects.");
 ConVar sv_show_client_disconnect_msg("sv_show_client_disconnect_msg", "1", 0, "For showing a public message in chat when a player disconnects.");
+ConVar sv_binaries_version("sv_binaries_version", "1.0.8", FCVAR_SPONLY, "Current version of the binaries by Peter Brev");
 
 // String tables
 INetworkStringTable *g_pStringTableParticleEffectNames = NULL;
