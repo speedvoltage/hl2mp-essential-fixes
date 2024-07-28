@@ -35,7 +35,7 @@ void Host_Say( edict_t *pEdict, bool teamonly );
 
 ConVar sv_motd_unload_on_dismissal( "sv_motd_unload_on_dismissal", "0", 0, "If enabled, the MOTD contents will be unloaded when the player closes the MOTD." );
 ConVar sv_show_motd_on_connect("sv_show_motd_on_connect", "0", 0, "If enabled, shows the MOTD to the player when fully put into the server.");
-
+ConVar sv_show_client_put_in_server_msg("sv_show_client_put_in_server_msg", "1", 0, "Prints to all client that a connecting player is fully put in the server.");
 extern CBaseEntity*	FindPickerEntityClass( CBasePlayer *pPlayer, char *classname );
 extern bool			g_fGameOver;
 
@@ -61,7 +61,8 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 	}
 
 	// notify other clients of player joining the game
-	UTIL_PrintToAllClients(CHAT_DEFAULT "%s1 " CHAT_CONTEXT "is connected.", sName[0] != 0 ? sName : "<unconnected>");
+	if (sv_show_client_put_in_server_msg.GetBool())
+		UTIL_PrintToAllClients(CHAT_DEFAULT "%s1 " CHAT_CONTEXT "is connected.", sName[0] != 0 ? sName : "<unconnected>");
 
 	if (sv_show_motd_on_connect.GetBool())
 	{

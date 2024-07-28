@@ -7501,6 +7501,7 @@ void CBasePlayer::PlayWearableAnimsForPlaybackEvent( wearableanimplayback_t iPla
 // Purpose: Put the player in the specified team
 //-----------------------------------------------------------------------------
 
+ConVar sv_show_team_change_msg("sv_show_team_change_msg", "1", 0, "Show team change messages in the chat when a player changes teams.");
 void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent)
 {
 	if ( !GetGlobalTeam( iTeamNum ) )
@@ -7538,14 +7539,17 @@ void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent)
 		GetTeam()->RemovePlayer( this );
 	}
 
-	if (iTeamNum == 0 && gpGlobals->teamplay == 0 && !this->IsDisconnecting())
-		UTIL_PrintToAllClients(CHAT_UNASSIGNED "%s1 " CHAT_CONTEXT "joined team " CHAT_UNASSIGNED "Players.", this->GetPlayerName());
-	else if (iTeamNum == 3 && gpGlobals->teamplay != 0 && !this->IsDisconnecting())
-		UTIL_PrintToAllClients(CHAT_RED "%s1 " CHAT_CONTEXT "joined team " CHAT_RED "Rebels.", this->GetPlayerName());
-	else if (iTeamNum == 2 && gpGlobals->teamplay != 0 && !this->IsDisconnecting())
-		UTIL_PrintToAllClients(CHAT_BLUE "%s1 " CHAT_CONTEXT "joined team " CHAT_BLUE "Combine.", this->GetPlayerName());
-	else if (iTeamNum == 1 && !this->IsDisconnecting())
-		UTIL_PrintToAllClients(CHAT_SPEC "%s1 " CHAT_CONTEXT "joined team " CHAT_SPEC "Spectators.", this->GetPlayerName());
+	if (sv_show_team_change_msg.GetBool())
+	{
+		if (iTeamNum == 0 && gpGlobals->teamplay == 0 && !this->IsDisconnecting())
+			UTIL_PrintToAllClients(CHAT_UNASSIGNED "%s1 " CHAT_CONTEXT "joined team " CHAT_UNASSIGNED "Players.", this->GetPlayerName());
+		else if (iTeamNum == 3 && gpGlobals->teamplay != 0 && !this->IsDisconnecting())
+			UTIL_PrintToAllClients(CHAT_RED "%s1 " CHAT_CONTEXT "joined team " CHAT_RED "Rebels.", this->GetPlayerName());
+		else if (iTeamNum == 2 && gpGlobals->teamplay != 0 && !this->IsDisconnecting())
+			UTIL_PrintToAllClients(CHAT_BLUE "%s1 " CHAT_CONTEXT "joined team " CHAT_BLUE "Combine.", this->GetPlayerName());
+		else if (iTeamNum == 1 && !this->IsDisconnecting())
+			UTIL_PrintToAllClients(CHAT_SPEC "%s1 " CHAT_CONTEXT "joined team " CHAT_SPEC "Spectators.", this->GetPlayerName());
+	}
 	// Are we being added to a team?
 	if ( iTeamNum )
 	{
