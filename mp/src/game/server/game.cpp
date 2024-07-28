@@ -32,30 +32,28 @@ void UpdateGameRules()
 
 void mp_teamplay_changed(IConVar* pConVar, const char* pOldString, float flOldValue)
 {
-	if ((teamplay.GetInt() == 0 && g_pGameRules->IsTeamplay() == 1) || (teamplay.GetInt() == 1 && g_pGameRules->IsTeamplay() == 0) || (teamplay.GetInt() > 1 && g_pGameRules->IsTeamplay() == 0))
+	// loop through all players
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
-		UpdateGameRules();
-		HL2MPRules()->RestartGame();
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
 
-		// loop through all players
-		for (int i = 1; i <= gpGlobals->maxClients; i++)
+		if (pPlayer && pPlayer->IsConnected() && pPlayer->GetTeamNumber() != TEAM_SPECTATOR && !pPlayer->IsHLTV())
 		{
-			if (!teamplay.GetBool())
+			if (teamplay.GetInt() == 0 && g_pGameRules->IsTeamplay() == 1)
 			{
-				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+				UpdateGameRules();
+				HL2MPRules()->RestartGame();
 
-				if (pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
-				{
-					if (pPlayer->IsHLTV()) // Don't let SourceTV join the game.
-						return;
-
-					pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
-				}
+				pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
+			}
+			else
+			{
+				UpdateGameRules();
+				HL2MPRules()->RestartGame();
 			}
 		}
 	}
 }
-
 
 ConVar	displaysoundlist( "displaysoundlist","0" );
 ConVar  mapcyclefile( "mapcyclefile", "mapcycle.txt", FCVAR_NONE, "Name of the .txt file used to cycle the maps on multiplayer servers ", MapCycleFileChangedCallback );
