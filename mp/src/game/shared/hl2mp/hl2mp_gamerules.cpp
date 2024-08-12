@@ -1264,29 +1264,41 @@ void CHL2MPRules::CleanUpMap()
 	MapEntity_ParseAllEntities(engine->GetMapEntitiesString(), &filter, true);
 }
 
+extern ConVar mp_restartgame_immediate;
+
 void CHL2MPRules::CheckRestartGame(void)
 {
-	// Restart the game if specified by the server
-	int iRestartDelay = mp_restartgame.GetInt();
-
-	if (g_fGameOver)
-		return;
-
-	if (iRestartDelay > 0)
+	if (mp_restartgame_immediate.GetBool())
 	{
-		if (iRestartDelay > 60)
-			iRestartDelay = 60;
-
-
-		// let the players know
-		char strRestartDelay[64];
-		Q_snprintf(strRestartDelay, sizeof(strRestartDelay), "%d", iRestartDelay);
-		UTIL_ClientPrintAll(HUD_PRINTCENTER, "Game will restart in %s1 %s2", strRestartDelay, iRestartDelay == 1 ? "SECOND" : "SECONDS");
-		UTIL_ClientPrintAll(HUD_PRINTCONSOLE, "Game will restart in %s1 %s2", strRestartDelay, iRestartDelay == 1 ? "SECOND" : "SECONDS");
-
-		m_flRestartGameTime = gpGlobals->curtime + iRestartDelay;
+		m_flRestartGameTime = gpGlobals->curtime;
 		m_bCompleteReset = true;
 		mp_restartgame.SetValue(0);
+		mp_restartgame_immediate.SetValue(0);
+		UTIL_ClientPrintAll(HUD_PRINTCENTER, "Game has been restarted!");
+	}
+	else
+	{
+		// Restart the game if specified by the server
+		int iRestartDelay = mp_restartgame.GetInt();
+
+		if (g_fGameOver)
+			return;
+
+		if (iRestartDelay > 0)
+		{
+			if (iRestartDelay > 60)
+				iRestartDelay = 60;
+
+			// let the players know
+			char strRestartDelay[64];
+			Q_snprintf(strRestartDelay, sizeof(strRestartDelay), "%d", iRestartDelay);
+			UTIL_ClientPrintAll(HUD_PRINTCENTER, "Game will restart in %s1 %s2", strRestartDelay, iRestartDelay == 1 ? "SECOND" : "SECONDS");
+			UTIL_ClientPrintAll(HUD_PRINTCONSOLE, "Game will restart in %s1 %s2", strRestartDelay, iRestartDelay == 1 ? "SECOND" : "SECONDS");
+
+			m_flRestartGameTime = gpGlobals->curtime + iRestartDelay;
+			m_bCompleteReset = true;
+			mp_restartgame.SetValue(0);
+		}
 	}
 }
 
