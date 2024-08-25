@@ -30,6 +30,7 @@ public:
 	void			BounceSound( void );
 	void			SatchelTouch( CBaseEntity *pOther );
 	void			SatchelThink( void );
+	void			Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType, float value);
 	
 	// Input handlers
 	void			InputExplode( inputdata_t &inputdata );

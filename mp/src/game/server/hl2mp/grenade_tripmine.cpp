@@ -20,9 +20,13 @@
 
 extern const char* g_pModelNameLaser;
 
-ConVar    sk_plr_dmg_tripmine		( "sk_plr_dmg_tripmine","200");
-ConVar    sk_npc_dmg_tripmine		( "sk_npc_dmg_tripmine","0");
-ConVar    sk_tripmine_radius		( "sk_tripmine_radius","200");
+ConVar    sk_plr_dmg_tripmine("sk_plr_dmg_tripmine", "200");
+ConVar    sk_npc_dmg_tripmine("sk_npc_dmg_tripmine", "0");
+ConVar    sk_tripmine_radius("sk_tripmine_radius", "200");
+ConVar	  sv_planted_mines_pickup("sv_planted_mines_pickup", "0", FCVAR_NOTIFY, "If enabled, allows a player to pick up their own planted mines");
+ConVar    sv_ggun_punt_slam_damage("sv_ggun_punt_slam_damage", "0", FCVAR_NOTIFY, "If enabled, blows a planted tripmine by physcannon punt");
+
+extern ConVar sk_max_slam;
 
 LINK_ENTITY_TO_CLASS( npc_tripmine, CTripmineGrenade );
 
@@ -270,3 +274,49 @@ void CTripmineGrenade::DelayDeathThink( void )
 	UTIL_Remove( this );
 }
 
+void CTripmineGrenade::Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType, float value)
+{
+	if (sv_planted_mines_pickup.GetBool())
+	{
+		if (useType == USE_TOGGLE)
+		{
+			CBasePlayer* pPlayer = ToBasePlayer(pActivator);
+
+			if (pPlayer)
+			{
+				if (pPlayer->GetAmmoCount("SLAM") < sk_max_slam.GetInt())
+				{
+					if (m_pBeam)
+					{
+						UTIL_Remove(m_pBeam);
+						m_pBeam = NULL;
+					}
+
+					if (pPlayer->HasNamedPlayerItem("weapon_slam"))
+					{
+						pPlayer->GiveAmmo(1, "SLAM");
+					}
+					else
+					{
+						pPlayer->GiveNamedItem("weapon_slam");
+						pPlayer->SetAmmoCount(1, 1);
+					}
+					UTIL_Remove(this);
+					return;
+				}
+			}
+		}
+	}
+
+	BaseClass::Use(pActivator, pCaller, useType, value);
+}
+
+void CTripmineGrenade::OnPhysGunPickup(CBasePlayer* pPhysGunUser, PhysGunPickup_t reason)
+{
+	if (sv_ggun_punt_slam_damage.GetBool())
+	{
+		m_iHealth = 0;
+		Event_Killed(CTakeDamageInfo((CBaseEntity*)m_hOwner, this, 100, GIB_NORMAL));
+	}
+	BaseClass::OnPhysGunPickup(pPhysGunUser, reason);
+}

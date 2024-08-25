@@ -22,6 +22,9 @@
 ConVar    sk_plr_dmg_satchel		( "sk_plr_dmg_satchel","150");
 ConVar    sk_npc_dmg_satchel		( "sk_npc_dmg_satchel","0");
 ConVar    sk_satchel_radius			( "sk_satchel_radius","200");
+ConVar	  sv_thrown_mines_pickup("sv_thrown_mines_pickup", "0", FCVAR_NOTIFY, "If enabled, allows a player to pick up their own thrown mines");
+
+extern ConVar sk_max_slam;
 
 BEGIN_DATADESC( CSatchelCharge )
 
@@ -123,6 +126,28 @@ void CSatchelCharge::InputExplode( inputdata_t &inputdata )
 	UTIL_Remove( this );
 }
 
+void CSatchelCharge::Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType, float value)
+{
+	if (sv_thrown_mines_pickup.GetBool())
+	{
+		if (useType == USE_TOGGLE)
+		{
+			CBasePlayer* pPlayer = ToBasePlayer(pActivator);
+
+			if (pPlayer)
+			{
+				if (pPlayer->GetAmmoCount("SLAM") < sk_max_slam.GetInt())
+				{
+					pPlayer->GiveAmmo(1, "SLAM");
+					UTIL_Remove(this);
+					return;
+				}
+			}
+		}
+	}
+
+	BaseClass::Use(pActivator, pCaller, useType, value);
+}
 
 void CSatchelCharge::SatchelThink( void )
 {

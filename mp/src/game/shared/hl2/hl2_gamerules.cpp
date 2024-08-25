@@ -138,7 +138,7 @@ ConVar	sk_plr_dmg_sniper_round	( "sk_plr_dmg_sniper_round","0", FCVAR_REPLICATED
 ConVar	sk_npc_dmg_sniper_round	( "sk_npc_dmg_sniper_round","0", FCVAR_REPLICATED);
 ConVar	sk_max_sniper_round		( "sk_max_sniper_round","0", FCVAR_REPLICATED);
 
-//ConVar	sk_max_slam				( "sk_max_slam","0", FCVAR_REPLICATED);
+ConVar	sk_max_slam				( "sk_max_slam","5", FCVAR_REPLICATED);
 //ConVar	sk_max_tripwire			( "sk_max_tripwire","0", FCVAR_REPLICATED);
 
 //ConVar	sk_plr_dmg_molotov		( "sk_plr_dmg_molotov","0", FCVAR_REPLICATED);
