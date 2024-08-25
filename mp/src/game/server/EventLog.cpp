@@ -13,6 +13,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+extern ConVar sv_show_client_disconnect_msg;
+
 CEventLog::CEventLog()
 {
 }
@@ -71,6 +73,7 @@ bool CEventLog::PrintPlayerEvent( IGameEvent *event )
 		const char *address = event->GetString( "address" );
 		const char *networkid = event->GetString("networkid" );
 		UTIL_LogPrintf( "\"%s<%i><%s><>\" connected, address \"%s\"\n", name, userid, networkid, address);
+
 		if (Q_strcmp(eventName, "player_connect_client") == 0)
 		{
 			event->SetString("name", "NULLNAME");
@@ -91,6 +94,10 @@ bool CEventLog::PrintPlayerEvent( IGameEvent *event )
 		}
 
 		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" disconnected (reason \"%s\")\n", name, userid, networkid, team ? team->GetName() : "", reason );
+		
+		if (sv_show_client_disconnect_msg.GetBool())
+			UTIL_PrintToAllClients(CHAT_DEFAULT "%s1 " CHAT_CONTEXT "has disconnected " CHAT_SPEC "(%s2)", pPlayer->GetPlayerName(), reason);
+		
 		if (Q_strcmp(eventName, "player_disconnect") == 0)
 		{
 			event->SetString("name", "NULLNAME");

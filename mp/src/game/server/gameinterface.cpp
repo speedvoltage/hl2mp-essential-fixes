@@ -215,7 +215,7 @@ static ConVar *g_pcv_hideServer = NULL;
 
 ConVar sv_show_client_connect_msg("sv_show_client_connect_msg", "1", 0, "For showing a public message in chat when a player connects.");
 ConVar sv_show_client_disconnect_msg("sv_show_client_disconnect_msg", "1", 0, "For showing a public message in chat when a player disconnects.");
-ConVar sv_binaries_version("sv_binaries_version", "1.0.8", FCVAR_SPONLY, "Current version of the binaries by Peter Brev");
+ConVar sv_binaries_version("sv_binaries_version", "1.0.9", FCVAR_SPONLY, "Current version of the binaries by Peter Brev");
 
 // String tables
 INetworkStringTable *g_pStringTableParticleEffectNames = NULL;
@@ -2801,8 +2801,6 @@ void CServerGameClients::ClientDisconnect( edict_t *pEdict )
 				player->ForceDropOfCarriedPhysObjects(NULL);
 				g_pGameRules->ClientDisconnected( pEdict );
 				gamestats->Event_PlayerDisconnected( player );
-				if (sv_show_client_disconnect_msg.GetBool())
-					UTIL_PrintToAllClients(CHAT_DEFAULT "%s1 " CHAT_CONTEXT "has disconnected.", player->GetPlayerName());
 			}
 		}
 
