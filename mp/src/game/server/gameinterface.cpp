@@ -1413,7 +1413,7 @@ ServerClass* CServerGameDLL::GetAllServerClasses()
 {
 	return g_pServerClassHead;
 }
-
+#ifdef WIN32
 // No Air: Set the new game description in the master server browser
 bool SetGameDescription(const char* gameDescription)
 {
@@ -1437,12 +1437,15 @@ bool SetGameDescription(const char* gameDescription)
 
 	return false;
 }
-
+#endif
 // Peter: Set the description with a cvar, then call SetGameDescription
 void sv_game_description_changed(IConVar* pConVar, const char* pOldString, float flOldValue)
 {
+#ifdef WIN32
 	SetGameDescription(((ConVar*)pConVar)->GetString());
-	// Msg("Game description updated to %s\n", ((ConVar*)pConVar)->GetString());
+#else
+	Msg("Live game description updates are not available due to a SteamAPI error.\nPlease set the game description in your server.cfg\n");
+#endif
 }
 
 ConVar sv_game_description(
