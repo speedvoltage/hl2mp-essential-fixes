@@ -2198,7 +2198,7 @@ bool CBaseCombatCharacter::Weapon_EquipAmmoOnly( CBaseCombatWeapon *pWeapon )
 			}
 			else
 			{
-				pWeapon->SetPrimaryAmmoCount(0 + takenPrimary);
+				pWeapon->SetPrimaryAmmoCount(pWeapon->GetPrimaryAmmoCount() - takenPrimary);
 			}
 
 			if( pWeapon->UsesClipsForAmmo2() )
