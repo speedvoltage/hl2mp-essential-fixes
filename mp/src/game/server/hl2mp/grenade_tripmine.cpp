@@ -23,8 +23,8 @@ extern const char* g_pModelNameLaser;
 ConVar    sk_plr_dmg_tripmine("sk_plr_dmg_tripmine", "200");
 ConVar    sk_npc_dmg_tripmine("sk_npc_dmg_tripmine", "0");
 ConVar    sk_tripmine_radius("sk_tripmine_radius", "200");
-ConVar	  sv_planted_mines_pickup("sv_planted_mines_pickup", "0", FCVAR_NOTIFY, "If enabled, allows a player to pick up their own planted mines");
-ConVar    sv_ggun_punt_slam_damage("sv_ggun_punt_slam_damage", "0", FCVAR_NOTIFY, "If enabled, blows a planted tripmine by physcannon punt");
+ConVar	  sv_planted_mines_pickup("mp_planted_mines_pickup", "0", FCVAR_NOTIFY, "If enabled, allows a player to pick up their own planted mines");
+ConVar    sv_ggun_punt_slam_damage("mp_ggun_punt_slam_damage", "0", FCVAR_NOTIFY, "If enabled, blows a planted tripmine by physcannon punt");
 
 extern ConVar sk_max_slam;
 

@@ -39,6 +39,8 @@ END_PREDICTION_DATA()
 static const Vector g_bludgeonMins(-BLUDGEON_HULL_DIM,-BLUDGEON_HULL_DIM,-BLUDGEON_HULL_DIM);
 static const Vector g_bludgeonMaxs(BLUDGEON_HULL_DIM,BLUDGEON_HULL_DIM,BLUDGEON_HULL_DIM);
 
+ConVar mp_melee_viewkick("mp_melee_viewkick", "1", 0, "If enabled, produces a slight screen movement with hitting a surface with a melee weapon");
+
 //-----------------------------------------------------------------------------
 // Constructor
 //-----------------------------------------------------------------------------
@@ -134,7 +136,8 @@ void CBaseHL2MPBludgeonWeapon::Hit( trace_t &traceHit, Activity nHitActivity )
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 	
 	//Do view kick
-	AddViewKick();
+	if (mp_melee_viewkick.GetBool())
+		AddViewKick();
 
 	CBaseEntity	*pHitEntity = traceHit.m_pEnt;
 

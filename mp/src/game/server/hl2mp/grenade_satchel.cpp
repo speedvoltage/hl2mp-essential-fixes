@@ -22,7 +22,7 @@
 ConVar    sk_plr_dmg_satchel		( "sk_plr_dmg_satchel","150");
 ConVar    sk_npc_dmg_satchel		( "sk_npc_dmg_satchel","0");
 ConVar    sk_satchel_radius			( "sk_satchel_radius","200");
-ConVar	  sv_thrown_mines_pickup("sv_thrown_mines_pickup", "0", FCVAR_NOTIFY, "If enabled, allows a player to pick up their own thrown mines");
+ConVar	  sv_thrown_mines_pickup("mp_thrown_mines_pickup", "0", FCVAR_NOTIFY, "If enabled, allows a player to pick up their own thrown mines");
 
 extern ConVar sk_max_slam;
 
