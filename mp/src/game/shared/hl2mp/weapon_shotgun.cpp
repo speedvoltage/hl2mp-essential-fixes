@@ -323,8 +323,9 @@ void CWeaponShotgun::PrimaryAttack(void)
 	Vector	vecSrc = pPlayer->Weapon_ShootPosition();
 	Vector	vecAiming = pPlayer->GetAutoaimVector(AUTOAIM_SCALE_DEFAULT);
 
+#ifndef CLIENT_DLL
 	pPlayer->FireBullets(sk_plr_num_shotgun_pellets.GetInt(), vecSrc, vecAiming, GetBulletSpread(), MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0, -1, -1, 0, NULL, true, true);
-
+#endif
 	pPlayer->ViewPunch(QAngle(random->RandomFloat(-2, -1), random->RandomFloat(-2, 2), 0));
 
 	if (!m_iClip1 && pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
@@ -370,7 +371,9 @@ void CWeaponShotgun::SecondaryAttack(void)
 	Vector vecAiming = pPlayer->GetAutoaimVector(AUTOAIM_SCALE_DEFAULT);
 
 	// Fire the bullets
+#ifndef CLIENT_DLL
 	pPlayer->FireBullets(sk_plr_num_shotgun_pellets_alt.GetInt(), vecSrc, vecAiming, GetBulletSpread(), MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0, -1, -1, 0, NULL, false, false);
+#endif
 	pPlayer->ViewPunch(QAngle(random->RandomFloat(-5, 5), 0, 0));
 
 	if (!m_iClip1 && pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0)

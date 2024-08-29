@@ -22,7 +22,9 @@
 
 #include "weapon_hl2mpbasehlmpcombatweapon.h"
 #include "effect_dispatch_data.h"
+#ifndef CLIENT_DLL
 #include "func_break.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"

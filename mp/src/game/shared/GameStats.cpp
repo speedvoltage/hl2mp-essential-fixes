@@ -1283,7 +1283,9 @@ void CBaseGameStats_Driver::FrameUpdatePostEntityThink()
 		if ( bGamePaused )
 		{
 			m_flPauseStartTime = gpGlobals->realtime;
+#ifndef CLIENT_DLL
 			UTIL_PrintToAllClients(CHAT_PAUSED "GAME HAS BEEN PAUSED!\n" CHAT_INFO "To resume the game, type " CHAT_DEFAULT "\"pause\" " CHAT_INFO "in your console.");
+#endif		
 		}
 		else if ( m_flPauseStartTime != 0.0f )
 		{
@@ -1303,7 +1305,9 @@ void CBaseGameStats_Driver::FrameUpdatePostEntityThink()
 			m_flPauseStartTime = 0.0f;
 
 			//			Msg( "Paused for %.2f seconds\n", flPausedTime );
+#ifndef CLIENT_DLL
 			UTIL_PrintToAllClients("\x05GAME HAS RESUMED!");
+#endif
 		}
 
 		m_bGamePaused = bGamePaused;

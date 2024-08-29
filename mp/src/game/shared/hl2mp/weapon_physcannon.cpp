@@ -1526,8 +1526,9 @@ bool CWeaponPhysCannon::DropIfEntityHeld( CBaseEntity *pTarget )
 void CWeaponPhysCannon::Drop( const Vector &vecVelocity )
 {
 	ForceDrop();
-
+#ifndef CLIENT_DLL
 	Delete();
+#endif
 }
 
 //-----------------------------------------------------------------------------

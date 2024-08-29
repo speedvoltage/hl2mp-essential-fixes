@@ -297,6 +297,7 @@ float CHL2MPRules::FlWeaponRespawnTime(CBaseCombatWeapon* pWeapon)
 	else
 		return sv_hl2mp_weapon_respawn_time.GetFloat();
 #endif
+	return 0;		// weapon respawns almost instantly
 }
 
 
@@ -939,11 +940,12 @@ int CHL2MPRules::PlayerRelationship(CBaseEntity* pPlayer, CBaseEntity* pTarget)
 	return GR_NOTTEAMMATE;
 }
 
-extern ConVar sv_game_description;
-
 const char* CHL2MPRules::GetGameDescription(void)
 {
-	return sv_game_description.GetString();
+	if (IsTeamplay())
+		return "Team Deathmatch";
+
+	return "Deathmatch";
 }
 
 bool CHL2MPRules::IsConnectedUserInfoChangeAllowed(CBasePlayer* pPlayer)
