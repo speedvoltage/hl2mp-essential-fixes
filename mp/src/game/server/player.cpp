@@ -7537,6 +7537,10 @@ void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent)
 	if ( GetTeam() )
 	{
 		GetTeam()->RemovePlayer( this );
+
+		// Compensate the team score by adding 1 frag when switching to spectators
+		if (GameRules()->IsTeamplay() && iTeamNum == 1 && !this->IsDisconnecting())
+			GetTeam()->AddScore(1);
 	}
 
 	if (sv_show_team_change_msg.GetBool())
