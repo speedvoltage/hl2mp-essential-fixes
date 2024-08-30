@@ -319,7 +319,9 @@ void CHL2MPRules::PlayerKilled(CBasePlayer* pVictim, const CTakeDamageInfo& info
 #endif
 }
 
-ConVar sv_timeleft_enable("sv_timeleft_enable", "1", 0, "Enable/Disable time left indication on the HUD.", true, 0.0, true, 1.0);
+ConVar sv_timeleft_enable("sv_timeleft_enable", "1", 0, "If non-zero,enables time left indication on the HUD.", true, 0.0, true, 1.0);
+ConVar sv_timeleft_teamscore("sv_timeleft_teamscore", "1", 0, "If non-zero,enables team scores on the HUD (left Combine, right Rebels)\nMust be enabled to use \"sv_timeleft_color_override\".", true, 0.0, true, 1.0);
+ConVar sv_timeleft_color_override("sv_timeleft_color_override", "0", 0, "If non-zero, automatically adjust text color to match the current winning team.", true, 0.0, true, 1.0);
 ConVar sv_timeleft_r("sv_timeleft_red", "255", 0, "Red intensity.", true, 0.0, true, 255.0);
 ConVar sv_timeleft_g("sv_timeleft_green", "255", 0, "Green intensity.", true, 0.0, true, 255.0);
 ConVar sv_timeleft_b("sv_timeleft_blue", "255", 0, "Blue intensity.", true, 0.0, true, 255.0);
@@ -377,10 +379,13 @@ void CHL2MPRules::Think(void)
 			if (gpGlobals->curtime > m_tmNextPeriodicThink)
 			{
 				hudtextparms_t textParams;
-				textParams.channel = sv_timeleft_channel.GetInt();;
-				textParams.r1 = sv_timeleft_r.GetInt();
-				textParams.g1 = sv_timeleft_g.GetInt();
-				textParams.b1 = sv_timeleft_b.GetInt();
+				textParams.channel = sv_timeleft_channel.GetInt();
+				if (!sv_timeleft_color_override.GetBool())
+				{
+					textParams.r1 = sv_timeleft_r.GetInt();
+					textParams.g1 = sv_timeleft_g.GetInt();
+					textParams.b1 = sv_timeleft_b.GetInt();
+				}
 				textParams.a1 = 255;
 				textParams.x = sv_timeleft_x.GetFloat();
 				textParams.y = sv_timeleft_y.GetFloat();
@@ -390,17 +395,45 @@ void CHL2MPRules::Think(void)
 				textParams.holdTime = 1.10;
 				textParams.fxTime = 0;
 
+				if (!sv_timeleft_teamscore.GetBool())
+					sv_timeleft_color_override.SetValue(0);
+
 				int iTimeRemaining = (int)HL2MPRules()->GetMapRemainingTime();
 
 				int iMinutes, iSeconds;
 				iMinutes = iTimeRemaining / 60;
 				iSeconds = iTimeRemaining % 60;
 
-				char stime[8];
-				// char seconds[8];
+				char stime[16];
 
-				Q_snprintf(stime, sizeof(stime), "%d:%2.2d", iMinutes, iSeconds);
-				// Q_snprintf(seconds, sizeof(seconds), "%2.2d", iSeconds);
+				if (IsTeamplay() && sv_timeleft_teamscore.GetBool())
+				{
+					CTeam* pCombine = g_Teams[TEAM_COMBINE];
+					CTeam* pRebels = g_Teams[TEAM_REBELS];
+
+					if ((pCombine->GetScore() > pRebels->GetScore()) && sv_timeleft_color_override.GetBool())
+					{
+						textParams.r1 = 159;
+						textParams.g1 = 202;
+						textParams.b1 = 242;
+					}
+					else if ((pRebels->GetScore() > pCombine->GetScore()) && sv_timeleft_color_override.GetBool())
+					{
+						textParams.r1 = 255;
+						textParams.g1 = 50;
+						textParams.b1 = 50;
+					}
+					else if ((pRebels->GetScore() == pCombine->GetScore()) && sv_timeleft_color_override.GetBool())
+					{
+						textParams.r1 = 255;
+						textParams.g1 = 255;
+						textParams.b1 = 255;
+					}
+
+					Q_snprintf(stime, sizeof(stime), "%d %d:%2.2d %d", pCombine->GetScore(), iMinutes, iSeconds, pRebels->GetScore());
+				}
+				else
+					Q_snprintf(stime, sizeof(stime), "%d:%2.2d", iMinutes, iSeconds);
 
 				UTIL_HudMessage(UTIL_GetLocalPlayer(), textParams, stime);
 			}
