@@ -38,6 +38,7 @@ ConVar g_Language( "g_Language", "0", FCVAR_REPLICATED );
 ConVar sk_autoaim_mode( "sk_autoaim_mode", "1", FCVAR_ARCHIVE | FCVAR_REPLICATED );
 
 #ifndef CLIENT_DLL
+
 ConVar log_verbose_enable( "log_verbose_enable", "0", FCVAR_GAMEDLL, "Set to 1 to enable verbose server log on the server." );
 ConVar log_verbose_interval( "log_verbose_interval", "3.0", FCVAR_GAMEDLL, "Determines the interval (in seconds) for the verbose server log." );
 #endif // CLIENT_DLL
@@ -660,6 +661,32 @@ CBaseCombatWeapon *CGameRules::GetNextBestWeapon( CBaseCombatCharacter *pPlayer,
 	return NULL;
 }
 
+void mp_noblock_changed(IConVar* pConVar, const char* pOldString, float flOldValue)
+{
+	for (int i = 1; i <= MAX_PLAYERS; i++)
+	{
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+		if (pPlayer)
+		{
+			if (((ConVar*)pConVar)->GetBool() == true)
+				pPlayer->SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER);
+
+			else
+				pPlayer->SetCollisionGroup(COLLISION_GROUP_PLAYER);
+
+
+		}
+	}
+}
+
+ConVar mp_noblock(
+	"mp_noblock",
+	"0",
+	FCVAR_GAMEDLL | FCVAR_NOTIFY,
+	"If non-zero, disable collisions between players",
+	mp_noblock_changed);
+
 bool CGameRules::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 {
 	if ( collisionGroup0 > collisionGroup1 )
@@ -764,6 +791,27 @@ bool CGameRules::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 		// vehicle clip against non-vehicle, no collision
 		return false;
 	}
+#ifndef CLIENT_DLL
+	if (mp_noblock.GetBool())
+	{
+		if (collisionGroup1 == COLLISION_GROUP_PLAYER || collisionGroup1 == COLLISION_GROUP_PLAYER_MOVEMENT)
+		{
+			if (collisionGroup0 == COLLISION_GROUP_PLAYER || collisionGroup0 == COLLISION_GROUP_PLAYER_MOVEMENT)
+			{
+				for (int i = 1; i <= MAX_PLAYERS; i++)
+				{
+					CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+					if (pPlayer)
+					{
+						pPlayer->SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER);
+					}
+				}
+				return false;
+			}
+		}
+	}
+#endif
 
 	return true;
 }
