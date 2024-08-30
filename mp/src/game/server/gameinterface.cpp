@@ -1413,7 +1413,7 @@ ServerClass* CServerGameDLL::GetAllServerClasses()
 {
 	return g_pServerClassHead;
 }
-#ifdef WIN32
+
 // No Air: Set the new game description in the master server browser
 bool SetGameDescription(const char* gameDescription)
 {
@@ -1437,7 +1437,7 @@ bool SetGameDescription(const char* gameDescription)
 
 	return false;
 }
-#endif
+
 // Peter: Set the description with a cvar, then call SetGameDescription
 void sv_game_description_changed(IConVar* pConVar, const char* pOldString, float flOldValue)
 {
