@@ -16,6 +16,7 @@
 #include "vstdlib/random.h"
 #include "engine/IEngineSound.h"
 #include "world.h"
+#include "func_breakablesurf.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -32,12 +33,15 @@ extern ConVar    sk_max_smg1_grenade;
 ConVar	  sk_smg1_grenade_radius		( "sk_smg1_grenade_radius","0");
 
 ConVar g_CV_SmokeTrail("smoke_trail", "1", 0); // temporary dust explosion switch
+ConVar mp_smg_nade_glass("mp_smg_nade_glass", "1", FCVAR_NOTIFY);
 
 BEGIN_DATADESC( CGrenadeAR2 )
 
 	DEFINE_FIELD( m_hSmokeTrail, FIELD_EHANDLE ),
 	DEFINE_FIELD( m_fSpawnTime, FIELD_TIME ),
 	DEFINE_FIELD( m_fDangerRadius, FIELD_FLOAT ),
+	DEFINE_FIELD( m_vecVelocity, FIELD_VECTOR ),
+	DEFINE_FIELD( m_bTouched, FIELD_BOOLEAN ),
 
 	// Function pointers
 	DEFINE_ENTITYFUNC( GrenadeAR2Touch ),
@@ -78,6 +82,8 @@ void CGrenadeAR2::Spawn( void )
 	m_takedamage	= DAMAGE_YES;
 	m_bIsLive		= true;
 	m_iHealth		= 1;
+	m_bTouched		= false;
+	m_vecVelocity	= vec3_origin;
 
 	SetGravity( UTIL_ScaleForGravity( 400 ) );	// use a lower gravity for grenades to make them easier to see
 	SetFriction( 0.8 );
@@ -142,6 +148,12 @@ void CGrenadeAR2::GrenadeAR2Think( void )
 		{
 			Detonate();
 		}
+
+		if (m_bTouched)
+		{
+			SetAbsVelocity(m_vecVelocity);
+			m_bTouched = false;
+		}
 	}
 
 	// The old way of making danger sounds would scare the crap out of EVERYONE between you and where the grenade
@@ -165,6 +177,35 @@ void CGrenadeAR2::GrenadeAR2Touch( CBaseEntity *pOther )
 	Assert( pOther );
 	if ( !pOther->IsSolid() )
 		return;
+
+	// Seems to cause a server hang, so we are doing it differently
+	if (FClassnameIs(pOther, "func_breakable_surf"))
+	{
+		CBreakableSurface* pBreakable = static_cast<CBreakableSurface*>(pOther);
+
+		if (pBreakable)
+		{
+			m_bTouched = true;
+			m_vecVelocity = GetAbsVelocity();
+			pBreakable->Die(this, m_vecVelocity);
+			return;
+		}
+	}
+
+	/*if (mp_smg_nade_glass.GetBool())
+	{
+		auto windowpane = dynamic_cast<CBreakableSurface*>(pOther);
+
+		if (windowpane)
+		{
+			Vector vec;
+			m_bTouched = true;
+			this->GetVelocity(&vec, NULL);
+			windowpane->Die(this, vec);
+			m_vecVelocity = GetAbsVelocity();
+			return;
+		}
+	}*/
 
 	// If I'm live go ahead and blow up
 	if (m_bIsLive)
