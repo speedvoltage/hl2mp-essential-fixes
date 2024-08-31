@@ -1054,6 +1054,7 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 			// instantly join spectators
 			HandleCommand_JoinTeam( TEAM_SPECTATOR );	
 		}
+
 		return true;
 	}
 	else if ( FStrEq( args[0], "jointeam" ) ) 
@@ -1067,6 +1068,8 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 	}
 	else if ( FStrEq( args[0], "joingame" ) )
 	{
+		if (IsObserver())
+			this->ChangeTeam(random->RandomInt(2, 3));
 		return true;
 	}
 
