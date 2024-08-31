@@ -210,8 +210,7 @@ BEGIN_DATADESC( CPropCombineBall )
 	DEFINE_FIELD( m_bCaptureInProgress, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_nBounceCount,	FIELD_INTEGER ),
 	DEFINE_FIELD( m_nMaxBounces,	FIELD_INTEGER ),
-	DEFINE_FIELD( m_bBounceDie,	FIELD_BOOLEAN ),
-	
+	DEFINE_FIELD( m_bBounceDie,	FIELD_BOOLEAN ),	
 	
 	DEFINE_FIELD( m_hSpawner, FIELD_EHANDLE ),
 

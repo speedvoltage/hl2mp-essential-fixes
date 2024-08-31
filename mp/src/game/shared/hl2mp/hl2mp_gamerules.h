@@ -156,6 +156,10 @@ private:
 	float m_flRestartGameTime;
 	bool m_bCompleteReset;
 
+	float m_flBalanceTeamsTime;
+	bool bSwitchCombinePlayer;
+	bool bSwitchRebelPlayer;
+
 #ifndef CLIENT_DLL
 	bool m_bChangelevelDone;
 #endif

@@ -70,7 +70,6 @@
 #include "vote_controller.h"
 #include "ai_speech.h"
 #include "multiplay_gamerules.h"
-
 #if defined USES_ECON_ITEMS
 #include "econ_wearable.h"
 #endif

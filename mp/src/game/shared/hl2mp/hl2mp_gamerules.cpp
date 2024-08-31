@@ -55,9 +55,21 @@ ConVar sv_frag_respawn_time("sv_frag_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_
 ConVar sv_rpg_respawn_time("sv_rpg_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 ConVar sv_hl2mp_item_respawn_time("sv_hl2mp_item_respawn_time", "30", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY);
-ConVar mp_change_level_on_game_over("mp_change_level_on_game_over", "0", FCVAR_GAMEDLL);
+
+ConVar mp_change_level_on_game_over("mp_change_level_on_game_over", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+
+ConVar sv_timeleft_enable("sv_timeleft_enable", "1", 0, "If non-zero,enables time left indication on the HUD.", true, 0.0, true, 1.0);
+ConVar sv_timeleft_teamscore("sv_timeleft_teamscore", "1", 0, "If non-zero,enables team scores on the HUD (left Combine, right Rebels)\nMust be enabled to use \"sv_timeleft_color_override\".", true, 0.0, true, 1.0);
+ConVar sv_timeleft_color_override("sv_timeleft_color_override", "0", 0, "If non-zero, automatically adjust text color to match the current winning team.", true, 0.0, true, 1.0);
+ConVar sv_timeleft_r("sv_timeleft_red", "255", 0, "Red intensity.", true, 0.0, true, 255.0);
+ConVar sv_timeleft_g("sv_timeleft_green", "255", 0, "Green intensity.", true, 0.0, true, 255.0);
+ConVar sv_timeleft_b("sv_timeleft_blue", "255", 0, "Blue intensity.", true, 0.0, true, 255.0);
+ConVar sv_timeleft_channel("sv_timeleft_channel", "0", 0, "Alpha/Intensity.", true, 0.0, true, 5.0); // Channels go from 0 to 5 (6 total channels).
+ConVar sv_timeleft_x("sv_timeleft_x", "-1");
+ConVar sv_timeleft_y("sv_timeleft_y", "0.01");
 
 extern ConVar mp_chattime;
+extern ConVar mp_autoteambalance;
 
 extern CBaseEntity* g_pLastCombineSpawn;
 extern CBaseEntity* g_pLastRebelSpawn;
@@ -217,6 +229,10 @@ CHL2MPRules::CHL2MPRules()
 	m_bCompleteReset = false;
 	m_bChangelevelDone = false;
 
+	m_flBalanceTeamsTime = 0.0f;
+	bSwitchCombinePlayer = false;
+	bSwitchRebelPlayer = false;
+
 #endif
 }
 
@@ -319,22 +335,87 @@ void CHL2MPRules::PlayerKilled(CBasePlayer* pVictim, const CTakeDamageInfo& info
 #endif
 }
 
-ConVar sv_timeleft_enable("sv_timeleft_enable", "1", 0, "If non-zero,enables time left indication on the HUD.", true, 0.0, true, 1.0);
-ConVar sv_timeleft_teamscore("sv_timeleft_teamscore", "1", 0, "If non-zero,enables team scores on the HUD (left Combine, right Rebels)\nMust be enabled to use \"sv_timeleft_color_override\".", true, 0.0, true, 1.0);
-ConVar sv_timeleft_color_override("sv_timeleft_color_override", "0", 0, "If non-zero, automatically adjust text color to match the current winning team.", true, 0.0, true, 1.0);
-ConVar sv_timeleft_r("sv_timeleft_red", "255", 0, "Red intensity.", true, 0.0, true, 255.0);
-ConVar sv_timeleft_g("sv_timeleft_green", "255", 0, "Green intensity.", true, 0.0, true, 255.0);
-ConVar sv_timeleft_b("sv_timeleft_blue", "255", 0, "Blue intensity.", true, 0.0, true, 255.0);
-ConVar sv_timeleft_channel("sv_timeleft_channel", "0", 0, "Alpha/Intensity.", true, 0.0, true, 5.0); // Channels go from 0 to 5 (6 total channels).
-ConVar sv_timeleft_x("sv_timeleft_x", "-1");
-ConVar sv_timeleft_y("sv_timeleft_y", "0.01");
-
 void CHL2MPRules::Think(void)
 {
 
 #ifndef CLIENT_DLL
 
 	CGameRules::Think();
+
+	if (mp_autoteambalance.GetBool() && IsTeamplay())
+	{
+		if (gpGlobals->curtime > m_flBalanceTeamsTime)
+		{	
+			int iCombine = NULL;
+			int iRebels = NULL;
+
+			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			{
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+				// Only balance teams if 2 players at least are connected
+				if (pPlayer)
+				{
+					if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+					{
+						bSwitchCombinePlayer = false;
+						bSwitchRebelPlayer = false;
+					}
+
+					if (pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
+					{
+						// Figure out how many players are on each team
+						if (pPlayer->GetTeamNumber() == TEAM_COMBINE)
+						{
+							iCombine++;
+						}
+
+						if (pPlayer->GetTeamNumber() == TEAM_REBELS)
+						{
+							iRebels++;
+						}
+#ifdef _DEBUG
+						Msg("%d Combine players, %d Rebel players, currently with %d connected players.\n", iCombine, iRebels, i);
+#endif
+						// If the difference is 2 or over, then teams are deemed unbalanced
+						// Change a player's team when they die to rebalance the teams
+						if ((iCombine - iRebels) > 1 && iCombine > 0)
+						{
+#ifdef _DEBUG
+							Msg("Unbalanced teams! More Combine players than Rebel players!\n");
+#endif
+							bSwitchCombinePlayer = true;
+							bSwitchRebelPlayer = false;
+						}
+						else if ((iRebels - iCombine) > 1 && iRebels > 0)
+						{
+#ifdef _DEBUG
+							Msg("Unbalanced teams! More Rebel players than Combine players!\n");
+#endif
+							bSwitchRebelPlayer = true;
+							bSwitchCombinePlayer = false;
+						}
+						else
+						{
+#ifdef _DEBUG
+							Msg("Teams are balanced!\n");
+#endif
+
+							// Ensure bools are false
+							bSwitchCombinePlayer = false;
+							bSwitchRebelPlayer = false;
+						}
+					}
+				}
+			}
+		}
+	}
+#ifdef _DEBUG
+	else if (gpGlobals->curtime > m_flBalanceTeamsTime)
+	{
+		Msg("Couldn't check team balance! Teamplay is disabled!\n");
+	}
+#endif
 
 	if (g_fGameOver)   // someone else quit the game already
 	{
@@ -473,6 +554,11 @@ void CHL2MPRules::Think(void)
 				}
 			}
 		}
+	}
+
+	if (gpGlobals->curtime > m_flBalanceTeamsTime)
+	{
+		m_flBalanceTeamsTime = gpGlobals->curtime + 60.0;
 	}
 
 	if (gpGlobals->curtime > m_tmNextPeriodicThink)
@@ -800,7 +886,6 @@ void CHL2MPRules::ClientDisconnected(edict_t* pClient)
 #endif
 }
 
-
 //=========================================================
 // Deathnotice. 
 //=========================================================
@@ -898,6 +983,22 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 		event->SetString("weapon", killer_weapon_name);
 		event->SetInt("priority", 7);
 		gameeventmanager->FireEvent(event);
+
+		if (bSwitchCombinePlayer && pVictim->GetTeamNumber() == TEAM_COMBINE)
+		{
+			pVictim->ChangeTeam(3);
+			UTIL_PrintToAllClients(CHAT_INFO "Teams have been auto balanced!");
+			UTIL_ClientPrintAll(HUD_PRINTCENTER, "Teams have been auto balanced!");
+			bSwitchCombinePlayer = false;
+		}
+			
+		else if (bSwitchRebelPlayer && pVictim->GetTeamNumber() == TEAM_REBELS)
+		{
+			pVictim->ChangeTeam(2);
+			UTIL_PrintToAllClients(CHAT_INFO "Teams have been auto balanced!");
+			UTIL_ClientPrintAll(HUD_PRINTCENTER, "Teams have been auto balanced!");
+			bSwitchRebelPlayer = false;
+		}
 	}
 #endif
 
@@ -939,10 +1040,20 @@ void CHL2MPRules::ClientSettingsChanged(CBasePlayer* pPlayer)
 			if (Q_stristr(szModelName, "models/human"))
 			{
 				pHL2Player->ChangeTeam(TEAM_REBELS);
+				bSwitchCombinePlayer = false;
+				bSwitchRebelPlayer = false;
+#if _DEBUG
+				Msg("Clients settings updated: auto balance ignored!\n");
+#endif
 			}
 			else
 			{
 				pHL2Player->SetPlayerTeamModel();
+				bSwitchCombinePlayer = false;
+				bSwitchRebelPlayer = false;
+#if _DEBUG
+				Msg("Clients settings updated: auto balance ignored!\n");
+#endif
 			}
 		}
 	}
