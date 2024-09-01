@@ -33,6 +33,7 @@
 #include "hl2mp_gameinterface.h"
 #include "hl2mp_cvars.h"
 #include <networkstringtable_gamedll.h>
+#include "iserver.h"
 
 #ifdef DEBUG	
 #include "hl2mp_bot_temp.h"
@@ -341,6 +342,11 @@ void CHL2MPRules::Think(void)
 #ifndef CLIENT_DLL
 
 	CGameRules::Think();
+
+	ConVar* sv_pausable = cvar->FindVar("sv_pausable");
+
+	if (sv_pausable->GetBool() == false && engine->IsPaused())
+		engine->GetIServer()->SetPaused(false);
 
 	if (mp_autoteambalance.GetBool() && IsTeamplay())
 	{

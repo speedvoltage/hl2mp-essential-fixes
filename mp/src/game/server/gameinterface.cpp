@@ -90,6 +90,7 @@
 #include "serverbenchmark_base.h"
 #include "querycache.h"
 #include "hl2mp_gamerules.h"
+#include "iserver.h"
 
 
 #ifdef TF_DLL
@@ -1412,6 +1413,39 @@ void CServerGameDLL::LevelShutdown( void )
 ServerClass* CServerGameDLL::GetAllServerClasses()
 {
 	return g_pServerClassHead;
+}
+
+CON_COMMAND(pause, "Pause or unpause the game")
+{
+	ConVar* sv_pausable = cvar->FindVar("sv_pausable");
+	CBasePlayer* pPlayer = ToBasePlayer(UTIL_GetCommandClient());
+
+	if (pPlayer && sv_pausable->GetBool() == true)
+	{
+		if (!engine->IsPaused())
+		{
+			engine->GetIServer()->SetPaused(true);
+			UTIL_PrintToAllClients(CHAT_CONTEXT "Player " CHAT_PAUSED "%s1 " CHAT_CONTEXT "has paused the game!", pPlayer->GetPlayerName());
+			UTIL_ClientPrintAll(HUD_PRINTCONSOLE, "%s paused the game.", pPlayer->GetPlayerName());
+		}
+		else
+		{
+			engine->GetIServer()->SetPaused(false);
+			UTIL_PrintToAllClients(CHAT_CONTEXT "Player " CHAT_PAUSED "%s1 " CHAT_CONTEXT "has unpaused the game!", pPlayer->GetPlayerName());
+			UTIL_ClientPrintAll(HUD_PRINTCONSOLE, "%s paused the game.", pPlayer->GetPlayerName());
+		}
+	}
+	else if (pPlayer && sv_pausable->GetBool() == false && engine->IsPaused())
+	{
+		// If the game is paused and sv_pausable is 0
+		// allow the pause command to still be used
+		// to unpause the game
+		// A think function is supposed to check for
+		// sv_pausable's value, but it seems unreliable 
+		// at best since it may or may not run
+		engine->GetIServer()->SetPaused(false);
+		UTIL_PrintToAllClients(CHAT_CONTEXT "Player " CHAT_PAUSED "%s1 " CHAT_CONTEXT "has unpaused the game!", pPlayer->GetPlayerName());
+	}
 }
 
 // No Air: Set the new game description in the master server browser
