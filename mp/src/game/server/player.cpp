@@ -2086,6 +2086,7 @@ void CBasePlayer::ShowViewPortPanel( const char * name, bool bShow, KeyValues *d
 	MessageEnd();
 }
 
+ConVar mp_forcerespawn_time("mp_forcerespawn_time", "5", FCVAR_NOTIFY, "How long until a forced respawn happens", true, 3.0, true, 60.0);
 
 void CBasePlayer::PlayerDeathThink(void)
 {
@@ -2176,7 +2177,7 @@ void CBasePlayer::PlayerDeathThink(void)
 
 	// wait for any button down,  or mp_forcerespawn is set and the respawn time is up
 	if (!fAnyButtonDown
-		&& !(g_pGameRules->IsMultiplayer() && forcerespawn.GetInt() > 0 && (gpGlobals->curtime > (m_flDeathTime + 5))))
+		&& !(g_pGameRules->IsMultiplayer() && forcerespawn.GetInt() > 0 && (gpGlobals->curtime > (m_flDeathTime + mp_forcerespawn_time.GetInt()))))
 		return;
 
 	m_nButtons = 0;
