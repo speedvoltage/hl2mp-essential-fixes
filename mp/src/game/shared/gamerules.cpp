@@ -315,6 +315,7 @@ bool IsExplosionTraceBlocked( trace_t *ptr )
 	return false;
 }
 
+ConVar mp_rpg_ceiling("mp_rpg_ceiling", "0", FCVAR_NOTIFY, "If non-zero, allows damaging players on the floor above if a rocket was blown on the ceiling just below");
 //-----------------------------------------------------------------------------
 // Default implementation of radius damage
 //-----------------------------------------------------------------------------
@@ -346,6 +347,9 @@ void CGameRules::RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrc
 		}
 	}
 #endif // HL2_DLL
+
+	if (mp_rpg_ceiling.GetBool())
+		vecSrc.z += 1;// in case grenade is lying on the ground
 
 	float flHalfRadiusSqr = Square( flRadius / 2.0f );
 
