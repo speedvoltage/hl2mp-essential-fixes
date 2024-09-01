@@ -36,13 +36,16 @@ void Host_Say( edict_t *pEdict, bool teamonly );
 ConVar sv_motd_unload_on_dismissal( "sv_motd_unload_on_dismissal", "0", 0, "If enabled, the MOTD contents will be unloaded when the player closes the MOTD." );
 ConVar sv_show_motd_on_connect("sv_show_motd_on_connect", "0", 0, "If enabled, shows the MOTD to the player when fully put into the server.");
 ConVar sv_show_client_put_in_server_msg("sv_show_client_put_in_server_msg", "1", 0, "Prints to all client that a connecting player is fully put in the server.");
+ConVar sv_join_spec_on_connect("sv_join_spec_on_connect", "0", 0, "If non-zero, put connecting players to team spectators on fully joined");
 extern CBaseEntity*	FindPickerEntityClass( CBasePlayer *pPlayer, char *classname );
 extern bool			g_fGameOver;
 
 void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 {
 	pPlayer->InitialSpawn();
-	pPlayer->Spawn();
+
+	if (!sv_join_spec_on_connect.GetBool())
+		pPlayer->Spawn();
 
 	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
 	{
@@ -79,21 +82,19 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 		data->deleteThis();
 	}
 
-	if (HL2MPRules()->IsTeamplay() == true)
-	{
-		pPlayer->SetNextThink(gpGlobals->curtime + 0.1f);
-		if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
-			ClientPrint(pPlayer, HUD_PRINTTALK, "\x01You are on team \x05%s1\x01.\n", pPlayer->GetTeam()->GetName());
-		else if (pPlayer->GetTeamNumber() == TEAM_COMBINE)
-			ClientPrint(pPlayer, HUD_PRINTTALK, "\x01You are on team \x05%s1\x01.\n", pPlayer->GetTeam()->GetName());
-		else if (pPlayer->GetTeamNumber() == TEAM_REBELS)
-			ClientPrint(pPlayer, HUD_PRINTTALK, "\x01You are on team \x05%s1\x01.\n", pPlayer->GetTeam()->GetName());
-	}
-
 	// If on a custom game mode that puts players in team spectator on connect, strip suit and weapons too
 	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
 	{
 		pPlayer->RemoveAllItems(true);
+	}
+
+	if (sv_join_spec_on_connect.GetBool())
+		pPlayer->ChangeTeam(TEAM_SPECTATOR);
+
+	if (HL2MPRules()->IsTeamplay() == true)
+	{
+		pPlayer->SetNextThink(gpGlobals->curtime + 0.1f);
+		ClientPrint(pPlayer, HUD_PRINTTALK, "\x01You are on team \x05%s1\x01.\n", pPlayer->GetTeam()->GetName());
 	}
 }
 
