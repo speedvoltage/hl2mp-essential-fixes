@@ -47,6 +47,8 @@ ConVar	sk_combine_ball_search_radius( "sk_combine_ball_search_radius", "512", FC
 ConVar	sk_combineball_seek_angle( "sk_combineball_seek_angle","15.0", FCVAR_REPLICATED);
 ConVar	sk_combineball_seek_kill( "sk_combineball_seek_kill","0", FCVAR_REPLICATED);
 
+ConVar mp_ar2_alt_fire_glass("mp_ar2_alt_fire_glass", "1", FCVAR_NOTIFY);
+
 // For our ring explosion
 int s_nExplosionTexture = -1;
 
@@ -1571,14 +1573,20 @@ void CPropCombineBall::VPhysicsCollision( int index, gamevcollisionevent_t *pEve
 {
 	Vector preVelocity = pEvent->preVelocity[index];
 	float flSpeed = VectorNormalize( preVelocity );
+	CBaseEntity* pHitEntity = pEvent->pEntities[!index];
+
+	if (mp_ar2_alt_fire_glass.GetBool())
+	{
+		if (FClassnameIs(pHitEntity, "func_breakable_surf"))
+			return;
+	}
 
 	if ( m_nMaxBounces == -1 )
 	{
 		const surfacedata_t *pHit = physprops->GetSurfaceData( pEvent->surfaceProps[!index] );
 
 		if( pHit->game.material != CHAR_TEX_FLESH || !hl2_episodic.GetBool() )
-		{
-			CBaseEntity *pHitEntity = pEvent->pEntities[!index];
+		{		
 			if ( pHitEntity && IsHittableEntity( pHitEntity ) )
 			{
 				OnHitEntity( pHitEntity, flSpeed, index, pEvent );
@@ -1615,7 +1623,6 @@ void CPropCombineBall::VPhysicsCollision( int index, gamevcollisionevent_t *pEve
 	vecFinalVelocity *= GetSpeed();
 	PhysCallbackSetVelocity( pEvent->pObjects[index], vecFinalVelocity ); 
 
-	CBaseEntity *pHitEntity = pEvent->pEntities[!index];
 	if ( pHitEntity && IsHittableEntity( pHitEntity ) )
 	{
 		OnHitEntity( pHitEntity, flSpeed, index, pEvent );

@@ -57,14 +57,15 @@
 // func_breakable - bmodel that breaks into pieces after taking damage
 //
 LINK_ENTITY_TO_CLASS( window_pane, CWindowPane );
-BEGIN_DATADESC( CWindowPane )
+BEGIN_DATADESC(CWindowPane)
 
-	// Function Pointers
-	DEFINE_FUNCTION( Die ),
-	DEFINE_FUNCTION( PaneTouch ),
+// Function Pointers
+DEFINE_FUNCTION(Die),
+DEFINE_FUNCTION(PaneTouch),
 
 END_DATADESC()
 
+extern ConVar mp_ar2_alt_fire_glass;
 
 //------------------------------------------------------------------------------
 // Purpose :
@@ -348,6 +349,14 @@ int CBreakableSurface::OnTakeDamage( const CTakeDamageInfo &info )
 		return 0;
 	}
 	
+	if (mp_ar2_alt_fire_glass.GetBool())
+	{
+		if (m_nSurfaceType == SHATTERSURFACE_GLASS && (info.GetDamageType() & DMG_DISSOLVE))
+		{
+			Die(info.GetAttacker(), info.GetDamageForce());
+			return 0;
+		}
+	}
 
 	return 0;
 }
