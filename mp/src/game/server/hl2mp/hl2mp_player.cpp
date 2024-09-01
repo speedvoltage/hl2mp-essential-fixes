@@ -1527,34 +1527,66 @@ CON_COMMAND( timeleft, "prints the time remaining in the match" )
 	}
 	else if (iTimeRemaining > 0 && iFragLimit > 0)
 	{
-		int iMinutes, iSeconds, iFrags;
-		iMinutes = iTimeRemaining / 60;
+		int iDays, iHours, iMinutes, iSeconds, iFrags;
+
+		iMinutes = (iTimeRemaining / 60) % 60;
 		iSeconds = iTimeRemaining % 60;
+		iHours = (iTimeRemaining / 3600) % 24;
+		// Yes, this is ridiculous
+		iDays = (iTimeRemaining / 86400);
 		iFrags = iFragLimit;
 
+		char days[8];
+		char hours[8];
 		char minutes[8];
 		char seconds[8];
 		char frags[8];
+		char stime[128];
 
-		Q_snprintf(minutes, sizeof(minutes), "%d", iMinutes);
+		Q_snprintf(days, sizeof(days), "%2.2d", iDays);
+		Q_snprintf(hours, sizeof(hours), "%2.2d", iHours);
+		Q_snprintf(minutes, sizeof(minutes), "%2.2d", iMinutes);
 		Q_snprintf(seconds, sizeof(seconds), "%2.2d", iSeconds);
 		Q_snprintf(frags, sizeof(frags), "%d", iFrags);
 
-		ClientPrint(pPlayer, HUD_PRINTTALK, "Time left in map: %s1:%s2, or after a player reaches %s3 frags.", minutes, seconds, frags);
+		if (iTimeRemaining >= 86400)
+			Q_snprintf(stime, sizeof(stime), "Time left in map: %2.2d:%2.2d:%2.2d:%2.2d, or after a player reaches %s3 frags", iDays, iHours, iMinutes, iSeconds, frags);
+		else if (iTimeRemaining >= 3600)
+			Q_snprintf(stime, sizeof(stime), "Time left in map: %2.2d:%2.2d:%2.2d, or after a player reaches %s3 frags", iHours, iMinutes, iSeconds, frags);
+		else
+			Q_snprintf(stime, sizeof(stime), "Time left in map: %2.2d:%2.2d, or after a player reaches %s3 frags", iMinutes, iSeconds, frags);
+
+		ClientPrint(pPlayer, HUD_PRINTTALK, stime);
 	}
 	else
 	{
-		int iMinutes, iSeconds;
-		iMinutes = iTimeRemaining / 60;
-		iSeconds = iTimeRemaining % 60;
+		int iDays, iHours, iMinutes, iSeconds;
 
+		iMinutes = (iTimeRemaining / 60) % 60;
+		iSeconds = iTimeRemaining % 60;
+		iHours = (iTimeRemaining / 3600) % 24;
+		// Yes, this is ridiculous
+		iDays = (iTimeRemaining / 86400);
+
+		char days[8];
+		char hours[8];
 		char minutes[8];
 		char seconds[8];
+		char stime[128];
 
-		Q_snprintf(minutes, sizeof(minutes), "%d", iMinutes);
+		Q_snprintf(days, sizeof(days), "%2.2d", iDays);
+		Q_snprintf(hours, sizeof(hours), "%2.2d", iHours);
+		Q_snprintf(minutes, sizeof(minutes), "%2.2d", iMinutes);
 		Q_snprintf(seconds, sizeof(seconds), "%2.2d", iSeconds);
 
-		ClientPrint(pPlayer, HUD_PRINTTALK, "Time left in map: %s1:%s2", minutes, seconds);
+		if (iTimeRemaining >= 86400)
+			Q_snprintf(stime, sizeof(stime), "Time left in map: %2.2d:%2.2d:%2.2d:%2.2d", iDays, iHours, iMinutes, iSeconds);
+		else if (iTimeRemaining >= 3600)
+			Q_snprintf(stime, sizeof(stime), "Time left in map: %2.2d:%2.2d:%2.2d", iHours, iMinutes, iSeconds);
+		else
+			Q_snprintf(stime, sizeof(stime), "Time left in map: %2.2d:%2.2d", iMinutes, iSeconds);
+
+		ClientPrint(pPlayer, HUD_PRINTTALK, stime);
 	}
 }
 

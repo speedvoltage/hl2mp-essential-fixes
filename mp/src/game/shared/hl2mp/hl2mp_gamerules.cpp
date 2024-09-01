@@ -487,11 +487,14 @@ void CHL2MPRules::Think(void)
 
 				int iTimeRemaining = (int)HL2MPRules()->GetMapRemainingTime();
 
-				int iMinutes, iSeconds;
-				iMinutes = iTimeRemaining / 60;
+				int iDays, iHours, iMinutes, iSeconds;
+				iMinutes = (iTimeRemaining / 60) % 60;
 				iSeconds = iTimeRemaining % 60;
+				iHours = (iTimeRemaining / 3600) % 24;
+				// Yes, this is ridiculous
+				iDays = (iTimeRemaining / 86400);
 
-				char stime[16];
+				char stime[64];
 
 				if (IsTeamplay() && sv_timeleft_teamscore.GetBool())
 				{
@@ -517,10 +520,21 @@ void CHL2MPRules::Think(void)
 						textParams.b1 = 255;
 					}
 
-					Q_snprintf(stime, sizeof(stime), "%d %d:%2.2d %d", pCombine->GetScore(), iMinutes, iSeconds, pRebels->GetScore());
+					if (iTimeRemaining >= 86400)
+						Q_snprintf(stime, sizeof(stime), "%d %2.2d:%2.2d:%2.2d:%2.2d %d ", pCombine->GetScore(), iDays, iHours, iMinutes, iSeconds, pRebels->GetScore());
+					else if (iTimeRemaining >= 3600)
+						Q_snprintf(stime, sizeof(stime), "%d %2.2d:%2.2d:%2.2d %d ", pRebels->GetScore(), iHours, iMinutes, iSeconds, pRebels->GetScore());
+					else
+						Q_snprintf(stime, sizeof(stime), "%d %d:%2.2d %d", pCombine->GetScore(), iMinutes, iSeconds, pRebels->GetScore());
 				}
 				else
-					Q_snprintf(stime, sizeof(stime), "%d:%2.2d", iMinutes, iSeconds);
+					if (iTimeRemaining >= 86400)
+						Q_snprintf(stime, sizeof(stime), "%2.2d:%2.2d:%2.2d:%2.2d", iDays, iHours, iMinutes, iSeconds);
+					else if (iTimeRemaining >= 3600)
+						Q_snprintf(stime, sizeof(stime), "%2.2d:%2.2d:%2.2d", iHours, iMinutes, iSeconds);
+					else
+						Q_snprintf(stime, sizeof(stime), "%d:%2.2d", iMinutes, iSeconds);
+
 
 				UTIL_HudMessage(UTIL_GetLocalPlayer(), textParams, stime);
 			}
