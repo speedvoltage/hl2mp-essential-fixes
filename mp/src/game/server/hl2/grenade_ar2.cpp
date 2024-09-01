@@ -33,7 +33,7 @@ extern ConVar    sk_max_smg1_grenade;
 ConVar	  sk_smg1_grenade_radius		( "sk_smg1_grenade_radius","0");
 
 ConVar g_CV_SmokeTrail("smoke_trail", "1", 0); // temporary dust explosion switch
-ConVar mp_smg_nade_glass("mp_smg_nade_glass", "1", FCVAR_NOTIFY);
+ConVar mp_smg_nade_glass("mp_smg_alt_fire_glass", "1", FCVAR_NOTIFY);
 
 BEGIN_DATADESC( CGrenadeAR2 )
 
@@ -179,16 +179,19 @@ void CGrenadeAR2::GrenadeAR2Touch( CBaseEntity *pOther )
 		return;
 
 	// Seems to cause a server hang, so we are doing it differently
-	if (FClassnameIs(pOther, "func_breakable_surf"))
+	if (mp_smg_nade_glass.GetBool())
 	{
-		CBreakableSurface* pBreakable = static_cast<CBreakableSurface*>(pOther);
-
-		if (pBreakable)
+		if (FClassnameIs(pOther, "func_breakable_surf"))
 		{
-			m_bTouched = true;
-			m_vecVelocity = GetAbsVelocity();
-			pBreakable->Die(this, m_vecVelocity);
-			return;
+			CBreakableSurface* pBreakable = static_cast<CBreakableSurface*>(pOther);
+
+			if (pBreakable)
+			{
+				m_bTouched = true;
+				m_vecVelocity = GetAbsVelocity();
+				pBreakable->Die(this, m_vecVelocity);
+				return;
+			}
 		}
 	}
 
