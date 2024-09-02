@@ -21,6 +21,11 @@
 #define CWeapon357 C_Weapon357
 #endif
 
+#ifdef _WIN32
+ConVar mp_357_zoom("mp_357_zoom", "1", FCVAR_NOTIFY);
+ConVar mp_357_zoom_fov("mp_357_zoom_fov", "50", FCVAR_NOTIFY);
+#endif
+
 //-----------------------------------------------------------------------------
 // CWeapon357
 //-----------------------------------------------------------------------------
@@ -33,6 +38,9 @@ public:
 	CWeapon357(void);
 
 	void	PrimaryAttack(void);
+#ifdef _WIN32
+	void	SecondaryAttack(void);
+#endif
 	DECLARE_NETWORKCLASS();
 	DECLARE_PREDICTABLE();
 
@@ -149,3 +157,16 @@ void CWeapon357::PrimaryAttack(void)
 		pPlayer->SetSuitUpdate("!HEV_AMO0", FALSE, 0);
 	}
 }
+
+#ifdef _WIN32
+void CWeapon357::SecondaryAttack(void)
+{
+	if (!mp_357_zoom.GetBool())
+		return;
+
+	// Handle zoom
+	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+
+	pPlayer->SetFOV(pPlayer, mp_357_zoom_fov.GetInt());
+}
+#endif
