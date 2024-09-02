@@ -1653,7 +1653,6 @@ void CWeaponPhysCannon::PuntVPhysics( CBaseEntity *pEntity, const Vector &vecFor
 {
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
 
-
 	if ( m_hLastPuntedObject == pEntity && gpGlobals->curtime < m_flRepuntObjectTime )
 		return;
 
