@@ -37,6 +37,8 @@ ConVar sv_motd_unload_on_dismissal( "sv_motd_unload_on_dismissal", "0", 0, "If e
 ConVar sv_show_motd_on_connect("sv_show_motd_on_connect", "0", 0, "If enabled, shows the MOTD to the player when fully put into the server.");
 ConVar sv_show_client_put_in_server_msg("sv_show_client_put_in_server_msg", "1", 0, "Prints to all client that a connecting player is fully put in the server.");
 ConVar sv_join_spec_on_connect("sv_join_spec_on_connect", "0", 0, "If non-zero, put connecting players to team spectators on fully joined");
+
+extern ConVar sv_timeleft_color_override;
 extern CBaseEntity*	FindPickerEntityClass( CBasePlayer *pPlayer, char *classname );
 extern bool			g_fGameOver;
 
@@ -215,5 +217,8 @@ void InstallGameRules()
 {
 	// vanilla deathmatch
 	CreateGameRulesObject( "CHL2MPRules" );
+
+	if (GameRules()->IsTeamplay())
+		sv_timeleft_color_override.SetValue(1);
 }
 
