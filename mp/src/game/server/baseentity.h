@@ -1078,6 +1078,7 @@ public:
 
 	// Do the bounding boxes of these two intersect?
 	bool	Intersects( CBaseEntity *pOther );
+	bool	IntersectsBox(CBaseEntity* pOther);
 	virtual bool IsLockedByMaster( void ) { return false; }
 
 	// Health accessors.

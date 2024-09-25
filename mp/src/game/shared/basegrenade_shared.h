@@ -50,6 +50,8 @@ public:
 	DECLARE_DATADESC();
 #endif
 
+	bool m_bResetOwnerEntity;
+
 	virtual void		Precache( void );
 
 	virtual void		Explode( trace_t *pTrace, int bitsDamageType );

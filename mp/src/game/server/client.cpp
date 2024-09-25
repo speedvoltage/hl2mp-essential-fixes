@@ -36,6 +36,7 @@
 #include "basemultiplayerplayer.h"
 #include "voice_gamemgr.h"
 #include "hl2mp_player.h"
+#include "iserver.h"
 
 #ifdef TF_DLL
 #include "tf_player.h"
@@ -46,8 +47,13 @@
 #include "weapon_physcannon.h"
 #endif
 
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+bool g_bCopsVsFugitive = false;
+int g_iCountdown = NULL;
+extern bool g_bCopsVsFugitiveGame;
 
 // For not just using one big ai net
 extern CBaseEntity* FindPickerEntity(CBasePlayer* pPlayer);
@@ -55,6 +61,10 @@ extern CBaseEntity* FindPickerEntity(CBasePlayer* pPlayer);
 extern bool IsInCommentaryMode(void);
 
 ConVar* sv_cheats = NULL;
+
+ConVar sv_equalizer_allow_toggle("sv_equalizer_allow_toggle", "0", FCVAR_NOTIFY, "If non-zero, players can toggle equalizer mode with a chat command");
+extern ConVar sv_equalizer;
+ConVar sv_cops_vs_fugitive("sv_cops_vs_fugitive", "0", 0, "Cops vs fugitive game mode");
 
 enum eAllowPointServerCommand {
 	eAllowNever,
@@ -149,7 +159,7 @@ CON_COMMAND(tp, "Switch teamplay status on the fly.")
 					if (pPlayer->IsHLTV()) // Don't let SourceTV join the game.
 						return;
 
-					pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
+					pPlayer->ChangeTeam(0);
 				}
 			}
 			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 disabled\x01.\n");
@@ -192,10 +202,36 @@ CON_COMMAND(toggle_teamplay, "Switch teamplay status on the fly.")
 					if (pPlayer->IsHLTV()) // Don't let SourceTV join the game.
 						return;
 
-					pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
+					pPlayer->ChangeTeam(0);
 				}
 			}
 			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 disabled\x01.\n");
+		}
+	}
+}
+
+void BeginCopsVsFugitive()
+{
+	g_bCopsVsFugitive = true;
+	g_iCountdown = 13;
+
+	engine->ServerCommand("mp_autoteambalance 0\n");
+	engine->ServerCommand("mp_friendlyfire 0\n");
+	engine->ServerCommand("mp_noblock 1\n");
+	HL2MPRules()->NewRestartGame();
+	engine->ServerCommand("mp_timelimit 0\n");
+
+	for (int i = 0; i < MAX_PLAYERS; i++)
+	{
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+		if (!pPlayer)
+			continue;
+
+		if (pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
+		{
+			pPlayer->AddFlag(FL_FROZEN);
+			pPlayer->ChangeTeam(TEAM_COMBINE);
 		}
 	}
 }
@@ -250,7 +286,7 @@ char* CheckChatText(CBasePlayer* pPlayer, char* text)
 
 						if (pPlayer && !pPlayer->IsHLTV() && pPlayer->GetTeamNumber() != TEAM_SPECTATOR) // Don't let SourceTV join the game.
 						{
-							pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
+							pPlayer->ChangeTeam(0);
 						}
 					}
 					UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 disabled\x01.\n");
@@ -342,8 +378,58 @@ char* CheckChatText(CBasePlayer* pPlayer, char* text)
 			ClientPrint(pPlayer, HUD_PRINTTALK, "Next map: %s1", sMap);
 		}
 	}
+
+	if (FStrEq(p, "!e") || (FStrEq(p, "!eq")) || (FStrEq(p, "!equalizer")))
+	{
+		if (sv_equalizer_allow_toggle.GetBool())
+		{
+			if (!sv_equalizer.GetBool())
+			{
+				sv_equalizer.SetValue(1);
+				UTIL_PrintToAllClients(CHAT_DEFAULT "%s1 " CHAT_CONTEXT "activated equalizer!", pPlayer->GetPlayerName());
+			}
+			else
+			{
+				UTIL_PrintToAllClients(CHAT_INFO "Equalizer mode is already enabled.");
+			}
+		}
+		else
+			UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Equalizer mode cannot be toggled.");
+	}
+
+	if (FStrEq(p, "!cvf"))
+	{
+		if (sv_cops_vs_fugitive.GetBool())
+		{
+			if (HL2MPRules()->IsTeamplay() == false)
+			{
+				UTIL_PrintToAllClients(CHAT_CONTEXT "Teamplay must be enabled for this mode.");
+			}
+			else
+			{
+				if (g_bCopsVsFugitive || g_bCopsVsFugitiveGame)
+				{
+					for (int i = 1; i <= gpGlobals->maxClients; i++)
+					{
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+						UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "A game of cops vs fugitive is ongoing.");
+					}
+				}
+				else
+				{
+					UTIL_PrintToAllClients(CHAT_CONTEXT "Cops vs fugitive game mode enabled!\nGAME BEGINS MOMENTARILY!");
+					BeginCopsVsFugitive();
+				}
+			}
+		}
+	}
+
 	return p;
 }
+
+ConVar sv_spec_can_read_teamchat("sv_spec_can_read_teamchat", "0", FCVAR_REPLICATED | FCVAR_ARCHIVE | FCVAR_NOTIFY, "Allow spectators to read team chat from other teams.");
+ConVar sv_silence_chatcmds("sv_silence_chatcmds", "1", 0, "If non-zero, using chat commands will not display the command in chat");
 
 void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 {
@@ -418,6 +504,36 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 		bSenderDead = false;
 	}
 
+	if (sv_silence_chatcmds.GetBool())
+	{
+		if (FStrEq(p, "timeleft") ||
+			FStrEq(p, "!timeleft") ||
+			FStrEq(p, "!e") ||
+			FStrEq(p, "!eq") ||
+			FStrEq(p, "!equalizer") ||
+			FStrEq(p, "nextmap") ||
+			FStrEq(p, "!nextmap") ||
+			FStrEq(p, "!tp") ||
+			FStrEq(p, "!teamplay") ||
+			FStrEq(p, "!fov") ||
+			FStrEq(p, "!mzl") ||
+			FStrEq(p, "!czl") ||
+			FStrEq(p, "!ks") ||
+			FStrEq(p, "!hs") ||
+			FStrEq(p, "!teams"))
+			return;
+
+		if (Q_strncmp(p, "!fov", strlen("!fov")) == 0 ||
+			Q_strncmp(p, "!mzl", strlen("!mzl")) == 0 ||
+			Q_strncmp(p, "!czl", strlen("!czl")) == 0)
+		{
+			if (args.ArgC() > 1)
+			{
+				return;
+			}
+		}
+	}
+
 	const char* pszFormat = NULL;
 	const char* pszPrefix = NULL;
 	const char* pszLocation = NULL;
@@ -443,41 +559,45 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 			if (pPlayer)
 			{
 				if (pPlayer->GetTeamNumber() == 1 && teamonly)
-					Q_snprintf(text, sizeof(text), "\x05[Spectators] \x01%s: ", pszPlayerName);
+					Q_snprintf(text, sizeof(text), CHAT_SPEC "[Spectators] " CHAT_FOV "%s:\x01 ", pszPlayerName);
 				else if (pPlayer->GetTeamNumber() == 1)
-					Q_snprintf(text, sizeof(text), "*SPEC* %s: ", pszPlayerName);
+					Q_snprintf(text, sizeof(text), CHAT_FOV "*SPEC* %s:\x01 ", pszPlayerName);
 
-				if (g_pGameRules->IsTeamplay() == 0)
+				if (!g_pGameRules->IsTeamplay())
 				{
-					if (pPlayer->GetTeamNumber() != 1 && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), "*DEAD* %s: ", pszPlayerName);
+					if (pPlayer->GetTeamNumber() == TEAM_UNASSIGNED && teamonly && !pPlayer->IsAlive())
+						Q_snprintf(text, sizeof(text), CHAT_FOV "*DEAD* " CHAT_TEAM "[TEAM] \x01%s: ", pszPlayerName);
+					else if (pPlayer->GetTeamNumber() != 1 && !pPlayer->IsAlive())
+						Q_snprintf(text, sizeof(text), CHAT_FOV "*DEAD* \x01%s: ", pszPlayerName);
 				}
 				else
 				{
 					if (pPlayer->GetTeamNumber() == 2 && teamonly && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), "\x01*DEAD* \x05[Combine] \x03%s:\x01 ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), CHAT_FOV "*DEAD* " CHAT_TEAM "[Combine] \x03%s:\x01 ", pszPlayerName);
 					else if (pPlayer->GetTeamNumber() == 2 && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), "\x01*DEAD* \x03%s:\x01 ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), CHAT_FOV "*DEAD* \x03%s:\x01 ", pszPlayerName);
 					else if (pPlayer->GetTeamNumber() == 3 && teamonly && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), "\x01*DEAD* \x05[Rebels] \x03%s:\x01 ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), CHAT_FOV "*DEAD* " CHAT_TEAM "[Rebels] \x03%s:\x01 ", pszPlayerName);
 					else if (pPlayer->GetTeamNumber() == 3 && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), "\x01*DEAD* \x03%s:\x01 ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), CHAT_FOV "*DEAD* \x03%s:\x01 ", pszPlayerName);
 				}
 			}
 		}
 	}
 	else
-	{		
+	{
 		if (pPlayer)
 		{
 			if (pPlayer->GetTeamNumber() == 2 && teamonly)
-				Q_snprintf(text, sizeof(text), "\x05[Combine] \x03%s:\x01 ", pszPlayerName);
+				Q_snprintf(text, sizeof(text), CHAT_TEAM "[Combine] \x03%s:\x01 ", pszPlayerName);
 			else if (pPlayer->GetTeamNumber() == 2)
 				Q_snprintf(text, sizeof(text), "\x03%s:\x01 ", pszPlayerName);
 			else if (pPlayer->GetTeamNumber() == 3 && teamonly)
-				Q_snprintf(text, sizeof(text), "\x05[Rebels] \x03%s:\x01 ", pszPlayerName);
+				Q_snprintf(text, sizeof(text), CHAT_TEAM "[Rebels] \x03%s:\x01 ", pszPlayerName);
 			else if (pPlayer->GetTeamNumber() == 3)
 				Q_snprintf(text, sizeof(text), "\x03%s:\x01 ", pszPlayerName);
+			else if (pPlayer->GetTeamNumber() == TEAM_UNASSIGNED && teamonly)
+				Q_snprintf(text, sizeof(text), CHAT_TEAM "[TEAM] \x01%s: ", pszPlayerName);
 			else
 				Q_snprintf(text, sizeof(text), "%s: ", pszPlayerName);
 		}
@@ -510,15 +630,28 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 		if (!(client->IsNetClient()))	// Not a client ? (should never be true)
 			continue;
 
-		// if (g_pGameRules->IsTeamplay() == 0 && teamonly && client->GetTeamNumber() != 1 && pPlayer->GetTeamNumber() != 1)
+		if (!g_pGameRules->IsTeamplay() && teamonly &&
+			client->GetTeamNumber() == TEAM_UNASSIGNED &&
+			pPlayer->GetTeamNumber() == TEAM_UNASSIGNED)
+		{
+			// nothing
+		}
 
-		if (teamonly && client->GetTeamNumber() == 1 && pPlayer->GetTeamNumber() == 1)
+		else if (teamonly && client->GetTeamNumber() == 1 && pPlayer->GetTeamNumber() == 1)
 		{
 			// Probably not the cleanest way, because it's essentially empty, but this seems to work for now
 		}
 
 		else if (teamonly && g_pGameRules->PlayerCanHearChat(client, pPlayer) != GR_TEAMMATE)
 		{
+			if (client->GetTeamNumber() == TEAM_SPECTATOR && sv_spec_can_read_teamchat.GetBool())
+			{
+				// Spectators can hear team chat if sv_spec_can_read_teamchat is enabled
+				CSingleUserRecipientFilter filter(client);
+				filter.MakeReliable();
+				UTIL_SayText2Filter(filter, pPlayer, true, text);
+				continue;
+			}
 			continue;
 		}
 
@@ -533,7 +666,7 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 		CSingleUserRecipientFilter user(client);
 		user.MakeReliable();
 
-		UTIL_SayTextFilter(user, text, pPlayer, true);
+		UTIL_SayText2Filter(user, pPlayer, true, text);
 	}
 
 	if (pPlayer)
@@ -542,7 +675,7 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 		CSingleUserRecipientFilter user(pPlayer);
 		user.MakeReliable();
 
-		UTIL_SayTextFilter(user, text, pPlayer, true);
+		UTIL_SayText2Filter(user, pPlayer, true, text);
 	}
 
 	// echo to server console
@@ -584,6 +717,140 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 	}
 }
 
+
+extern bool g_bUnpausing;
+extern float g_flUnpausingTime;
+const char* pszName;
+
+CON_COMMAND(pause, "Pause or unpause the game")
+{
+	int iConnected = NULL;
+
+	ConVar* sv_pausable = cvar->FindVar("sv_pausable");
+
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CBasePlayer* player = UTIL_PlayerByIndex(i);
+
+		if (player)
+			iConnected++;
+	}
+
+	CBasePlayer* pPlayer = ToBasePlayer(UTIL_GetCommandClient());
+
+	if (pPlayer && sv_pausable->GetBool() == true)
+	{
+		if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+		{
+			UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Spectators cannot pause or unpause the game.");
+			return;
+		}
+
+		if (iConnected < 2)
+		{
+			if (engine->IsPaused())
+			{
+				if (g_bUnpausing)
+					return;
+
+				engine->GetIServer()->SetPaused(false);
+				UTIL_PrintToAllClients(CHAT_CONTEXT "Player " CHAT_PAUSED "%s1 " CHAT_CONTEXT "has unpaused the game!", pPlayer->GetPlayerName());
+				UTIL_ClientPrintAll(HUD_PRINTCONSOLE, "%s unpaused the game.", pPlayer->GetPlayerName());
+				Msg("%s unpaused the game\n", pPlayer->GetPlayerName());
+				return;
+			}
+
+			UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "You cannot pause the game as the only connected player.");
+			return;
+		}
+
+		if (!engine->IsPaused() && !g_bUnpausing)
+		{
+			engine->GetIServer()->SetPaused(true);
+			UTIL_PrintToAllClients(CHAT_CONTEXT "Player " CHAT_PAUSED "%s1 " CHAT_CONTEXT "has paused the game!", pPlayer->GetPlayerName());
+			// Play sound for the 1-second mark before unpausing
+			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			{
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+				if (pPlayer && pPlayer->IsConnected())
+				{
+					engine->ClientCommand(pPlayer->edict(), "play server_sounds/gamepaused.wav\n");
+				}
+			}
+			Msg("%s paused the game\n", pPlayer->GetPlayerName());
+		}
+		else
+		{
+			if (g_bUnpausing)
+			{
+				UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Please wait until the game has resumed to pause again.");
+				return;
+			}
+
+			g_bUnpausing = true;
+			g_flUnpausingTime = gpGlobals->realtime;
+			pszName = engine->GetClientConVarValue(pPlayer->entindex(), "name");
+			// engine->GetIServer()->SetPaused(false);
+			// UTIL_PrintToAllClients(CHAT_CONTEXT "Player " CHAT_PAUSED "%s1 " CHAT_CONTEXT "is unpausing the game!", pPlayer->GetPlayerName());
+		}
+	}
+}
+
+CON_COMMAND(unpause, "Unpause the game")
+{
+	if (!engine->IsPaused())
+		return;
+
+	int iConnected = NULL;
+
+	ConVar* sv_pausable = cvar->FindVar("sv_pausable");
+
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CBasePlayer* player = UTIL_PlayerByIndex(i);
+
+		if (player)
+			iConnected++;
+	}
+
+	CBasePlayer* pPlayer = ToBasePlayer(UTIL_GetCommandClient());
+
+	if (pPlayer && sv_pausable->GetBool() == true)
+	{
+		if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+		{
+			UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Spectators cannot pause or unpause the game.");
+			return;
+		}
+
+		if (iConnected < 2)
+		{
+			if (engine->IsPaused())
+			{
+				if (g_bUnpausing)
+					return;
+
+				engine->GetIServer()->SetPaused(false);
+				UTIL_PrintToAllClients(CHAT_CONTEXT "Player " CHAT_PAUSED "%s1 " CHAT_CONTEXT "has unpaused the game!", pPlayer->GetPlayerName());
+				UTIL_ClientPrintAll(HUD_PRINTCONSOLE, "%s unpaused the game.", pPlayer->GetPlayerName());
+				Msg("%s unpaused the game\n", pPlayer->GetPlayerName());
+				return;
+			}
+		}
+
+		if (g_bUnpausing)
+		{
+			UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Please wait until the game has resumed to pause again.");
+			return;
+		}
+
+		g_bUnpausing = true;
+		g_flUnpausingTime = gpGlobals->realtime;
+		pszName = engine->GetClientConVarValue(pPlayer->entindex(), "name");
+		// engine->GetIServer()->SetPaused(false);
+		// UTIL_PrintToAllClients(CHAT_CONTEXT "Player " CHAT_PAUSED "%s1 " CHAT_CONTEXT "is unpausing the game!", pPlayer->GetPlayerName());
+	}
+}
 
 void ClientPrecache(void)
 {
@@ -1052,11 +1319,8 @@ CON_COMMAND(say, "Display player message")
 	CBasePlayer* pPlayer = ToBasePlayer(UTIL_GetCommandClient());
 	if (pPlayer)
 	{
-		if ((pPlayer->LastTimePlayerTalked() + TALK_INTERVAL) < gpGlobals->curtime)
-		{
-			Host_Say(pPlayer->edict(), args, 0);
-			pPlayer->NotePlayerTalked();
-		}
+		Host_Say(pPlayer->edict(), args, 0);
+		pPlayer->NotePlayerTalked();
 	}
 	// This will result in a "console" say.  Ignore anything from
 	// an index greater than 0 when we don't have a player pointer, 
@@ -1076,11 +1340,8 @@ CON_COMMAND(say_team, "Display player message to team")
 	CBasePlayer* pPlayer = ToBasePlayer(UTIL_GetCommandClient());
 	if (pPlayer)
 	{
-		if ((pPlayer->LastTimePlayerTalked() + TALK_INTERVAL) < gpGlobals->curtime)
-		{
-			Host_Say(pPlayer->edict(), args, 1);
-			pPlayer->NotePlayerTalked();
-		}
+		Host_Say(pPlayer->edict(), args, 1);
+		pPlayer->NotePlayerTalked();
 	}
 }
 
@@ -1223,26 +1484,6 @@ CON_COMMAND_F_COMPLETION(give, "Give item to player. Syntax: <item name>", FCVAR
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-// Doesn't do us any good, better to use a plugin that stores that info into a database
-/*CON_COMMAND(fov_desired, "Change players FOV")
-{
-	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() );
-	if ( pPlayer && sv_cheats->GetBool() )
-	{
-		if ( args.ArgC() > 1 )
-		{
-			int nFOV = atoi( args[1] );
-			pPlayer->SetDefaultFOV( nFOV );
-		}
-		else
-		{
-			ClientPrint( pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs( "\"fov\" is \"%d\"\n", pPlayer->GetFOV() ) );
-		}
-	}
-}*/
-
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
 void CC_Player_SetModel(const CCommand& args)
 {
 	if (gpGlobals->deathmatch)
@@ -1362,9 +1603,6 @@ void CC_Player_PhysSwap(void)
 
 		if (pWeapon)
 		{
-			// Tell the client to stop selecting weapons
-			engine->ClientCommand(UTIL_GetCommandClient()->edict(), "cancelselect");
-
 			const char* strWeaponName = pWeapon->GetName();
 
 			if (!Q_stricmp(strWeaponName, "weapon_physcannon") && pWeapon->CanHolster())
@@ -1704,9 +1942,6 @@ void CC_Notarget_f(void)
 
 	CBasePlayer* pPlayer = ToBasePlayer(UTIL_GetCommandClient());
 	if (!pPlayer)
-		return;
-
-	if (gpGlobals->deathmatch)
 		return;
 
 	pPlayer->ToggleFlag(FL_NOTARGET);

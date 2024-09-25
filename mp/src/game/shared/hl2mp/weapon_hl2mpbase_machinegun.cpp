@@ -36,6 +36,7 @@ BEGIN_DATADESC( CHL2MPMachineGun )
 
 END_DATADESC()
 
+extern ConVar sk_auto_reload_time;
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -217,8 +218,107 @@ int CHL2MPMachineGun::WeaponSoundRealtime( WeaponSound_t shoot_type )
 	return numBullets;
 }
 
+bool CHL2MPMachineGun::Holster(CBaseCombatWeapon* pSwitchingTo)
+{
+	// Call base class Holster
+	if (BaseClass::Holster(pSwitchingTo))
+	{
+		SetWeaponVisible(false);  // Hide the weapon when holstered
+		m_flHolsterTime = gpGlobals->curtime;  // Set the holster time to current time
+		return true;
+	}
 
+	return false;
+}
 
+// Sadly, there is no way to restore this server side, 
+// only an official Valve update can restore this
+extern float	g_lateralBob;
+extern float	g_verticalBob;
+
+#define	HL2_BOB_CYCLE_MIN	1.0f
+#define	HL2_BOB_CYCLE_MAX	0.45f
+#define	HL2_BOB			0.002f
+#define	HL2_BOB_UP		0.5f
+
+float CHL2MPMachineGun::CalcViewmodelBob(void)
+{
+	static float bobtime;
+	static float lastbobtime;
+	float cycle;
+
+	CBasePlayer* player = ToBasePlayer(GetOwner());
+	if (!gpGlobals->frametime || player == NULL)
+	{
+		return 0.0f;
+	}
+
+	// Find the speed of the player
+	float speed = player->GetLocalVelocity().Length2D();
+	speed = clamp(speed, -320, 320);
+
+	float bob_offset = RemapVal(speed, 0, 320, 0.0f, 1.0f);
+	bobtime += (gpGlobals->curtime - lastbobtime) * bob_offset;
+	lastbobtime = gpGlobals->curtime;
+
+	// Calculate vertical bob
+	cycle = bobtime - (int)(bobtime / HL2_BOB_CYCLE_MAX) * HL2_BOB_CYCLE_MAX;
+	cycle /= HL2_BOB_CYCLE_MAX;
+
+	if (cycle < HL2_BOB_UP)
+	{
+		cycle = M_PI * cycle / HL2_BOB_UP;
+	}
+	else
+	{
+		cycle = M_PI + M_PI * (cycle - HL2_BOB_UP) / (1.0f - HL2_BOB_UP);
+	}
+
+	g_verticalBob = speed * 0.005f;
+	g_verticalBob = g_verticalBob * 0.3f + g_verticalBob * 0.7f * sin(cycle);
+	g_verticalBob = clamp(g_verticalBob, -7.0f, 4.0f);
+
+	// Calculate lateral bob
+	cycle = bobtime - (int)(bobtime / (HL2_BOB_CYCLE_MAX * 2)) * HL2_BOB_CYCLE_MAX * 2;
+	cycle /= HL2_BOB_CYCLE_MAX * 2;
+
+	if (cycle < HL2_BOB_UP)
+	{
+		cycle = M_PI * cycle / HL2_BOB_UP;
+	}
+	else
+	{
+		cycle = M_PI + M_PI * (cycle - HL2_BOB_UP) / (1.0f - HL2_BOB_UP);
+	}
+
+	g_lateralBob = speed * 0.005f;
+	g_lateralBob = g_lateralBob * 0.3f + g_lateralBob * 0.7f * sin(cycle);
+	g_lateralBob = clamp(g_lateralBob, -7.0f, 4.0f);
+
+	return 0.0f;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Add viewmodel bobbing
+//-----------------------------------------------------------------------------
+void CHL2MPMachineGun::AddViewmodelBob(CBaseViewModel* viewmodel, Vector& origin, QAngle& angles)
+{
+	Vector forward, right;
+	AngleVectors(angles, &forward, &right, NULL);
+
+	CalcViewmodelBob();
+
+	// Apply bob, scaled down
+	VectorMA(origin, g_verticalBob * 0.1f, forward, origin);
+	origin[2] += g_verticalBob * 0.1f;
+
+	// Bob the angles
+	angles[ROLL] += g_verticalBob * 0.5f;
+	angles[PITCH] -= g_verticalBob * 0.4f;
+	angles[YAW] -= g_lateralBob * 0.3f;
+
+	VectorMA(origin, g_lateralBob * 0.8f, right, origin);
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -239,4 +339,24 @@ void CHL2MPMachineGun::ItemPostFrame( void )
 	BaseClass::ItemPostFrame();
 }
 
+// Restore backpack reload
+void CHL2MPMachineGun::ItemHolsterFrame(void)
+{
+	BaseClass::ItemHolsterFrame();
 
+	// Must be player held
+	if (GetOwner() && GetOwner()->IsPlayer() == false)
+		return;
+
+	// We can't be active
+	if (GetOwner()->GetActiveWeapon() == this)
+		return;
+
+	// If it's been longer than three seconds, reload
+	if ((gpGlobals->curtime - m_flHolsterTime) > sk_auto_reload_time.GetFloat())
+	{
+		// Just load the clip with no animations
+		FinishReload();
+		m_flHolsterTime = gpGlobals->curtime;
+	}
+}

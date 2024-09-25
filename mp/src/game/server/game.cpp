@@ -13,6 +13,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+extern ConVar sv_timeleft_color_override;
+
 void MapCycleFileChangedCallback( IConVar *var, const char *pOldString, float flOldValue )
 {
 	if ( Q_stricmp( pOldString, mapcyclefile.GetString() ) != 0 )
@@ -25,34 +27,9 @@ void MapCycleFileChangedCallback( IConVar *var, const char *pOldString, float fl
 	}
 }
 
-void UpdateGameRules()
-{
-	CreateGameRulesObject("CHL2MPRules");
-}
-
 void mp_teamplay_changed(IConVar* pConVar, const char* pOldString, float flOldValue)
 {
-	// loop through all players
-	for (int i = 1; i <= gpGlobals->maxClients; i++)
-	{
-		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-
-		if (pPlayer && pPlayer->IsConnected() && pPlayer->GetTeamNumber() != TEAM_SPECTATOR && !pPlayer->IsHLTV())
-		{
-			if (teamplay.GetInt() == 0 && g_pGameRules->IsTeamplay() == 1)
-			{
-				UpdateGameRules();
-				HL2MPRules()->RestartGame();
-
-				pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
-			}
-			else
-			{
-				UpdateGameRules();
-				HL2MPRules()->RestartGame();
-			}
-		}
-	}
+	
 }
 
 ConVar	displaysoundlist( "displaysoundlist","0" );

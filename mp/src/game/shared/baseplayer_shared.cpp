@@ -1931,25 +1931,25 @@ void CBasePlayer::ClearZoomOwner( void )
 // Input  : FOV - New FOV
 //			zoomRate - Amount of time (in seconds) to move between old and new FOV
 //-----------------------------------------------------------------------------
-bool CBasePlayer::SetFOV( CBaseEntity *pRequester, int FOV, float zoomRate, int iZoomStart /* = 0 */ )
+bool CBasePlayer::SetFOV(CBaseEntity* pRequester, int FOV, float zoomRate, int iZoomStart /* = 0 */)
 {
 	//NOTENOTE: You MUST specify who is requesting the zoom change
-	assert( pRequester != NULL );
-	if ( pRequester == NULL )
+	assert(pRequester != NULL);
+	if (pRequester == NULL)
 		return false;
 
 	// If we already have an owner, we only allow requests from that owner
-	if ( ( m_hZoomOwner.Get() != NULL ) && ( m_hZoomOwner.Get() != pRequester ) )
+	if ((m_hZoomOwner.Get() != NULL) && (m_hZoomOwner.Get() != pRequester))
 	{
 #ifdef GAME_DLL
-		if ( CanOverrideEnvZoomOwner( m_hZoomOwner.Get() ) == false )
+		if (CanOverrideEnvZoomOwner(m_hZoomOwner.Get()) == false)
 #endif
 			return false;
 	}
 	else
 	{
 		//FIXME: Maybe do this is as an accessor instead
-		if ( FOV == 0 )
+		if (FOV == 0)
 		{
 			m_hZoomOwner = NULL;
 		}
@@ -1960,8 +1960,7 @@ bool CBasePlayer::SetFOV( CBaseEntity *pRequester, int FOV, float zoomRate, int 
 	}
 
 	// Setup our FOV and our scaling time
-
-	if ( iZoomStart > 0 )
+	if (iZoomStart > 0)
 	{
 		m_iFOVStart = iZoomStart;
 	}
@@ -1971,9 +1970,18 @@ bool CBasePlayer::SetFOV( CBaseEntity *pRequester, int FOV, float zoomRate, int 
 	}
 
 	m_flFOVTime = gpGlobals->curtime;
-	m_iFOV = FOV;
 
-	m_Local.m_flFOVRate	= zoomRate;
+	if (FOV == 0)
+	{
+#ifdef GAME_DLL
+		m_iFOV = m_iFOVServer;
+#endif
+	}
+	else
+		m_iFOV = FOV;
+
+
+	m_Local.m_flFOVRate = zoomRate;
 
 	return true;
 }

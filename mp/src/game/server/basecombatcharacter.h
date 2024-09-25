@@ -121,7 +121,6 @@ public:
 	DECLARE_PREDICTABLE();
 
 public:
-
 	virtual void		Spawn( void );
 	virtual void		Precache();
 

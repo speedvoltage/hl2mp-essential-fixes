@@ -100,9 +100,29 @@ enum soundlevel_t
 #define MAX_SNDLVL_BITS		9	// Used to encode 0-255 for regular soundlevel_t's and 256-511 for goldsrc-compatible ones.
 #define MIN_SNDLVL_VALUE	0
 #define MAX_SNDLVL_VALUE	((1<<MAX_SNDLVL_BITS)-1)
-
+/*
 #define ATTN_TO_SNDLVL( a ) (soundlevel_t)(int)((a) ? (50 + 20 / ((float)a)) : 0 )
 #define SNDLVL_TO_ATTN( a ) ((a > 50) ? (20.0f / (float)(a - 50)) : 4.0 )
+*/
+inline soundlevel_t ATTN_TO_SNDLVL(float a)
+{
+	soundlevel_t sndlvl = SNDLVL_NONE;
+
+	if (a >= 0.0f)
+	{
+		// Perform the calculation using float, then cast the result to int and soundlevel_t
+		int sndlvl_int = int(float(SNDLVL_50dB) + (float(SNDLVL_20dB) / a));
+		sndlvl = static_cast<soundlevel_t>(sndlvl_int);
+	}
+
+	return sndlvl;
+}
+
+inline float SNDLVL_TO_ATTN(soundlevel_t s)
+{
+	// Explicitly cast soundlevel_t to float for arithmetic
+	return (s > SNDLVL_50dB) ? (20.0f / float(s - SNDLVL_50dB)) : 4.0f;
+}
 
 // This is a limit due to network encoding.
 // It encodes attenuation * 64 in 8 bits, so the maximum is (255 / 64)

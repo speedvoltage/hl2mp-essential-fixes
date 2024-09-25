@@ -18,6 +18,10 @@
 #include "gamerules.h"
 #include "teamplay_gamerules.h"
 #include "gamevars_shared.h"
+#include "filesystem.h"
+#ifndef CLIENT_DLL
+#include "networkstringtabledefs.h"
+#endif
 
 #ifndef CLIENT_DLL
 #include "hl2mp_player.h"
@@ -121,6 +125,7 @@ public:
 	void CleanUpMap();
 	void CheckRestartGame();
 	void RestartGame();
+	void NewRestartGame();
 	
 #ifndef CLIENT_DLL
 	virtual Vector VecItemRespawnSpot( CItem *pItem );
@@ -132,6 +137,7 @@ public:
 	void	AddLevelDesignerPlacedObject( CBaseEntity *pEntity );
 	void	RemoveLevelDesignerPlacedObject( CBaseEntity *pEntity );
 	void	ManageObjectRelocation( void );
+	void    CheckChatForReadySignal(CHL2MP_Player* pPlayer, const char* chatmsg);
 	const char *GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer );
 
 #endif
@@ -146,7 +152,11 @@ public:
 	bool	IsTeamplay( void ) { return m_bTeamPlayEnabled;	}
 
 	virtual bool IsConnectedUserInfoChangeAllowed( CBasePlayer *pPlayer );
-	
+
+	void InitExcludedExtensions();
+#ifndef CLIENT_DLL
+	void RegisterDownloadableFiles(char* path, FileFindHandle_t findHandle, INetworkStringTable* pDownloadables);
+#endif
 private:
 	
 	CNetworkVar( bool, m_bTeamPlayEnabled );
@@ -155,10 +165,12 @@ private:
 	float m_tmNextPeriodicThink;
 	float m_flRestartGameTime;
 	bool m_bCompleteReset;
+	bool m_bAwaitingReadyRestart;
 
 	float m_flBalanceTeamsTime;
-	bool bSwitchCombinePlayer;
-	bool bSwitchRebelPlayer;
+	float m_flCopsVsFugitive;
+
+	int iConnected;
 
 #ifndef CLIENT_DLL
 	bool m_bChangelevelDone;

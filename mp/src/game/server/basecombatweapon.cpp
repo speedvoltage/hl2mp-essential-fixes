@@ -206,6 +206,7 @@ CBaseEntity* CBaseCombatWeapon::Respawn( void )
 	{
 		pNewWeapon->AddEffects( EF_NODRAW );// invisible for now
 		pNewWeapon->SetTouch( NULL );// no touch
+		pNewWeapon->AddEFlags(EFL_NO_PHYSCANNON_INTERACTION);
 		pNewWeapon->SetThink( &CBaseCombatWeapon::AttemptToMaterialize );
 
 		UTIL_DropToFloor( this, MASK_SOLID );
@@ -573,7 +574,6 @@ void CBaseCombatWeapon::Materialize( void )
 #else
 		EmitSound( "BaseCombatWeapon.WeaponMaterialize" );
 #endif
-		
 		RemoveEffects( EF_NODRAW );
 		DoMuzzleFlash();
 	}
@@ -582,7 +582,6 @@ void CBaseCombatWeapon::Materialize( void )
 	{
 		VPhysicsInitNormal( SOLID_BBOX, GetSolidFlags() | FSOLID_TRIGGER, false );
 		SetMoveType( MOVETYPE_VPHYSICS );
-
 		HL2MPRules()->AddLevelDesignerPlacedObject( this );
 	}
 #else
@@ -605,6 +604,7 @@ void CBaseCombatWeapon::AttemptToMaterialize( void )
 	if ( time == 0 )
 	{
 		Materialize();
+		RemoveEFlags(EFL_NO_PHYSCANNON_INTERACTION);
 		return;
 	}
 

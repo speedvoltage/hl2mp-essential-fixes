@@ -13,6 +13,8 @@
 
 #define MAX_INTERMISSION_TIME 120
 
+extern ConVar mp_ready_signal;
+extern ConVar mp_restartround;
 extern ConVar mp_noweapons;
 extern ConVar mp_suitvoice;
 
