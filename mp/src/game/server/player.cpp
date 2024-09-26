@@ -6256,7 +6256,9 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 
 		EquipSuit();
 
-		// Give the player everything!
+		SetArmorValue(100);
+
+		// Give the player everything! Pew pew
 		GiveAmmo( 255,	"Pistol");
 		GiveAmmo( 255,	"AR2");
 		GiveAmmo( 5,	"AR2AltFire");
