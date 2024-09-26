@@ -738,6 +738,7 @@ public:
 	int		GetLockViewanglesTickNumber() const { return m_iLockViewanglesTickNumber; }
 	QAngle	GetLockViewanglesData() const { return m_qangLockViewangles; }
 
+	bool SetCustomFOV(CBaseEntity* pRequester, int FOV, float zoomRate = 0.0f, int iZoomStart = 0);
 	int		GetFOV( void );														// Get the current FOV value
 	int		GetDefaultFOV( void ) const;										// Default FOV if not specified otherwise
 	int		GetFOVForNetworking( void );										// Get the current FOV used for network computations
@@ -825,6 +826,9 @@ private:
 
 	float m_flLadderCooldownTime;
 
+	int m_iOriginalFOV;
+	CBasePlayer* m_pObservedPlayer;
+
 public:
 	
 	// How long since this player last interacted with something the game considers an objective/target/goal
@@ -899,6 +903,30 @@ public:
 
 	void		AdjustDrownDmg( int nAmount );
 
+	int GetCustomFOV() const
+	{
+		return m_iFOV;
+	}
+
+	int GetStoredCustomFOV() const
+	{
+		return m_iStoredCustomFOV;
+	}
+
+	void SetStoredCustomFOV(int fov)
+	{
+		m_iStoredCustomFOV = fov;
+	}
+
+	int GetFOVServer() const { return m_iFOVServer; }
+	void SetFOVServer(int fov) { m_iFOVServer = fov; }
+
+	// Getter and Setter for m_iFOV
+	int GetFOV() const { return m_iFOV; }
+	void SetFOV(int fov) { m_iFOV = fov; }
+
+	uint64 ConvertSteamID3ToSteamID64(const char* steamID3);
+
 #if defined USES_ECON_ITEMS
 	CEconWearable			*GetWearable( int i ) { return m_hMyWearables[i]; }
 	const CEconWearable		*GetWearable( int i ) const { return m_hMyWearables[i]; }
@@ -909,6 +937,7 @@ private:
 
 	Activity				m_Activity;
 	float					m_flLastObjectiveTime;				// Last curtime player touched/killed something the gamemode considers an objective
+	int m_iStoredCustomFOV;
 
 protected:
 
@@ -929,6 +958,7 @@ protected:
 	Vector					m_vecCameraPVSOrigin;
 
 	CNetworkHandle( CBaseEntity, m_hUseEntity );			// the player is currently controlling this entity because of +USE latched, NULL if no entity
+	CNetworkVar(int, m_iFOVServer); // field of view server-side below CNetworkVar( int, m_iFOV ); // field of view in protected: player.h
 
 	int						m_iTrain;				// Train control position
 

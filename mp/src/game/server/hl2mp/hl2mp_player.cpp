@@ -613,6 +613,53 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 
 	const char* pReadyCheck = p;
 
+	if (Q_strncmp(p, "!fov", strlen("!fov")) == 0)
+	{
+		const char* argStart = strstr(p, "!fov");
+
+		if ((IsBot()))
+			return;
+
+		if (argStart)
+		{
+			argStart += Q_strlen("!fov");
+			while (*argStart == ' ')
+			{
+				argStart++;
+			}
+
+			if (*argStart != '\0')
+			{
+				int iFovValue = atoi(argStart);
+
+				if (iFovValue < 70 || iFovValue > 110)
+				{
+					UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "FOV can only be set between " CHAT_FOV "70 " CHAT_CONTEXT "and " CHAT_FOV "110"));
+					return;
+				}
+
+				if (GetFOV() == iFovValue)
+				{
+					UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "FOV is already set to " CHAT_FOV "%d", GetFOV()));
+					return;
+				}
+
+				char sFovValue[64];
+				Q_snprintf(sFovValue, sizeof(sFovValue), CHAT_CONTEXT "FOV is now set to " CHAT_FOV "%d", iFovValue);
+				UTIL_PrintToClient(this, sFovValue);
+				iFovValue = clamp(iFovValue, 70, 110);
+				m_iFOVServer = iFovValue;
+				m_iFOV = iFovValue;
+				SetDefaultFOV(m_iFOV);
+				//SavePlayerSettings();  // Save settings after changing the FOV
+			}
+			else
+			{
+				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "FOV is " CHAT_FOV "%d", GetFOV()));
+			}
+		}
+	}
+
 	HL2MPRules()->CheckChatForReadySignal(this, pReadyCheck);
 }
 

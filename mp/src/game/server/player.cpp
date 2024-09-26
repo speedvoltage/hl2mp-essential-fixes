@@ -4539,6 +4539,8 @@ void CBasePlayer::PostThink()
 {
 	if (IsObserver())
 	{
+		m_pObservedPlayer = NULL; // Initialize
+
 		m_Local.m_iHideHUD = HIDEHUD_HEALTH;
 
 		if (m_iObserverMode == OBS_MODE_POI || m_iObserverMode == OBS_MODE_FIXED)
@@ -4555,12 +4557,20 @@ void CBasePlayer::PostThink()
 		if (m_iObserverMode != OBS_MODE_IN_EYE)
 		{
 			m_Local.m_iHideHUD = HIDEHUD_CROSSHAIR;
+			SetDefaultFOV(m_iFOVServer);
 		}
 		else
 		{
 			m_Local.m_iHideHUD &= ~HIDEHUD_CROSSHAIR;
 		}
 
+		m_pObservedPlayer = static_cast<CBasePlayer*>(GetObserverTarget());
+		if (m_pObservedPlayer)
+		{
+			// Set the FOV to match the observed player's FOV
+			SetDefaultFOV(m_pObservedPlayer->GetFOV());
+
+		}
 	}
 
 	m_vecSmoothedVelocity = m_vecSmoothedVelocity * SMOOTHING_FACTOR + GetAbsVelocity() * ( 1 - SMOOTHING_FACTOR );
@@ -5003,7 +5013,8 @@ void CBasePlayer::Spawn( void )
 
 	m_idrownrestored = m_idrowndmg;
 
-	SetFOV( this, 0 );
+	SetCustomFOV(this, 0);
+	SetDefaultFOV(m_iFOV);
 
 	m_flNextDecalTime	= 0;// let this player decal as soon as he spawns.
 
@@ -5109,6 +5120,75 @@ void CBasePlayer::Spawn( void )
 	UpdateLastKnownArea();
 
 	m_weaponFiredTimer.Invalidate();
+}
+
+uint64 CBasePlayer::ConvertSteamID3ToSteamID64(const char* steamID3)
+{
+	int universe = 1; // Default universe (1 = Public)
+	int accountID = 0;
+	sscanf(steamID3, "[U:%d:%d]", &universe, &accountID);
+
+	// SteamID64 calculation formula
+	uint64 steamID64 = 0x0110000100000000ULL + accountID;
+	return steamID64;
+}
+
+KeyValues* kvFOV = NULL;
+
+bool CBasePlayer::SetCustomFOV(CBaseEntity* pRequester, int FOV, float zoomRate, int iZoomStart /* = 0 */)
+{
+	if (IsBot())
+		return false;
+
+	// Get player's SteamID64 for unique filename
+	const char* steamID3 = engine->GetPlayerNetworkIDString(edict());  // Fetch SteamID3
+	uint64 steamID64 = this->ConvertSteamID3ToSteamID64(steamID3);  // Convert to SteamID64
+
+	char filename[MAX_PATH];
+	Q_snprintf(filename, sizeof(filename), "cfg/core/%llu.txt", steamID64);  // Use SteamID64 for filename
+	V_FixSlashes(filename);
+
+	// Load player's settings file
+	if (!filesystem->FileExists(filename, "GAME"))
+	{
+		Warning("File [%s] does not exist.\n", filename);
+		return false;
+	}
+
+	KeyValues* kvFOV = new KeyValues("Settings");
+
+	if (!kvFOV->LoadFromFile(filesystem, filename, "GAME"))
+	{
+		Warning("ERROR: Unable to load settings from file [%s]. The file may be corrupted.\n", filename);
+		kvFOV->deleteThis();
+		return false;
+	}
+
+	KeyValues* playerSettings = kvFOV->FindKey(UTIL_VarArgs("%llu", steamID64));
+	if (!playerSettings)
+	{
+		Warning("ERROR: Player settings not found in file [%s].\n", filename);
+		kvFOV->deleteThis();
+		return false;
+	}
+
+	// Find the FOV setting and apply it
+	int savedFOV = playerSettings->GetInt("FOV", -1);  // Use -1 as a default if FOV is not found
+	if (savedFOV == -1)
+	{
+		Warning("ERROR: FOV setting not found for player in file [%s].\n", filename);
+		kvFOV->deleteThis();
+		return false;
+	}
+
+	// Apply the saved FOV value to the player
+	m_iFOV = savedFOV;
+	m_iFOVServer = savedFOV;
+
+	// Msg("Custom FOV set to %d from file [%s].\n", m_iFOV, filename);
+
+	kvFOV->deleteThis();
+	return true;
 }
 
 void CBasePlayer::Activate( void )
