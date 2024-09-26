@@ -55,6 +55,9 @@ extern CBaseEntity* FindPickerEntity(CBasePlayer* pPlayer);
 
 extern bool IsInCommentaryMode(void);
 
+extern ConVar sv_equalizer;
+ConVar sv_equalizer_allow_toggle("sv_equalizer_allow_toggle", "0", FCVAR_NOTIFY, "If non-zero, players can toggle equalizer mode with a chat command");
+
 ConVar* sv_cheats = NULL;
 
 enum eAllowPointServerCommand {
@@ -335,6 +338,25 @@ char* CheckChatText(CBasePlayer* pPlayer, char* text)
 			ClientPrint(pPlayer, HUD_PRINTTALK, "Next map: %s1", sMap);
 		}
 	}
+
+	if (FStrEq(p, "!e") || (FStrEq(p, "!eq")) || (FStrEq(p, "!equalizer")))
+	{
+		if (sv_equalizer_allow_toggle.GetBool())
+		{
+			if (!sv_equalizer.GetBool())
+			{
+				sv_equalizer.SetValue(1);
+				UTIL_PrintToAllClients(CHAT_DEFAULT "%s1 " CHAT_CONTEXT "activated equalizer!", pPlayer->GetPlayerName());
+			}
+			else
+			{
+				UTIL_PrintToAllClients(CHAT_INFO "Equalizer mode is already enabled.");
+			}
+		}
+		else
+			UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Equalizer mode cannot be toggled.");
+	}
+
 	return p;
 }
 

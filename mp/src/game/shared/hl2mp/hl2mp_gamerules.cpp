@@ -73,6 +73,13 @@ ConVar sv_timeleft_channel("sv_timeleft_channel", "0", 0, "Alpha/Intensity.", tr
 ConVar sv_timeleft_x("sv_timeleft_x", "-1");
 ConVar sv_timeleft_y("sv_timeleft_y", "0.01");
 
+ConVar sv_equalizer_combine_red("sv_equalizer_combine_red", "0", 0, "Sets the Combine's team red color for equalizer mode");
+ConVar sv_equalizer_combine_green("sv_equalizer_combine_green", "255", 0, "Sets the Combine's team green color for equalizer mode");
+ConVar sv_equalizer_combine_blue("sv_equalizer_combine_blue", "0", 0, "Sets the Combine's team blue color for equalizer mode");
+ConVar sv_equalizer_rebels_red("sv_equalizer_rebels_red", "255", 0, "Sets the Rebels's team red color for equalizer mode");
+ConVar sv_equalizer_rebels_green("sv_equalizer_rebels_green", "0", 0, "Sets the Rebels's team green color for equalizer mode");
+ConVar sv_equalizer_rebels_blue("sv_equalizer_rebels_blue", "0", 0, "Sets the Rebels's team blue color for equalizer mode");
+
 ConVar sv_hudtargetid_channel("sv_hudtargetid_channel", "2", 0, "Text channel (0-5). Use this if text channels conflict in-game", true, 0.0, true, 5.0);
 
 ConVar mp_noblock("mp_noblock", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "If non-zero, disable collisions between players");
@@ -218,6 +225,32 @@ char* sTeamNames[] =
 	"Combine",
 	"Rebels",
 };
+
+#ifndef CLIENT_DLL
+void sv_equalizer_changed(IConVar* pConVar, const char* pOldString, float flOldValue)
+{
+	if (!((ConVar*)pConVar)->GetBool())  // If equalizer is disabled
+	{
+		for (int i = 1; i <= gpGlobals->maxClients; i++)
+		{
+			CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+			if (pPlayer)
+			{
+				// Reset player's render color and effects
+				pPlayer->SetRenderColor(255, 255, 255);   // Reset color to white
+				pPlayer->SetRenderMode(kRenderNormal);    // Reset to normal render mode
+
+				// Access render properties through networked variables
+				pPlayer->m_nRenderFX = kRenderFxNone;     // Reset render FX
+				pPlayer->m_nRenderMode = kRenderNormal;   // Reset render mode
+			}
+		}
+	}
+}
+
+ConVar sv_equalizer("sv_equalizer", "0", 0, "If non-zero, increase player visibility with bright colors", sv_equalizer_changed);
+#endif
 
 CUtlVector<const char*> mExcludedUploadExts;
 
@@ -456,6 +489,13 @@ void CHL2MPRules::PlayerKilled(CBasePlayer* pVictim, const CTakeDamageInfo& info
 #endif
 }
 
+#ifdef GAME_DLL
+CBaseEntity* FindEntityByName(const char* name)
+{
+	return gEntList.FindEntityByName(NULL, name);
+}
+#endif
+
 #ifndef CLIENT_DLL
 void UpdateGameRules()
 {
@@ -469,6 +509,123 @@ void CHL2MPRules::Think(void)
 #ifndef CLIENT_DLL
 
 	CGameRules::Think();
+
+	/*
+		EQUALIZER
+	*/
+	if (sv_equalizer.GetBool())
+	{
+		// We're not reinventing the wheel, we'll just use what SF has already done, 
+		// find the info_target entity named "sf_equalizer_hax"
+		CBaseEntity* pLightingTarget = FindEntityByName("sf_equalizer_hax");
+
+		if (pLightingTarget)
+		{
+			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			{
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+				if (pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
+				{
+					// Set render color based on team
+					if (pPlayer->GetTeamNumber() == TEAM_COMBINE)
+					{
+						pPlayer->SetRenderColor(sv_equalizer_combine_red.GetInt(),
+							sv_equalizer_combine_green.GetInt(),
+							sv_equalizer_combine_blue.GetInt());
+					}
+					else if (pPlayer->GetTeamNumber() == TEAM_REBELS)
+					{
+						pPlayer->SetRenderColor(sv_equalizer_rebels_red.GetInt(),
+							sv_equalizer_rebels_green.GetInt(),
+							sv_equalizer_rebels_blue.GetInt());
+					}
+					else if (pPlayer->GetTeamNumber() == TEAM_UNASSIGNED)
+					{
+						const char* szModelName = engine->GetClientConVarValue(engine->IndexOfEdict(pPlayer->edict()), "cl_playermodel");
+
+						if (Q_stristr(szModelName, "models/human"))
+						{
+							pPlayer->SetRenderColor(sv_equalizer_rebels_red.GetInt(),
+								sv_equalizer_rebels_green.GetInt(),
+								sv_equalizer_rebels_blue.GetInt());
+						}
+						else
+						{
+							pPlayer->SetRenderColor(sv_equalizer_combine_red.GetInt(),
+								sv_equalizer_combine_green.GetInt(),
+								sv_equalizer_combine_blue.GetInt());
+						}
+					}
+
+					// Apply render mode and glowing effect for better visibility
+					pPlayer->SetRenderMode(kRenderTransAdd);  // Additive blending mode for bright glow
+
+					// Access render properties through networked variables
+					pPlayer->m_nRenderFX = kRenderFxGlowShell; // Add glow effect around the player
+					pPlayer->SetRenderColorA(255);  // Full brightness
+
+					// Set the lighting origin using the info_target entity handle
+					pPlayer->SetLightingOrigin(pLightingTarget);
+				}
+			}
+		}
+		else
+		{
+#ifdef DEBUG
+			Warning("Could not find info_target entity named 'sf_equalizer_hax'.\n");
+#endif
+			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			{
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+				if (pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
+				{
+					// Set render color based on team
+					if (pPlayer->GetTeamNumber() == TEAM_COMBINE)
+					{
+						pPlayer->SetRenderColor(sv_equalizer_combine_red.GetInt(),
+							sv_equalizer_combine_green.GetInt(),
+							sv_equalizer_combine_blue.GetInt());
+					}
+					else if (pPlayer->GetTeamNumber() == TEAM_REBELS)
+					{
+						pPlayer->SetRenderColor(sv_equalizer_rebels_red.GetInt(),
+							sv_equalizer_rebels_green.GetInt(),
+							sv_equalizer_rebels_blue.GetInt());
+					}
+
+					else if (pPlayer->GetTeamNumber() == TEAM_UNASSIGNED)
+					{
+						const char* szModelName = engine->GetClientConVarValue(engine->IndexOfEdict(pPlayer->edict()), "cl_playermodel");
+
+						if (Q_stristr(szModelName, "models/human"))
+						{
+							pPlayer->SetRenderColor(sv_equalizer_rebels_red.GetInt(),
+								sv_equalizer_rebels_green.GetInt(),
+								sv_equalizer_rebels_blue.GetInt());
+						}
+						else
+						{
+							pPlayer->SetRenderColor(sv_equalizer_combine_red.GetInt(),
+								sv_equalizer_combine_green.GetInt(),
+								sv_equalizer_combine_blue.GetInt());
+						}
+					}
+
+					// Apply render mode and glowing effect for better visibility
+					pPlayer->SetRenderMode(kRenderTransAdd);  // Additive blending mode for bright glow
+
+					// Access render properties through networked variables
+					pPlayer->m_nRenderFX = kRenderFxGlowShell; // Add glow effect around the player
+					pPlayer->SetRenderColorA(255);  // Full brightness
+
+					// Set the lighting origin using the info_target entity handle
+					pPlayer->SetLightingOrigin(pLightingTarget);
+				}
+			}
+		}
+	}
 
 	/*
 		NO BLOCK
