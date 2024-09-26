@@ -15,7 +15,7 @@
 #include "soundent.h"
 #include "entitylist.h"
 #include "gamestats.h"
-
+#include "grenade_satchel.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -280,29 +280,39 @@ void CBaseGrenade::PreDetonate( void )
 }
 
 
-void CBaseGrenade::Detonate( void )
+void CBaseGrenade::Detonate(void)
 {
-	trace_t		tr;
-	Vector		vecSpot;// trace starts here!
+	trace_t tr;
+	Vector vecSpot;
 
-	SetThink( NULL );
+	SetThink(NULL);
 
-	vecSpot = GetAbsOrigin() + Vector ( 0 , 0 , 8 );
-	UTIL_TraceLine ( vecSpot, vecSpot + Vector ( 0, 0, -32 ), MASK_SHOT_HULL, this, COLLISION_GROUP_NONE, & tr);
+	vecSpot = GetAbsOrigin() + Vector(0, 0, 8);
+	UTIL_TraceLine(vecSpot, vecSpot + Vector(0, 0, -32), MASK_SHOT_HULL, this, COLLISION_GROUP_NONE, &tr);
 
-	if( tr.startsolid )
+	if (tr.startsolid)
 	{
-		// Since we blindly moved the explosion origin vertically, we may have inadvertently moved the explosion into a solid,
-		// in which case nothing is going to be harmed by the grenade's explosion because all subsequent traces will startsolid.
-		// If this is the case, we do the downward trace again from the actual origin of the grenade. (sjb) 3/8/2007  (for ep2_outland_09)
-		UTIL_TraceLine( GetAbsOrigin(), GetAbsOrigin() + Vector( 0, 0, -32), MASK_SHOT_HULL, this, COLLISION_GROUP_NONE, &tr );
+		UTIL_TraceLine(GetAbsOrigin(), GetAbsOrigin() + Vector(0, 0, -32), MASK_SHOT_HULL, this, COLLISION_GROUP_NONE, &tr);
 	}
 
-	Explode( &tr, DMG_BLAST );
+#ifndef CLIENT_DLL	
 
-	if ( GetShakeAmplitude() )
+	CSatchelCharge* pSlam = dynamic_cast<CSatchelCharge*>(this);
+	if (pSlam)
 	{
-		UTIL_ScreenShake( GetAbsOrigin(), GetShakeAmplitude(), 150.0, 1.0, GetShakeRadius(), SHAKE_START );
+		Explode(&tr, DMG_BLAST * 2);
+	}
+	else
+	{
+		Explode(&tr, DMG_BLAST);
+	}
+#else
+	Explode(&tr, DMG_BLAST);
+#endif
+
+	if (GetShakeAmplitude())
+	{
+		UTIL_ScreenShake(GetAbsOrigin(), GetShakeAmplitude(), 150.0f, 1.0f, GetShakeRadius(), SHAKE_START);
 	}
 }
 
@@ -542,8 +552,6 @@ CBaseGrenade::CBaseGrenade(void)
 
 	SetSimulatedEveryTick( true );
 };
-
-
 
 
 
