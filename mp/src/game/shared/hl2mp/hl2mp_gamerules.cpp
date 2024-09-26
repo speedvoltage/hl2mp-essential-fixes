@@ -92,6 +92,7 @@ extern CBaseEntity* g_pLastCombineSpawn;
 extern CBaseEntity* g_pLastRebelSpawn;
 
 static bool m_bFirstInitialization = true;
+static bool g_bGameOverSounds = false;
 
 #define WEAPON_MAX_DISTANCE_FROM_SPAWN 64
 
@@ -386,6 +387,7 @@ CHL2MPRules::CHL2MPRules()
 	bSwitchRebelPlayer = false;
 
 	m_bFirstInitialization = false;
+	g_bGameOverSounds = false;
 
 #endif
 }
@@ -943,6 +945,171 @@ void CHL2MPRules::Think(void)
 
 	if (g_fGameOver)   // someone else quit the game already
 	{
+		if (!g_bGameOverSounds && sv_custom_sounds.GetBool())
+		{
+			g_bGameOverSounds = true; // Ensure sounds are only played once
+
+			// Count connected players
+			int connectedPlayers = 0;
+			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			{
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+				if (pPlayer && pPlayer->IsConnected())
+				{
+					connectedPlayers++;
+				}
+			}
+
+			// Skip the rest if only one player is connected
+			if (connectedPlayers <= 1)
+			{
+				return;
+			}
+
+			hudtextparms_t textParams;
+			textParams.x = -1;
+			textParams.y = 0.05; // Display the text slightly below the top of the screen
+			textParams.effect = 0;
+			textParams.fadeinTime = 0;
+			textParams.fadeoutTime = 1.5;
+			textParams.holdTime = mp_chattime.GetInt();
+			textParams.fxTime = 0;
+
+			if (IsTeamplay())
+			{
+				CTeam* pCombine = g_Teams[TEAM_COMBINE];
+				CTeam* pRebels = g_Teams[TEAM_REBELS];
+
+				// Check team scores
+				if (pCombine->GetScore() > pRebels->GetScore())
+				{
+					// Blue team wins
+					UTIL_PrintToAllClients(CHAT_CONTEXT "Team " CHAT_BLUE "Combine " CHAT_CONTEXT "wins!");
+
+					textParams.r1 = 159;
+					textParams.g1 = 202;
+					textParams.b1 = 242;
+					UTIL_HudMessage(UTIL_GetLocalPlayer(), textParams, "TEAM COMBINE WINS!");
+
+					for (int i = 0; i < gpGlobals->maxClients; i++)
+					{
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i + 1);
+						if (pPlayer)
+						{
+							engine->ClientCommand(pPlayer->edict(), "play server_sounds/blue_wins.wav\n");
+						}
+					}
+				}
+				else if (pRebels->GetScore() > pCombine->GetScore())
+				{
+					// Red team wins
+					UTIL_PrintToAllClients(CHAT_CONTEXT "Team " CHAT_RED "Rebels " CHAT_CONTEXT "wins!");
+
+					textParams.r1 = 255;
+					textParams.g1 = 50;
+					textParams.b1 = 50;
+					UTIL_HudMessage(UTIL_GetLocalPlayer(), textParams, "TEAM REBELS WIN!");
+
+					for (int i = 0; i < gpGlobals->maxClients; i++)
+					{
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i + 1);
+						if (pPlayer)
+						{
+							engine->ClientCommand(pPlayer->edict(), "play server_sounds/red_wins.wav\n");
+						}
+					}
+				}
+				else
+				{
+					// It's a draw
+					UTIL_PrintToAllClients(CHAT_CONTEXT "Game is a draw!");
+
+					textParams.r1 = 255;
+					textParams.g1 = 255;
+					textParams.b1 = 255;
+					UTIL_HudMessage(UTIL_GetLocalPlayer(), textParams, "GAME DRAW!");
+
+					for (int i = 0; i < gpGlobals->maxClients; i++)
+					{
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i + 1);
+						if (pPlayer)
+						{
+							engine->ClientCommand(pPlayer->edict(), "play server_sounds/draw.wav\n");
+						}
+					}
+				}
+			}
+			else
+			{
+				// Identify the top frag count and whether there's a tie
+				int highestFrags = -1;
+				int tieCount = 0;
+				CBasePlayer* pWinner = nullptr;
+
+				// Loop through all players to find the highest frag count and check for ties
+				for (int i = 1; i <= gpGlobals->maxClients; i++)
+				{
+					CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+					if (pPlayer && pPlayer->IsConnected())
+					{
+						int frags = pPlayer->FragCount();
+
+						// If we find a higher frag count, reset the tie count and update the winner
+						if (frags > highestFrags)
+						{
+							highestFrags = frags;
+							tieCount = 1;
+							pWinner = pPlayer; // Set the potential winner
+						}
+						// If another player has the same frag count, increase the tie count
+						else if (frags == highestFrags)
+						{
+							tieCount++;
+						}
+					}
+				}
+
+				// Play appropriate sound based on the results
+				for (int i = 0; i < gpGlobals->maxClients; i++)
+				{
+					CBasePlayer* pPlayer = UTIL_PlayerByIndex(i + 1);
+					if (pPlayer && pPlayer->IsConnected())
+					{
+						if (tieCount > 1)
+						{
+							// Loop through all players and play the tie sound
+							for (int i = 0; i < gpGlobals->maxClients; i++)
+							{
+								CBasePlayer* pPlayer = UTIL_PlayerByIndex(i + 1);
+								if (pPlayer && pPlayer->IsConnected())
+								{
+									engine->ClientCommand(pPlayer->edict(), "play server_sounds/tie.wav\n");
+								}
+							}
+						}
+
+						else if (pPlayer == pWinner)
+						{
+							// Play the "you win" sound for the winner
+							engine->ClientCommand(pPlayer->edict(), "play server_sounds/youwin.wav\n");
+							UTIL_PrintToAllClients(UTIL_VarArgs(CHAT_DEFAULT "%s " CHAT_CONTEXT "wins!", pPlayer->GetPlayerName()));
+
+							textParams.r1 = 255;
+							textParams.g1 = 165;
+							textParams.b1 = 0;
+							UTIL_HudMessage(UTIL_GetLocalPlayer(), textParams, UTIL_VarArgs("%s WINS!", pPlayer->GetPlayerName()));
+						}
+						else
+						{
+							// Play the "game over" sound for everyone else
+							engine->ClientCommand(pPlayer->edict(), "play server_sounds/gameover.wav\n");
+						}
+					}
+				}
+			}
+		}
+
 		// check to see if we should change levels now
 		if (m_flIntermissionEndTime < gpGlobals->curtime)
 		{
