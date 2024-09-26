@@ -1569,9 +1569,6 @@ void CC_Player_PhysSwap(void)
 
 		if (pWeapon)
 		{
-			// Tell the client to stop selecting weapons
-			engine->ClientCommand(UTIL_GetCommandClient()->edict(), "cancelselect");
-
 			const char* strWeaponName = pWeapon->GetName();
 
 			if (!Q_stricmp(strWeaponName, "weapon_physcannon") && pWeapon->CanHolster())
