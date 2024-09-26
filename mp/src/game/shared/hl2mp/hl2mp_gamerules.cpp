@@ -1934,10 +1934,24 @@ void CHL2MPRules::CleanUpMap()
 	MapEntity_ParseAllEntities(engine->GetMapEntitiesString(), &filter, true);
 }
 
+void CHL2MPRules::CheckChatForReadySignal(CHL2MP_Player* pPlayer, const char* chatmsg)
+{
+	if (m_bAwaitingReadyRestart && FStrEq(chatmsg, mp_ready_signal.GetString()))
+	{
+		if (!pPlayer->IsReady())
+		{
+			pPlayer->SetReady(true);
+		}
+	}
+}
+
 extern ConVar mp_restartgame_immediate;
 
 void CHL2MPRules::CheckRestartGame(void)
 {
+	if (g_fGameOver)
+		return;
+
 	if (mp_restartgame_immediate.GetBool())
 	{
 		m_flRestartGameTime = gpGlobals->curtime;

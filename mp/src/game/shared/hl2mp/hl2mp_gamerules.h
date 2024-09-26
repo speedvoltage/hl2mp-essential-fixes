@@ -133,6 +133,7 @@ public:
 	void	AddLevelDesignerPlacedObject( CBaseEntity *pEntity );
 	void	RemoveLevelDesignerPlacedObject( CBaseEntity *pEntity );
 	void	ManageObjectRelocation( void );
+	void CheckChatForReadySignal(CHL2MP_Player* pPlayer, const char* chatmsg);
 	const char *GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer );
 
 #endif
@@ -161,6 +162,7 @@ private:
 	float m_tmNextPeriodicThink;
 	float m_flRestartGameTime;
 	bool m_bCompleteReset;
+	bool m_bAwaitingReadyRestart;
 
 	float m_flBalanceTeamsTime;
 	bool bSwitchCombinePlayer;

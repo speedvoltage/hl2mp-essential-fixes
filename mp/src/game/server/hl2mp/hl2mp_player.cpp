@@ -579,6 +579,43 @@ void CHL2MP_Player::PreThink( void )
 	SetLocalAngles( vOldAngles );
 }
 
+bool CHL2MP_Player::IsReady()
+{
+	return m_bReady;
+}
+
+void CHL2MP_Player::SetReady(bool bReady)
+{
+	m_bReady = bReady;
+}
+
+void CHL2MP_Player::CheckChatText(char* p, int bufsize)
+{
+	//Look for escape sequences and replace
+
+	char* buf = new char[bufsize];
+	int pos = 0;
+
+	// Parse say text for escape sequences
+	for (char* pSrc = p; pSrc != NULL && *pSrc != 0 && pos < bufsize - 1; pSrc++)
+	{
+		// copy each char across
+		buf[pos] = *pSrc;
+		pos++;
+	}
+
+	buf[pos] = '\0';
+
+	// copy buf back into p
+	Q_strncpy(p, buf, bufsize);
+
+	delete[] buf;
+
+	const char* pReadyCheck = p;
+
+	HL2MPRules()->CheckChatForReadySignal(this, pReadyCheck);
+}
+
 void CHL2MP_Player::PostThink( void )
 {
 	BaseClass::PostThink();

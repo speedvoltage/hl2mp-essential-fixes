@@ -76,6 +76,9 @@ public:
 	virtual void DeathSound( const CTakeDamageInfo &info );
 	virtual CBaseEntity* EntSelectSpawnPoint( void );
 	virtual void InitialSpawn( void );
+	void CheckChatText(char* p, int bufsize);
+	void SetReady(bool bReady);
+	bool IsReady();
 		
 	int FlashlightIsOn( void );
 	void FlashlightTurnOn( void );
@@ -181,6 +184,8 @@ private:
 	float m_flNextHudUpdate;
 
 	bool g_bFirstSpawn;
+
+	bool m_bReady;
 };
 
 inline CHL2MP_Player *ToHL2MPPlayer( CBaseEntity *pEntity )
