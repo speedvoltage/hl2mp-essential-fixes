@@ -22,6 +22,7 @@
 #include "eventqueue.h"
 #include "gamestats.h"
 #include "hl2mp_cvars.h"
+#include "iserver.h"
 
 #include "engine/IEngineSound.h"
 #include "SoundEmitterSystem/isoundemittersystembase.h"
@@ -302,6 +303,9 @@ void CHL2MP_Player::Spawn(void)
 	PickDefaultSpawnTeam();
 
 	BaseClass::Spawn();
+
+	SetNextThink(gpGlobals->curtime + 0.1f);
+	SetThink(&CHL2MP_Player::FirstThinkAfterSpawn);
 	
 	if ( !IsObserver() )
 	{
@@ -1477,9 +1481,66 @@ ReturnSpot:
 
 	return pSpot;
 }
+
+extern bool g_bWasGamePausedOnJoin;
+
+void CHL2MP_Player::FirstThinkAfterSpawn()
+{
+	if (HasFirstTimeSpawned())
+		return;
+
+	SetFirstTimeSpawned(true);
+
+	if (HL2MPRules()->IsTeamplay() == true)
+	{
+		if (GetTeamNumber() == TEAM_SPECTATOR)
+			UTIL_PrintToClient(this, CHAT_CONTEXT "You are on team " CHAT_SPEC "%s1", GetTeam()->GetName());
+		else if (GetTeamNumber() == TEAM_COMBINE)
+			UTIL_PrintToClient(this, CHAT_CONTEXT "You are on team " CHAT_BLUE "%s1", GetTeam()->GetName());
+		else if (GetTeamNumber() == TEAM_REBELS)
+			UTIL_PrintToClient(this, CHAT_CONTEXT "You are on team " CHAT_RED "%s1", GetTeam()->GetName());
+	}
+
+	if (!engine->IsPaused() && g_bWasGamePausedOnJoin)
+	{
+		engine->GetIServer()->SetPaused(true);
+		g_bWasGamePausedOnJoin = false;
+
+		for (int i = 0; i < MAX_PLAYERS; i++)
+		{
+			CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+			if (pPlayer)
+			{
+				pPlayer->RemoveEFlags(FL_FROZEN);
+			}
+		}
+	}
+
+	// Remove this think context after it runs
+	SetThink(nullptr);
+}
+
 void CHL2MP_Player::InitialSpawn( void )
 {
 	BaseClass::InitialSpawn();
+
+	if (engine->IsPaused())
+	{
+		engine->GetIServer()->SetPaused(false);
+		g_bWasGamePausedOnJoin = true;
+
+		for (int i = 0; i < MAX_PLAYERS; i++)
+		{
+			CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+			if (pPlayer)
+			{
+				pPlayer->AddEFlags(FL_FROZEN);
+			}
+		}
+	}
+
 #if !defined(NO_STEAM)
 	uint64 thisSteamID = GetSteamIDAsUInt64();
 	const CEntInfo* pInfo = gEntList.FirstEntInfo();

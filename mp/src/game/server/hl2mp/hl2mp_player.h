@@ -139,6 +139,18 @@ public:
 	// Setter for m_flNextHudUpdate
 	void SetNextHudUpdate(float flNextUpdate) { m_flNextHudUpdate = flNextUpdate; }
 
+	void FirstThinkAfterSpawn();
+
+	void SetFirstTimeSpawned(bool HasFirstTimeSpawned)
+	{
+		g_bFirstSpawn = HasFirstTimeSpawned;
+	}
+
+	bool HasFirstTimeSpawned()
+	{
+		return g_bFirstSpawn;
+	}
+
 private:
 
 	void LadderRespawnFix();
@@ -167,6 +179,8 @@ private:
     bool m_bEnterObserver;
 
 	float m_flNextHudUpdate;
+
+	bool g_bFirstSpawn;
 };
 
 inline CHL2MP_Player *ToHL2MPPlayer( CBaseEntity *pEntity )

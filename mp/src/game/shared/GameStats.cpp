@@ -22,6 +22,9 @@
 #ifdef GAME_DLL
 #include "vehicle_base.h"
 #endif 
+#include "iserver.h"
+#include "SoundEmitterSystem/isoundemittersystembase.h"
+#include "engine/IEngineSound.h"
 
 #if defined( _X360 )
 #include "xbox/xbox_win32stubs.h"
@@ -58,6 +61,8 @@ extern const ConVar *sv_cheats;
 #define GAMESTATS_LOG_FILE "gamestats.log"
 #define GAMESTATS_PATHID "MOD"
 
+ConVar sv_pause_timelimit("sv_pause_timelimit", "300", FCVAR_NOTIFY, "Sets long an uninterrupted game pause can be, after which the game will resume automatically", true, 60.0, true, 300.0);
+bool g_bUnpausing = NULL;
 /*
 #define ONE_DAY_IN_SECONDS 86400
 
@@ -1269,26 +1274,44 @@ void CBaseGameStats_Driver::OnRestore()
 	gamestats->Event_LoadGame();
 }
 
-
+bool g_bSoundPlayed3 = false;
+bool g_bSoundPlayed2 = false;
+bool g_bSoundPlayed1 = false;
+float g_flUnpausingTime = NULL;
+float g_flNextUnpauseThink = NULL;
+int g_iCountdown = NULL;
+extern const char* pszName;
 void CBaseGameStats_Driver::FrameUpdatePostEntityThink()
 {
-	bool bGamePaused = ( gpGlobals->frametime == 0.0f );
+#ifndef CLIENT_DLL
+	CBaseEntity::PrecacheScriptSound("Buttons.snd17");
 
+#endif
+
+	bool bGamePaused = ( gpGlobals->frametime == 0.0f );
 	if ( !m_bInLevel )
 	{
 		m_flPauseStartTime = 0.0f;
+		m_iCount = 0;
 	}
 	else if ( m_bGamePaused != bGamePaused )
 	{
 		if ( bGamePaused )
 		{
+			g_flNextUnpauseThink = gpGlobals->realtime;
 			m_flPauseStartTime = gpGlobals->realtime;
+			g_iCountdown = 4;
+			m_iCount = 1;
+			g_bSoundPlayed3 = false;
+			g_bSoundPlayed2 = false;
+			g_bSoundPlayed1 = false;
 #ifndef CLIENT_DLL
 			UTIL_ClientPrintAll(HUD_PRINTCENTER, "GAME IS PAUSED!");
 #endif
 		}
 		else if ( m_flPauseStartTime != 0.0f )
 		{
+			g_bUnpausing = false;
 			float flPausedTime = gpGlobals->realtime - m_flPauseStartTime;
 			if ( flPausedTime < 0.0f )
 			{
@@ -1303,14 +1326,98 @@ void CBaseGameStats_Driver::FrameUpdatePostEntityThink()
 
 			m_flLevelStartTime += flPausedTime;
 			m_flPauseStartTime = 0.0f;
+			m_iCount = 0;
 
-			//			Msg( "Paused for %.2f seconds\n", flPausedTime );
+			DevMsg("Paused for %.2f seconds\n", flPausedTime);
 #ifndef CLIENT_DLL
 			UTIL_ClientPrintAll(HUD_PRINTCENTER, "GAME HAS RESUMED!");
 #endif
 		}
 
 		m_bGamePaused = bGamePaused;
+	}
+
+	if (engine->IsPaused() && g_bUnpausing)
+	{
+#ifndef CLIENT_DLL
+		if (gpGlobals->realtime > g_flUnpausingTime + 1.0f && gpGlobals->realtime > g_flNextUnpauseThink)
+		{
+			g_iCountdown--;
+			char sCountdown[64];
+			Q_snprintf(sCountdown, sizeof(sCountdown), "UNPAUSING GAME IN \n           00:0%d", g_iCountdown);
+			UTIL_ClientPrintAll(HUD_PRINTCENTER, sCountdown);
+
+			g_flNextUnpauseThink = gpGlobals->realtime + 1.0f;
+		}
+
+		if (gpGlobals->realtime > g_flUnpausingTime + 4.0f)
+		{
+			engine->GetIServer()->SetPaused(false);
+
+			UTIL_PrintToAllClients(CHAT_CONTEXT "Player " CHAT_PAUSED "%s1 " CHAT_CONTEXT "has unpaused the game!", pszName);
+			Msg("%s unpaused the game", pszName);
+
+			for (int i = 0; i < gpGlobals->maxClients; i++)
+			{
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i + 1);
+				if (pPlayer)
+				{
+					engine->ClientCommand(pPlayer->edict(), "play server_sounds/go1.wav\n");
+				}
+			}
+		}
+		else if (gpGlobals->realtime > g_flUnpausingTime + 3.0f && !g_bSoundPlayed3)
+		{
+			// Play sound for the 3-second mark before unpausing
+			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			{
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+				if (pPlayer && pPlayer->IsConnected())
+				{
+					engine->ClientCommand(pPlayer->edict(), "play server_sounds/one.wav\n");
+				}
+			}
+			g_bSoundPlayed3 = true;
+		}
+		else if (gpGlobals->realtime > g_flUnpausingTime + 2.0f && !g_bSoundPlayed2)
+		{
+			// Play sound for the 2-second mark before unpausing
+			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			{
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+				if (pPlayer && pPlayer->IsConnected())
+				{
+					engine->ClientCommand(pPlayer->edict(), "play server_sounds/two.wav\n");
+				}
+			}
+			g_bSoundPlayed2 = true;
+		}
+		else if (gpGlobals->realtime > g_flUnpausingTime + 1.0f && !g_bSoundPlayed1)
+		{
+			// Play sound for the 1-second mark before unpausing
+			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			{
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+				if (pPlayer && pPlayer->IsConnected())
+				{
+					engine->ClientCommand(pPlayer->edict(), "play server_sounds/three.wav\n");
+				}
+			}
+			g_bSoundPlayed1 = true;
+		}
+#endif
+	}
+
+	if (engine->IsPaused() && !g_bUnpausing)
+	{
+		m_iCount++;
+#ifndef CLIENT_DLL
+		if (gpGlobals->realtime > m_flPauseStartTime + sv_pause_timelimit.GetInt() && m_iCount > 10 && !g_bUnpausing)
+		{
+			engine->GetIServer()->SetPaused(false);
+			UTIL_PrintToAllClients(CHAT_CONTEXT "Game has been unpaused automatically for reaching the pause timelimit.");
+		}
+#endif
 	}
 }
 

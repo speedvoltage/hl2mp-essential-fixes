@@ -36,6 +36,7 @@
 #include "basemultiplayerplayer.h"
 #include "voice_gamemgr.h"
 #include "hl2mp_player.h"
+#include "iserver.h"
 
 #ifdef TF_DLL
 #include "tf_player.h"
@@ -584,6 +585,139 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 	}
 }
 
+extern bool g_bUnpausing;
+extern float g_flUnpausingTime;
+const char* pszName;
+
+CON_COMMAND(pause, "Pause or unpause the game")
+{
+	int iConnected = NULL;
+
+	ConVar* sv_pausable = cvar->FindVar("sv_pausable");
+
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CBasePlayer* player = UTIL_PlayerByIndex(i);
+
+		if (player)
+			iConnected++;
+	}
+
+	CBasePlayer* pPlayer = ToBasePlayer(UTIL_GetCommandClient());
+
+	if (pPlayer && sv_pausable->GetBool() == true)
+	{
+		if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+		{
+			UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Spectators cannot pause or unpause the game.");
+			return;
+		}
+
+		if (iConnected < 2)
+		{
+			if (engine->IsPaused())
+			{
+				if (g_bUnpausing)
+					return;
+
+				engine->GetIServer()->SetPaused(false);
+				UTIL_PrintToAllClients(CHAT_CONTEXT "Player " CHAT_PAUSED "%s1 " CHAT_CONTEXT "has unpaused the game!", pPlayer->GetPlayerName());
+				UTIL_ClientPrintAll(HUD_PRINTCONSOLE, "%s unpaused the game.", pPlayer->GetPlayerName());
+				Msg("%s unpaused the game\n", pPlayer->GetPlayerName());
+				return;
+			}
+
+			UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "You cannot pause the game as the only connected player.");
+			return;
+		}
+
+		if (!engine->IsPaused() && !g_bUnpausing)
+		{
+			engine->GetIServer()->SetPaused(true);
+			UTIL_PrintToAllClients(CHAT_CONTEXT "Player " CHAT_PAUSED "%s1 " CHAT_CONTEXT "has paused the game!", pPlayer->GetPlayerName());
+			// Play sound for the 1-second mark before unpausing
+			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			{
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+				if (pPlayer && pPlayer->IsConnected())
+				{
+					engine->ClientCommand(pPlayer->edict(), "play server_sounds/gamepaused.wav\n");
+				}
+			}
+			Msg("%s paused the game\n", pPlayer->GetPlayerName());
+		}
+		else
+		{
+			if (g_bUnpausing)
+			{
+				UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Please wait until the game has resumed to pause again.");
+				return;
+			}
+
+			g_bUnpausing = true;
+			g_flUnpausingTime = gpGlobals->realtime;
+			pszName = engine->GetClientConVarValue(pPlayer->entindex(), "name");
+			// engine->GetIServer()->SetPaused(false);
+			// UTIL_PrintToAllClients(CHAT_CONTEXT "Player " CHAT_PAUSED "%s1 " CHAT_CONTEXT "is unpausing the game!", pPlayer->GetPlayerName());
+		}
+	}
+}
+
+CON_COMMAND(unpause, "Unpause the game")
+{
+	if (!engine->IsPaused())
+		return;
+
+	int iConnected = NULL;
+
+	ConVar* sv_pausable = cvar->FindVar("sv_pausable");
+
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CBasePlayer* player = UTIL_PlayerByIndex(i);
+
+		if (player)
+			iConnected++;
+	}
+
+	CBasePlayer* pPlayer = ToBasePlayer(UTIL_GetCommandClient());
+
+	if (pPlayer && sv_pausable->GetBool() == true)
+	{
+		if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+		{
+			UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Spectators cannot pause or unpause the game.");
+			return;
+		}
+
+		if (iConnected < 2)
+		{
+			if (engine->IsPaused())
+			{
+				if (g_bUnpausing)
+					return;
+
+				engine->GetIServer()->SetPaused(false);
+				UTIL_PrintToAllClients(CHAT_CONTEXT "Player " CHAT_PAUSED "%s1 " CHAT_CONTEXT "has unpaused the game!", pPlayer->GetPlayerName());
+				UTIL_ClientPrintAll(HUD_PRINTCONSOLE, "%s unpaused the game.", pPlayer->GetPlayerName());
+				Msg("%s unpaused the game\n", pPlayer->GetPlayerName());
+				return;
+			}
+		}
+
+		if (g_bUnpausing)
+		{
+			UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Please wait until the game has resumed to pause again.");
+			return;
+		}
+
+		g_bUnpausing = true;
+		g_flUnpausingTime = gpGlobals->realtime;
+		pszName = engine->GetClientConVarValue(pPlayer->entindex(), "name");
+		// engine->GetIServer()->SetPaused(false);
+		// UTIL_PrintToAllClients(CHAT_CONTEXT "Player " CHAT_PAUSED "%s1 " CHAT_CONTEXT "is unpausing the game!", pPlayer->GetPlayerName());
+	}
+}
 
 void ClientPrecache(void)
 {

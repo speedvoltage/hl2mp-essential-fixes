@@ -42,6 +42,8 @@ extern ConVar sv_timeleft_color_override;
 extern CBaseEntity*	FindPickerEntityClass( CBasePlayer *pPlayer, char *classname );
 extern bool			g_fGameOver;
 
+bool g_bWasGamePausedOnJoin = false;
+
 void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 {
 	pPlayer->InitialSpawn();
@@ -95,12 +97,6 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 
 	if (sv_join_spec_on_connect.GetBool())
 		pPlayer->ChangeTeam(TEAM_SPECTATOR);
-
-	if (HL2MPRules()->IsTeamplay() == true)
-	{
-		pPlayer->SetNextThink(gpGlobals->curtime + 0.1f);
-		ClientPrint(pPlayer, HUD_PRINTTALK, "\x01You are on team \x05%s1\x01.\n", pPlayer->GetTeam()->GetName());
-	}
 }
 
 /*
