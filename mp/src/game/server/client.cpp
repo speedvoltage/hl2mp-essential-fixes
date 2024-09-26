@@ -57,6 +57,8 @@ extern bool IsInCommentaryMode(void);
 
 extern ConVar sv_equalizer;
 ConVar sv_equalizer_allow_toggle("sv_equalizer_allow_toggle", "0", FCVAR_NOTIFY, "If non-zero, players can toggle equalizer mode with a chat command");
+ConVar sv_spec_can_read_teamchat("sv_spec_can_read_teamchat", "0", FCVAR_REPLICATED | FCVAR_ARCHIVE | FCVAR_NOTIFY, "Allow spectators to read team chat from other teams.");
+ConVar sv_silence_chatcmds("sv_silence_chatcmds", "1", 0, "If non-zero, using chat commands will not display the command in chat");
 
 ConVar* sv_cheats = NULL;
 
@@ -433,6 +435,36 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 		bSenderDead = false;
 	}
 
+	if (sv_silence_chatcmds.GetBool())
+	{
+		if (FStrEq(p, "timeleft") ||
+			FStrEq(p, "!timeleft") ||
+			FStrEq(p, "!e") ||
+			FStrEq(p, "!eq") ||
+			FStrEq(p, "!equalizer") ||
+			FStrEq(p, "nextmap") ||
+			FStrEq(p, "!nextmap") ||
+			FStrEq(p, "!tp") ||
+			FStrEq(p, "!teamplay") ||
+			FStrEq(p, "!fov") ||
+			FStrEq(p, "!mzl") ||
+			FStrEq(p, "!czl") ||
+			FStrEq(p, "!ks") ||
+			FStrEq(p, "!hs") ||
+			FStrEq(p, "!teams"))
+			return;
+
+		if (Q_strncmp(p, "!fov", strlen("!fov")) == 0 ||
+			Q_strncmp(p, "!mzl", strlen("!mzl")) == 0 ||
+			Q_strncmp(p, "!czl", strlen("!czl")) == 0)
+		{
+			if (args.ArgC() > 1)
+			{
+				return;
+			}
+		}
+	}
+
 	const char* pszFormat = NULL;
 	const char* pszPrefix = NULL;
 	const char* pszLocation = NULL;
@@ -458,41 +490,45 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 			if (pPlayer)
 			{
 				if (pPlayer->GetTeamNumber() == 1 && teamonly)
-					Q_snprintf(text, sizeof(text), "\x05[Spectators] \x01%s: ", pszPlayerName);
+					Q_snprintf(text, sizeof(text), CHAT_SPEC "[Spectators] " CHAT_FOV "%s:\x01 ", pszPlayerName);
 				else if (pPlayer->GetTeamNumber() == 1)
-					Q_snprintf(text, sizeof(text), "*SPEC* %s: ", pszPlayerName);
+					Q_snprintf(text, sizeof(text), CHAT_FOV "*SPEC* %s:\x01 ", pszPlayerName);
 
-				if (g_pGameRules->IsTeamplay() == 0)
+				if (!g_pGameRules->IsTeamplay())
 				{
-					if (pPlayer->GetTeamNumber() != 1 && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), "*DEAD* %s: ", pszPlayerName);
+					if (pPlayer->GetTeamNumber() == TEAM_UNASSIGNED && teamonly && !pPlayer->IsAlive())
+						Q_snprintf(text, sizeof(text), CHAT_FOV "*DEAD* " CHAT_TEAM "[TEAM] \x01%s: ", pszPlayerName);
+					else if (pPlayer->GetTeamNumber() != 1 && !pPlayer->IsAlive())
+						Q_snprintf(text, sizeof(text), CHAT_FOV "*DEAD* \x01%s: ", pszPlayerName);
 				}
 				else
 				{
 					if (pPlayer->GetTeamNumber() == 2 && teamonly && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), "\x01*DEAD* \x05[Combine] \x03%s:\x01 ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), CHAT_FOV "*DEAD* " CHAT_TEAM "[Combine] \x03%s:\x01 ", pszPlayerName);
 					else if (pPlayer->GetTeamNumber() == 2 && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), "\x01*DEAD* \x03%s:\x01 ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), CHAT_FOV "*DEAD* \x03%s:\x01 ", pszPlayerName);
 					else if (pPlayer->GetTeamNumber() == 3 && teamonly && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), "\x01*DEAD* \x05[Rebels] \x03%s:\x01 ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), CHAT_FOV "*DEAD* " CHAT_TEAM "[Rebels] \x03%s:\x01 ", pszPlayerName);
 					else if (pPlayer->GetTeamNumber() == 3 && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), "\x01*DEAD* \x03%s:\x01 ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), CHAT_FOV "*DEAD* \x03%s:\x01 ", pszPlayerName);
 				}
 			}
 		}
 	}
 	else
-	{		
+	{
 		if (pPlayer)
 		{
 			if (pPlayer->GetTeamNumber() == 2 && teamonly)
-				Q_snprintf(text, sizeof(text), "\x05[Combine] \x03%s:\x01 ", pszPlayerName);
+				Q_snprintf(text, sizeof(text), CHAT_TEAM "[Combine] \x03%s:\x01 ", pszPlayerName);
 			else if (pPlayer->GetTeamNumber() == 2)
 				Q_snprintf(text, sizeof(text), "\x03%s:\x01 ", pszPlayerName);
 			else if (pPlayer->GetTeamNumber() == 3 && teamonly)
-				Q_snprintf(text, sizeof(text), "\x05[Rebels] \x03%s:\x01 ", pszPlayerName);
+				Q_snprintf(text, sizeof(text), CHAT_TEAM "[Rebels] \x03%s:\x01 ", pszPlayerName);
 			else if (pPlayer->GetTeamNumber() == 3)
 				Q_snprintf(text, sizeof(text), "\x03%s:\x01 ", pszPlayerName);
+			else if (pPlayer->GetTeamNumber() == TEAM_UNASSIGNED && teamonly)
+				Q_snprintf(text, sizeof(text), CHAT_TEAM "[TEAM] \x01%s: ", pszPlayerName);
 			else
 				Q_snprintf(text, sizeof(text), "%s: ", pszPlayerName);
 		}
@@ -525,15 +561,28 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 		if (!(client->IsNetClient()))	// Not a client ? (should never be true)
 			continue;
 
-		// if (g_pGameRules->IsTeamplay() == 0 && teamonly && client->GetTeamNumber() != 1 && pPlayer->GetTeamNumber() != 1)
+		if (!g_pGameRules->IsTeamplay() && teamonly &&
+			client->GetTeamNumber() == TEAM_UNASSIGNED &&
+			pPlayer->GetTeamNumber() == TEAM_UNASSIGNED)
+		{
+			// nothing
+		}
 
-		if (teamonly && client->GetTeamNumber() == 1 && pPlayer->GetTeamNumber() == 1)
+		else if (teamonly && client->GetTeamNumber() == 1 && pPlayer->GetTeamNumber() == 1)
 		{
 			// Probably not the cleanest way, because it's essentially empty, but this seems to work for now
 		}
 
 		else if (teamonly && g_pGameRules->PlayerCanHearChat(client, pPlayer) != GR_TEAMMATE)
 		{
+			if (client->GetTeamNumber() == TEAM_SPECTATOR && sv_spec_can_read_teamchat.GetBool())
+			{
+				// Spectators can hear team chat if sv_spec_can_read_teamchat is enabled
+				CSingleUserRecipientFilter filter(client);
+				filter.MakeReliable();
+				UTIL_SayText2Filter(filter, pPlayer, true, text);
+				continue;
+			}
 			continue;
 		}
 
@@ -548,7 +597,7 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 		CSingleUserRecipientFilter user(client);
 		user.MakeReliable();
 
-		UTIL_SayTextFilter(user, text, pPlayer, true);
+		UTIL_SayText2Filter(user, pPlayer, true, text);
 	}
 
 	if (pPlayer)
@@ -557,7 +606,7 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 		CSingleUserRecipientFilter user(pPlayer);
 		user.MakeReliable();
 
-		UTIL_SayTextFilter(user, text, pPlayer, true);
+		UTIL_SayText2Filter(user, pPlayer, true, text);
 	}
 
 	// echo to server console
@@ -1200,7 +1249,12 @@ CON_COMMAND(say, "Display player message")
 	CBasePlayer* pPlayer = ToBasePlayer(UTIL_GetCommandClient());
 	if (pPlayer)
 	{
-		if ((pPlayer->LastTimePlayerTalked() + TALK_INTERVAL) < gpGlobals->curtime)
+		if (((pPlayer->LastTimePlayerTalked() + TALK_INTERVAL) < gpGlobals->curtime) && !engine->IsPaused())
+		{
+			Host_Say(pPlayer->edict(), args, 0);
+			pPlayer->NotePlayerTalked();
+		}
+		else
 		{
 			Host_Say(pPlayer->edict(), args, 0);
 			pPlayer->NotePlayerTalked();
@@ -1224,7 +1278,12 @@ CON_COMMAND(say_team, "Display player message to team")
 	CBasePlayer* pPlayer = ToBasePlayer(UTIL_GetCommandClient());
 	if (pPlayer)
 	{
-		if ((pPlayer->LastTimePlayerTalked() + TALK_INTERVAL) < gpGlobals->curtime)
+		if (((pPlayer->LastTimePlayerTalked() + TALK_INTERVAL) < gpGlobals->curtime) && !engine->IsPaused())
+		{
+			Host_Say(pPlayer->edict(), args, 1);
+			pPlayer->NotePlayerTalked();
+		}
+		else
 		{
 			Host_Say(pPlayer->edict(), args, 1);
 			pPlayer->NotePlayerTalked();
