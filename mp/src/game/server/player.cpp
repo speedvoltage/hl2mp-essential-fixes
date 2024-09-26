@@ -4557,6 +4557,7 @@ void CBasePlayer::PostThink()
 		if (m_iObserverMode != OBS_MODE_IN_EYE)
 		{
 			m_Local.m_iHideHUD = HIDEHUD_CROSSHAIR;
+			SetCustomFOV(this, m_iFOVServer);
 			SetDefaultFOV(m_iFOVServer);
 		}
 		else
@@ -4568,8 +4569,8 @@ void CBasePlayer::PostThink()
 		if (m_pObservedPlayer)
 		{
 			// Set the FOV to match the observed player's FOV
+			SetCustomFOV(this, m_pObservedPlayer->GetFOV());
 			SetDefaultFOV(m_pObservedPlayer->GetFOV());
-
 		}
 	}
 

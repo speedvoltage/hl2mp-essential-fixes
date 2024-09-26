@@ -1018,12 +1018,16 @@ void CWeaponCrossbow::ToggleZoom(void)
 	{
 		if (pPlayer->SetFOV(this, 0, 0.2f))
 		{
+			pPlayer->SetCustomFOV(this, pPlayer->GetStoredCustomFOV());
+			pPlayer->SetDefaultFOV(pPlayer->GetCustomFOV());
 			m_bInZoom = false;
 		}
 	}
 	else
 	{
-		if (pPlayer->SetFOV(this, 20, 0.1f))
+		pPlayer->SetStoredCustomFOV(pPlayer->GetFOV());
+		pPlayer->SetDefaultFOV(70);
+		if (pPlayer->SetFOV(this, 20, 0.2f))
 		{
 			m_bInZoom = true;
 		}

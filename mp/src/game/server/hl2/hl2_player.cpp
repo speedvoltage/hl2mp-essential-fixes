@@ -1244,6 +1244,9 @@ void CHL2_Player::ToggleZoom(void)
 //-----------------------------------------------------------------------------
 void CHL2_Player::StartZooming( void )
 {
+	SetStoredCustomFOV(m_iFOV);
+	SetDefaultFOV(90);
+
 	int iFOV = 25;
 	if ( SetFOV( this, iFOV, 0.4f ) )
 	{
@@ -1260,6 +1263,8 @@ void CHL2_Player::StopZooming( void )
 
 	if ( SetFOV( this, iFOV, 0.2f ) )
 	{
+		SetCustomFOV(this, GetStoredCustomFOV());
+		SetDefaultFOV(GetStoredCustomFOV());
 		m_HL2Local.m_bZooming = false;
 	}
 }
