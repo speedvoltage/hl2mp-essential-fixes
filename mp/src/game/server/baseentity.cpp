@@ -7493,3 +7493,26 @@ void CC_Ent_Orient( const CCommand& args )
 }
 
 static ConCommand ent_orient("ent_orient", CC_Ent_Orient, "Orient the specified entity to match the player's angles. By default, only orients target entity's YAW. Use the 'allangles' option to orient on all axis.\n\tFormat: ent_orient <entity name> <optional: allangles>", FCVAR_CHEAT);
+
+bool CBaseEntity::IntersectsBox(CBaseEntity* pOther)
+{
+	if (!edict() || !pOther->edict())
+		return false;
+
+	CCollisionProperty* pMyProp = CollisionProp();
+	CCollisionProperty* pOtherProp = pOther->CollisionProp();
+	Vector vecPhysMins, vecPhysMaxs;
+
+	vecPhysMins = pOtherProp->OBBMins();
+	vecPhysMaxs = pOtherProp->OBBMaxs();
+
+	if (pOther->GetSolid() == SOLID_BBOX)
+	{
+		vecPhysMins = pOtherProp->OBBMins() * 1.01;
+		vecPhysMaxs = pOtherProp->OBBMaxs() * 1.01;
+	}
+
+	return IsOBBIntersectingOBB(
+		pMyProp->GetCollisionOrigin(), pMyProp->GetCollisionAngles(), pMyProp->OBBMins(), pMyProp->OBBMaxs(),
+		pOtherProp->GetCollisionOrigin(), pOtherProp->GetCollisionAngles(), vecPhysMins, vecPhysMaxs);
+}
