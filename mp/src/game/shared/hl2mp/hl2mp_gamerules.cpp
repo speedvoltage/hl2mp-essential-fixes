@@ -1436,6 +1436,10 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 	CBaseEntity* pKiller = info.GetAttacker();
 	CBasePlayer* pScorer = GetDeathScorer(pKiller, pInflictor);
 
+	CBasePlayer* pVictimPlayer = dynamic_cast<CBasePlayer*>(pVictim);
+	CHL2MP_Player* pAttackerPlayer = dynamic_cast<CHL2MP_Player*>(pScorer);
+	CHL2MP_Player* pVictimHL2MP = dynamic_cast<CHL2MP_Player*>(pVictimPlayer);
+
 	// Custom kill type?
 	if (info.GetDamageCustom())
 	{
@@ -1506,8 +1510,15 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 		{
 			killer_weapon_name = "slam";
 		}
+	}
 
-
+	if (HL2MPRules()->IsTeamplay() && pAttackerPlayer->GetTeamNumber() == pVictimHL2MP->GetTeamNumber())
+	{
+		CTeam* pKillerTeam = pAttackerPlayer->GetTeam();
+		if (pKillerTeam)
+		{
+			pKillerTeam->AddScore(-2);
+		}
 	}
 
 	IGameEvent* event = gameeventmanager->CreateEvent("player_death");
@@ -1518,22 +1529,6 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 		event->SetString("weapon", killer_weapon_name);
 		event->SetInt("priority", 7);
 		gameeventmanager->FireEvent(event);
-
-		if (bSwitchCombinePlayer && pVictim->GetTeamNumber() == TEAM_COMBINE)
-		{
-			pVictim->ChangeTeam(3);
-			UTIL_PrintToAllClients(CHAT_INFO "Teams have been auto balanced!");
-			UTIL_ClientPrintAll(HUD_PRINTCENTER, "Teams have been auto balanced!");
-			bSwitchCombinePlayer = false;
-		}
-			
-		else if (bSwitchRebelPlayer && pVictim->GetTeamNumber() == TEAM_REBELS)
-		{
-			pVictim->ChangeTeam(2);
-			UTIL_PrintToAllClients(CHAT_INFO "Teams have been auto balanced!");
-			UTIL_ClientPrintAll(HUD_PRINTCENTER, "Teams have been auto balanced!");
-			bSwitchRebelPlayer = false;
-		}
 	}
 #endif
 

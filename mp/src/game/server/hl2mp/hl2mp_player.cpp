@@ -1014,7 +1014,7 @@ bool CHL2MP_Player::HandleCommand_JoinTeam(int team)
 	}
 
 	// end early
-	if (this->GetTeamNumber() == TEAM_SPECTATOR)
+	if (GetTeamNumber() == TEAM_SPECTATOR)
 	{
 		ChangeTeam(team);
 		return true;
@@ -1027,16 +1027,6 @@ bool CHL2MP_Player::HandleCommand_JoinTeam(int team)
 		{
 			ClientPrint(this, HUD_PRINTCENTER, "#Cannot_Be_Spectator");
 			return false;
-		}
-
-		if (GetTeamNumber() != TEAM_UNASSIGNED && !IsDead())
-		{
-			m_fNextSuicideTime = gpGlobals->curtime;	// allow the suicide to work
-
-			CommitSuicide();
-
-			// add 1 to frags to balance out the 1 subtracted for killing yourself
-			IncrementFragCount(1);
 		}
 
 		ChangeTeam(TEAM_SPECTATOR);
