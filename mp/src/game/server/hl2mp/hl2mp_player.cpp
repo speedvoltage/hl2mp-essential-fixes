@@ -426,6 +426,12 @@ void CHL2MP_Player::SetPlayerTeamModel( void )
 	SetupPlayerSoundsByModel( szModelName );
 
 	m_flNextModelChangeTime = gpGlobals->curtime + MODEL_CHANGE_INTERVAL;
+
+	char szModelFileName[MAX_PATH];
+	V_FileBase(szModelName, szModelFileName, sizeof(szModelFileName));
+
+	// Print the model name to the client
+	UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Your player model is: " CHAT_INFO "%s\n", szModelFileName));
 }
 
 void CHL2MP_Player::SetPlayerModel( void )
