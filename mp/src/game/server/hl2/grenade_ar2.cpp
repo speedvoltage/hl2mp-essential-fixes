@@ -53,6 +53,7 @@ LINK_ENTITY_TO_CLASS( grenade_ar2, CGrenadeAR2 );
 
 void CGrenadeAR2::Spawn( void )
 {
+	m_bTouchedSurface = false;
 	Precache( );
 	SetSolid( SOLID_BBOX );
 	SetMoveType( MOVETYPE_FLYGRAVITY );
@@ -195,20 +196,10 @@ void CGrenadeAR2::GrenadeAR2Touch( CBaseEntity *pOther )
 		}
 	}
 
-	/*if (mp_smg_nade_glass.GetBool())
+	if (pOther && !pOther->IsBaseCombatWeapon())
 	{
-		auto windowpane = dynamic_cast<CBreakableSurface*>(pOther);
-
-		if (windowpane)
-		{
-			Vector vec;
-			m_bTouched = true;
-			this->GetVelocity(&vec, NULL);
-			windowpane->Die(this, vec);
-			m_vecVelocity = GetAbsVelocity();
-			return;
-		}
-	}*/
+		m_bTouchedSurface = true;
+	}
 
 	// If I'm live go ahead and blow up
 	if (m_bIsLive)
@@ -234,6 +225,13 @@ void CGrenadeAR2::Detonate(void)
 	{
 		return;
 	}
+
+	if (!m_bTouchedSurface)
+	{
+		// Prevent detonation if the grenade has not touched a surface
+		return;
+	}
+
 	m_bIsLive		= false;
 	m_takedamage	= DAMAGE_NO;	
 

@@ -45,6 +45,9 @@ public:
 	CGrenadeAR2(void);
 
 	DECLARE_DATADESC();
+
+private:
+	bool m_bTouchedSurface;
 };
 
 #endif	//GRENADEAR2_H
