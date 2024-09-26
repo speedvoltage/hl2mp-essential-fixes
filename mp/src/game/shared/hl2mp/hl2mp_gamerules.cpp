@@ -454,6 +454,13 @@ void CHL2MPRules::PlayerKilled(CBasePlayer* pVictim, const CTakeDamageInfo& info
 #endif
 }
 
+#ifndef CLIENT_DLL
+void UpdateGameRules()
+{
+	CreateGameRulesObject("CHL2MPRules");
+}
+#endif
+
 void CHL2MPRules::Think(void)
 {
 
@@ -461,6 +468,36 @@ void CHL2MPRules::Think(void)
 
 	CGameRules::Think();
 
+	/*
+		UPDATE TEAMPLAY RULES
+	*/
+	if (teamplay.GetBool() && !IsTeamplay() || !teamplay.GetBool() && IsTeamplay())
+	{
+		// loop through all players
+		for (int i = 1; i <= gpGlobals->maxClients; i++)
+		{
+			CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+			if (pPlayer && pPlayer->IsConnected() && pPlayer->GetTeamNumber() != TEAM_SPECTATOR && !pPlayer->IsHLTV())
+			{
+				if (teamplay.GetInt() == 0 && g_pGameRules->IsTeamplay() == 1)
+				{
+					pPlayer->ChangeTeam(0);
+				}
+				else
+				{
+					sv_timeleft_color_override.SetValue(1);
+					pPlayer->ChangeTeam(random->RandomInt(2, 3));
+				}
+			}
+		}
+		UpdateGameRules();
+		RestartGame();
+	}
+
+	/*
+		NEW HUD TARGET ID	
+	*/
 	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
 		CHL2MP_Player* pPlayer = dynamic_cast<CHL2MP_Player*>(UTIL_PlayerByIndex(i));
@@ -530,11 +567,15 @@ void CHL2MPRules::Think(void)
 		}
 	}
 
+	// Remove pause if sv_pausable becomes 0
 	ConVar* sv_pausable = cvar->FindVar("sv_pausable");
 
 	if (sv_pausable->GetBool() == false && engine->IsPaused())
 		engine->GetIServer()->SetPaused(false);
 
+	/*
+		AUTO TEAM BALANCE
+	*/
 	if (mp_autoteambalance.GetBool() && IsTeamplay())
 	{
 		if (gpGlobals->curtime > m_flBalanceTeamsTime)
@@ -1464,60 +1505,54 @@ void CHL2MPRules::RestartGame()
 		m_flGameStartTime.GetForModify() = 0.0f;
 	}
 
-	if (!g_fGameOver)
+	CleanUpMap();
+
+	// now respawn all players
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
-		CleanUpMap();
+		CHL2MP_Player* pPlayer = (CHL2MP_Player*)UTIL_PlayerByIndex(i);
 
-		// now respawn all players
-		for (int i = 1; i <= gpGlobals->maxClients; i++)
+		if (!pPlayer)
+			continue;
+
+		if (pPlayer->GetActiveWeapon())
 		{
-			CHL2MP_Player* pPlayer = (CHL2MP_Player*)UTIL_PlayerByIndex(i);
-
-			if (!pPlayer)
-				continue;
-
-			if (pPlayer->GetActiveWeapon())
-			{
-				pPlayer->GetActiveWeapon()->Holster();
-			}
-			pPlayer->RemoveAllItems(true);
-			respawn(pPlayer, false);
-			pPlayer->Reset();
+			pPlayer->GetActiveWeapon()->Holster();
 		}
-
-		// Respawn entities (glass, doors, etc..)
-
-		CTeam* pRebels = GetGlobalTeam(TEAM_REBELS);
-		CTeam* pCombine = GetGlobalTeam(TEAM_COMBINE);
-
-		if (pRebels)
-		{
-			pRebels->SetScore(0);
-		}
-
-		if (pCombine)
-		{
-			pCombine->SetScore(0);
-		}
-
-		m_flIntermissionEndTime = 0;
-		m_flRestartGameTime = 0.0;
-		m_bCompleteReset = false;
-
-		IGameEvent* event = gameeventmanager->CreateEvent("round_start");
-		if (event)
-		{
-			event->SetInt("fraglimit", 0);
-			event->SetInt("priority", 6); // HLTV event priority, not transmitted
-
-			event->SetString("objective", "DEATHMATCH");
-
-			gameeventmanager->FireEvent(event);
-		}
+		pPlayer->RemoveAllItems(true);
+		respawn(pPlayer, false);
+		pPlayer->Reset();
 	}
 
-	if (!mp_change_level_on_game_over.GetBool() && g_fGameOver)
-		g_fGameOver = false;
+	// Respawn entities (glass, doors, etc..)
+
+	CTeam* pRebels = GetGlobalTeam(TEAM_REBELS);
+	CTeam* pCombine = GetGlobalTeam(TEAM_COMBINE);
+
+	if (pRebels)
+	{
+		pRebels->SetScore(0);
+	}
+
+	if (pCombine)
+	{
+		pCombine->SetScore(0);
+	}
+
+	m_flIntermissionEndTime = 0;
+	m_flRestartGameTime = 0.0;
+	m_bCompleteReset = false;
+
+	IGameEvent* event = gameeventmanager->CreateEvent("round_start");
+	if (event)
+	{
+		event->SetInt("fraglimit", 0);
+		event->SetInt("priority", 6); // HLTV event priority, not transmitted
+
+		event->SetString("objective", "DEATHMATCH");
+
+		gameeventmanager->FireEvent(event);
+	}
 }
 
 void CHL2MPRules::CleanUpMap()

@@ -90,19 +90,11 @@ void sv_allow_point_servercommand_changed(IConVar* pConVar, const char* pOldStri
 }
 
 ConVar sv_allow_point_servercommand("sv_allow_point_servercommand",
-#ifdef TF_DLL
-	// The default value here should match the default of the convar
-	"official",
-#else
 	// Other games may use this in their official maps, and only TF exposes IsValveMap() currently
 	"disallow",
-#endif // TF_DLL
 	FCVAR_NONE,
 	"Allow use of point_servercommand entities in map. Potentially dangerous for untrusted maps.\n"
 	"  disallow : Always disallow\n"
-#ifdef TF_DLL
-	"  official : Allowed for valve maps only\n"
-#endif // TF_DLL
 	"  always   : Allow for all maps", sv_allow_point_servercommand_changed);
 
 void ClientKill(edict_t* pEdict, const Vector& vecForce, bool bExplode = false)
@@ -150,7 +142,7 @@ CON_COMMAND(tp, "Switch teamplay status on the fly.")
 					if (pPlayer->IsHLTV()) // Don't let SourceTV join the game.
 						return;
 
-					pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
+					pPlayer->ChangeTeam(0);
 				}
 			}
 			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 disabled\x01.\n");
@@ -193,7 +185,7 @@ CON_COMMAND(toggle_teamplay, "Switch teamplay status on the fly.")
 					if (pPlayer->IsHLTV()) // Don't let SourceTV join the game.
 						return;
 
-					pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
+					pPlayer->ChangeTeam(0);
 				}
 			}
 			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 disabled\x01.\n");
@@ -251,7 +243,7 @@ char* CheckChatText(CBasePlayer* pPlayer, char* text)
 
 						if (pPlayer && !pPlayer->IsHLTV() && pPlayer->GetTeamNumber() != TEAM_SPECTATOR) // Don't let SourceTV join the game.
 						{
-							pPlayer->ChangeTeam(3); // Put players on a team, else they don't exist in any teams.
+							pPlayer->ChangeTeam(0);
 						}
 					}
 					UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 disabled\x01.\n");
