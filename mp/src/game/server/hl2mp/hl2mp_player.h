@@ -136,6 +136,9 @@ public:
 
 	virtual bool	CanHearAndReadChatFrom( CBasePlayer *pPlayer );
 
+	bool SavePlayerSettings();
+	bool LoadPlayerSettings();
+
 	// Getter for m_flNextHudUpdate
 	float GetNextHudUpdate() const { return m_flNextHudUpdate; }
 

@@ -589,6 +589,74 @@ void CHL2MP_Player::SetReady(bool bReady)
 	m_bReady = bReady;
 }
 
+bool CHL2MP_Player::SavePlayerSettings()
+{
+	const char* steamID3 = engine->GetPlayerNetworkIDString(edict());  // Fetch SteamID3
+	uint64 steamID64 = ConvertSteamID3ToSteamID64(steamID3);  // Convert to SteamID64
+
+	char filename[MAX_PATH];
+	Q_snprintf(filename, sizeof(filename), "cfg/core/%llu.txt", steamID64);  // Use SteamID64 for filename
+
+	// Ensure the directory exists
+	if (!filesystem->FileExists("cfg/core", "GAME"))
+	{
+		filesystem->CreateDirHierarchy("cfg/core", "GAME");
+	}
+
+	KeyValues* kv = new KeyValues("Settings");
+
+	// Load existing settings if the file exists
+	kv->LoadFromFile(filesystem, filename, "MOD");
+
+	KeyValues* playerSettings = kv->FindKey(UTIL_VarArgs("%llu", steamID64), true);
+	playerSettings->SetInt("FOV", m_iFOV);
+	playerSettings->SetInt("FOVServer", m_iFOVServer);
+
+	if (kv->SaveToFile(filesystem, filename, "MOD"))
+	{
+		Msg("Player settings saved successfully in cfg/core/.\n");
+	}
+	else
+	{
+		Warning("Failed to save player settings in cfg/core/.\n");
+	}
+
+	kv->deleteThis();
+	return true;
+}
+
+bool CHL2MP_Player::LoadPlayerSettings()
+{
+	const char* steamID3 = engine->GetPlayerNetworkIDString(edict());  // Fetch SteamID3
+	uint64 steamID64 = ConvertSteamID3ToSteamID64(steamID3);  // Convert to SteamID64
+
+	char filename[MAX_PATH];
+	Q_snprintf(filename, sizeof(filename), "cfg/core/%llu.txt", steamID64);  // Use SteamID64 for filename
+
+	KeyValues* kv = new KeyValues("Settings");
+
+	if (!kv->LoadFromFile(filesystem, filename, "MOD"))
+	{
+		Warning("Couldn't load settings from file %s\n", filename);
+		kv->deleteThis();
+		return false;
+	}
+
+	KeyValues* playerSettings = kv->FindKey(UTIL_VarArgs("%llu", steamID64));
+	if (!playerSettings)
+	{
+		Warning("Player settings not found in file %s\n", filename);
+		kv->deleteThis();
+		return false;
+	}
+
+	m_iFOV = playerSettings->GetInt("FOV", m_iFOV);
+	m_iFOVServer = playerSettings->GetInt("FOVServer", m_iFOVServer);
+
+	kv->deleteThis();
+	return true;
+}
+
 void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 {
 	//Look for escape sequences and replace
@@ -651,7 +719,7 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 				m_iFOVServer = iFovValue;
 				m_iFOV = iFovValue;
 				SetDefaultFOV(m_iFOV);
-				//SavePlayerSettings();  // Save settings after changing the FOV
+				SavePlayerSettings();  // Save settings after changing the FOV
 			}
 			else
 			{
