@@ -510,6 +510,17 @@ void CHL2MPRules::Think(void)
 
 	CGameRules::Think();
 
+	// Forcefully remove suit and weapons here to account for mp_restartgame
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+		if (pPlayer && pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+		{
+			pPlayer->RemoveAllItems(true);
+		}
+	}
+
 	/*
 		EQUALIZER
 	*/
