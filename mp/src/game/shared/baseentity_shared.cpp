@@ -29,6 +29,8 @@
 	#include "player_pickup.h"
 	#include "waterbullet.h"
 	#include "func_break.h"
+	#include "hl2mp_cvars.h"
+	#include "hl2mp_player.h"
 
 #ifdef HL2MP
 	#include "te_hl2mp_shotgun_shot.h"
@@ -1770,6 +1772,46 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 				AI_TraceLine(info.m_vecSrc, vecEnd, MASK_SHOT, &traceFilter, &tr);
 			}
 		}
+
+#ifndef CLIENT_DLL
+		if (tr.fraction != 1.0f && tr.m_pEnt && sv_custom_sounds.GetBool())
+		{
+			CHL2MP_Player* pAttackerPlayer = dynamic_cast<CHL2MP_Player*>(pAttacker);
+
+			if (pAttackerPlayer->AreHitSoundsEnabled())
+			{
+				CBaseEntity* pHitEntity = tr.m_pEnt;
+				int hitGroup = tr.hitgroup;
+
+				if (pAttacker != pHitEntity)
+				{
+					CRecipientFilter filter;
+					filter.AddRecipient(ToBasePlayer(pAttacker));
+					filter.MakeReliable();
+
+					CBasePlayer* pHitPlayer = ToBasePlayer(pHitEntity);
+					if (pHitPlayer)
+					{
+						if (hitGroup == HITGROUP_HEAD)
+						{
+							if (pHitPlayer->ArmorValue() > 5)
+							{
+								EmitSound(filter, entindex(), "server_sounds_bhit_helmet-1");
+							}
+
+							// Play headshot sound
+							EmitSound(filter, entindex(), "server_sounds_hithead");
+						}
+						else
+						{
+							// Play body shot sound
+							EmitSound(filter, entindex(), "server_sounds_hitbody");
+						}
+					}
+				}
+			}
+		}
+#endif
 
 		// Tracker 70354/63250:  ywb 8/2/07
 		// Fixes bug where trace from turret with attachment point outside of Vcollide

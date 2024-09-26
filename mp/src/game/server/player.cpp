@@ -70,6 +70,8 @@
 #include "vote_controller.h"
 #include "ai_speech.h"
 #include "multiplay_gamerules.h"
+#include "te_effect_dispatch.h"
+#include "hl2mp_player.h"
 #if defined USES_ECON_ITEMS
 #include "econ_wearable.h"
 #endif
@@ -84,6 +86,7 @@
 
 ConVar autoaim_max_dist( "autoaim_max_dist", "2160" ); // 2160 = 180 feet
 ConVar autoaim_max_deflect( "autoaim_max_deflect", "0.99" );
+ConVar mp_armor_sparks("mp_armor_sparks", "0", FCVAR_NOTIFY, "If non-zero, shows sparks coming out of a hurt player when they have armor");
 
 #ifdef CSTRIKE_DLL
 ConVar	spec_freeze_time( "spec_freeze_time", "5.0", FCVAR_CHEAT | FCVAR_REPLICATED, "Time spend frozen in observer freeze cam." );
@@ -1597,63 +1600,116 @@ const impactdamagetable_t &CBasePlayer::GetPhysicsImpactDamageTable()
 }
 
 
-int CBasePlayer::OnTakeDamage_Alive( const CTakeDamageInfo &info )
+int CBasePlayer::OnTakeDamage_Alive(const CTakeDamageInfo& info)
 {
 	// set damage type sustained
 	m_bitsDamageType |= info.GetDamageType();
 
-	if ( !BaseClass::OnTakeDamage_Alive( info ) )
+	if (!BaseClass::OnTakeDamage_Alive(info))
 		return 0;
 
-	CBaseEntity * attacker = info.GetAttacker();
+	CBaseEntity* attacker = info.GetAttacker();
 
-	if ( !attacker )
+	if (!attacker)
 		return 0;
 
 	Vector vecDir = vec3_origin;
-	if ( info.GetInflictor() )
+	if (info.GetInflictor())
 	{
-		vecDir = info.GetInflictor()->WorldSpaceCenter() - Vector ( 0, 0, 10 ) - WorldSpaceCenter();
-		VectorNormalize( vecDir );
+		vecDir = info.GetInflictor()->WorldSpaceCenter() - Vector(0, 0, 10) - WorldSpaceCenter();
+		VectorNormalize(vecDir);
 	}
 
-	if ( info.GetInflictor() && (GetMoveType() == MOVETYPE_WALK) && 
-		( !attacker->IsSolidFlagSet(FSOLID_TRIGGER)) )
+	if (info.GetInflictor() && (GetMoveType() == MOVETYPE_WALK) &&
+		(!attacker->IsSolidFlagSet(FSOLID_TRIGGER)))
 	{
-		Vector force = vecDir * -DamageForce( WorldAlignSize(), info.GetBaseDamage() );
-		if ( force.z > 250.0f )
+		Vector force = vecDir * -DamageForce(WorldAlignSize(), info.GetBaseDamage());
+		if (force.z > 250.0f)
 		{
 			force.z = 250.0f;
 		}
-		ApplyAbsVelocityImpulse( force );
+		ApplyAbsVelocityImpulse(force);
 	}
 
-	// fire global game event
-
-	IGameEvent * event = gameeventmanager->CreateEvent( "player_hurt" );
-	if ( event )
+	// Since we are sending a FSOLID_NOT_SOLID to hide the HUD target ID, 
+	// the body hit sounds with the crowbar and stunstick no longer happen, 
+	// so we are compensating this with the custom hit sounds
+	if (attacker->IsPlayer())
 	{
-		event->SetInt("userid", GetUserID() );
-		event->SetInt("health", MAX(0, m_iHealth) );
-		event->SetInt("priority", 5 );	// HLTV event priority, not transmitted
+		CBasePlayer* pAttacker = ToBasePlayer(attacker);
 
-		if ( attacker->IsPlayer() )
+		// Check the weapon used for the hit
+		CBaseCombatWeapon* pWeapon = pAttacker->GetActiveWeapon();
+
+		if (pWeapon)
 		{
-			CBasePlayer *player = ToBasePlayer( attacker );
-			event->SetInt("attacker", player->GetUserID() ); // hurt by other player
+			const char* soundToPlay = nullptr;
+
+			if (FClassnameIs(pWeapon, "weapon_crowbar"))
+			{
+				soundToPlay = "server_sounds_hitbody";
+			}
+
+			else if (FClassnameIs(pWeapon, "weapon_stunstick"))
+			{
+				soundToPlay = "server_sounds_hitbody";
+			}
+
+			if (soundToPlay)
+			{
+
+				CPASAttenuationFilter filter(this);
+
+				EmitSound_t params;
+				params.m_pSoundName = soundToPlay;
+				params.m_flSoundTime = 0;
+				params.m_pOrigin = &GetAbsOrigin();
+				EmitSound(filter, entindex(), params);
+			}
+		}
+	}
+
+	if (ArmorValue() > 5 && mp_armor_sparks.GetBool())
+	{
+		Vector vecDamagePos = info.GetDamagePosition();
+
+		if (vecDamagePos != vec3_origin)
+		{
+			CEffectData data;
+			data.m_vOrigin = vecDamagePos;
+			data.m_vNormal = Vector(0, 0, 1);
+			data.m_flScale = 0.01f;
+			data.m_fFlags = 0;
+
+			DispatchEffect("cball_explode", data);
+		}
+	}
+
+	// Fire global game event
+	IGameEvent* event = gameeventmanager->CreateEvent("player_hurt");
+	if (event)
+	{
+		event->SetInt("userid", GetUserID());
+		event->SetInt("health", MAX(0, m_iHealth));
+		event->SetInt("priority", 5);    // HLTV event priority, not transmitted
+
+		if (attacker->IsPlayer())
+		{
+			CBasePlayer* player = ToBasePlayer(attacker);
+			event->SetInt("attacker", player->GetUserID()); // hurt by other player
 		}
 		else
 		{
-			event->SetInt("attacker", 0 ); // hurt by "world"
+			event->SetInt("attacker", 0); // hurt by "world"
 		}
 
-        gameeventmanager->FireEvent( event );
+		gameeventmanager->FireEvent(event);
 	}
-	
+
 	// Insert a combat sound so that nearby NPCs hear battle
-	if ( attacker->IsNPC() )
+	if (attacker->IsNPC())
 	{
-		CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 512, 0.5, this );//<<TODO>>//magic number
+		CSoundEnt::InsertSound(SOUND_COMBAT, GetAbsOrigin(), 512, 0.5, this); // magic number
 	}
 
 	return 1;

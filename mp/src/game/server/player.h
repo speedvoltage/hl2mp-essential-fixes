@@ -763,6 +763,12 @@ public:
 	float GetLadderCooldownTime() const { return m_flLadderCooldownTime; }
 	void SetLadderCooldownTime(float cooldownTime) { m_flLadderCooldownTime = cooldownTime; }
 
+	bool AreHitSoundsEnabled() const { return m_bHitSoundsEnabled; }
+	void SetHitSoundsEnabled(bool enabled) { m_bHitSoundsEnabled = enabled; }
+
+	bool AreKillSoundsEnabled() const { return m_bKillSoundsEnabled; }
+	void SetKillSoundsEnabled(bool enabled) { m_bKillSoundsEnabled = enabled; }
+
 	int		GetImpulse( void ) const { return m_nImpulse; }
 
 	// Movement constraints
@@ -845,6 +851,8 @@ private:
 	int m_iXbowZoomLevel;  // Crossbow weapon zoom level
 	bool m_bIsSuitZoomActive;
 	bool m_bWeaponZoomActive;
+	bool m_bHitSoundsEnabled;  // Hit sound toggle
+	bool m_bKillSoundsEnabled; // Kill sound toggle
 
 public:
 	

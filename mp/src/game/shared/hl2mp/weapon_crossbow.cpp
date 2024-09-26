@@ -18,6 +18,7 @@
 	#include "Sprite.h"
 	#include "SpriteTrail.h"
 	#include "beam_shared.h"
+	#include "hl2mp_cvars.h"
 #endif
 
 #include "weapon_hl2mpbasehlmpcombatweapon.h"
@@ -251,6 +252,24 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 
 		UTIL_Remove(this);
 		return;
+	}
+
+	// Since the bolt is a projectile weapon (not hitscan), 
+	// we are not getting hitsounds from FireBullets,
+	// so we're compensating this here directly
+	if (pOther->IsPlayer() && sv_custom_sounds.GetBool())
+	{
+
+		CBasePlayer* pShooter = ToBasePlayer(GetOwnerEntity());
+
+		if (pShooter)
+		{
+			CRecipientFilter filter;
+			filter.AddRecipient(pShooter);
+			filter.MakeReliable();
+			EmitSound(filter, pShooter->entindex(), "server_sounds_hitbody");
+
+		}
 	}
 
 	if (pOther->m_takedamage != DAMAGE_NO)

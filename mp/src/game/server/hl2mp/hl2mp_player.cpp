@@ -114,8 +114,8 @@ CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 
 	Set357ZoomLevel(20);  // Default zoom level for .357
 	SetXbowZoomLevel(20); // Default zoom level for crossbow
-	/*SetHitSoundsEnabled(true);
-	SetKillSoundsEnabled(true);*/
+	SetHitSoundsEnabled(true);
+	SetKillSoundsEnabled(true);
 
 	BaseClass::ChangeTeam( 0 );
 	
@@ -167,6 +167,43 @@ void CHL2MP_Player::Precache( void )
 	PrecacheScriptSound( "NPC_MetroPolice.Die" );
 	PrecacheScriptSound( "NPC_CombineS.Die" );
 	PrecacheScriptSound( "NPC_Citizen.die" );
+	if (sv_custom_sounds.GetBool())
+	{
+		PrecacheScriptSound("server_sounds_red_team");
+		PrecacheScriptSound("server_sounds_red_leads");
+		PrecacheScriptSound("server_sounds_blue_team");
+		PrecacheScriptSound("server_sounds_blue_leads");
+		PrecacheScriptSound("server_sounds_five");
+		PrecacheScriptSound("server_sounds_four");
+		PrecacheScriptSound("server_sounds_three");
+		PrecacheScriptSound("server_sounds_two");
+		PrecacheScriptSound("server_sounds_one");
+		PrecacheScriptSound("server_sounds_gameover");
+		PrecacheScriptSound("server_sounds_gamepaused");
+		PrecacheScriptSound("server_sounds_go1");
+		PrecacheScriptSound("server_sounds_go2");
+		PrecacheScriptSound("server_sounds_go3");
+		PrecacheScriptSound("server_sounds_matchcancel");
+		PrecacheScriptSound("server_sounds_rankdown");
+		PrecacheScriptSound("server_sounds_rankup");
+		PrecacheScriptSound("server_sounds_tie");
+		PrecacheScriptSound("server_sounds_overtime");
+		PrecacheScriptSound("server_sounds_youlead");
+		PrecacheScriptSound("server_sounds_youlost");
+		PrecacheScriptSound("server_sounds_younolead");
+		PrecacheScriptSound("server_sounds_youwin");
+		PrecacheScriptSound("kevlar1");
+		PrecacheScriptSound("kevlar2");
+		PrecacheScriptSound("kevlar3");
+		PrecacheScriptSound("kevlar4");
+		PrecacheScriptSound("kevlar5");
+		PrecacheScriptSound("server_sounds_bhit_helmet-1");
+		PrecacheScriptSound("server_sounds_hitbody");
+		PrecacheScriptSound("server_sounds_hithead");
+		PrecacheScriptSound("headshot_kill_snd");
+		PrecacheScriptSound("frag_snd");
+		PrecacheScriptSound("server_sounds_tkill");
+	}
 }
 
 void CHL2MP_Player::GiveAllItems( void )
@@ -620,8 +657,8 @@ bool CHL2MP_Player::SavePlayerSettings()
 	playerSettings->SetInt("Xbow Zoom Level", GetXbowZoomLevel());
 
 	// Save hit sound and kill sound settings using getters
-	/*playerSettings->SetInt("HitSoundsEnabled", AreHitSoundsEnabled() ? 1 : 0);
-	playerSettings->SetInt("KillSoundsEnabled", AreKillSoundsEnabled() ? 1 : 0);*/
+	playerSettings->SetInt("HitSoundsEnabled", AreHitSoundsEnabled() ? 1 : 0);
+	playerSettings->SetInt("KillSoundsEnabled", AreKillSoundsEnabled() ? 1 : 0);
 
 	if (kv->SaveToFile(filesystem, filename, "MOD"))
 	{
@@ -667,8 +704,8 @@ bool CHL2MP_Player::LoadPlayerSettings()
 	SetXbowZoomLevel(playerSettings->GetInt("Xbow Zoom Level", GetXbowZoomLevel()));
 
 	// Load hit sound and kill sound settings using GetInt(), with default values of 1 (enabled)
-	/*SetHitSoundsEnabled(playerSettings->GetBool("HitSoundsEnabled", AreHitSoundsEnabled()));  // Default to enabled
-	SetKillSoundsEnabled(playerSettings->GetBool("KillSoundsEnabled", AreKillSoundsEnabled()));*/ // Default to enabled
+	SetHitSoundsEnabled(playerSettings->GetBool("HitSoundsEnabled", AreHitSoundsEnabled()));  // Default to enabled
+	SetKillSoundsEnabled(playerSettings->GetBool("KillSoundsEnabled", AreKillSoundsEnabled())); // Default to enabled
 
 	kv->deleteThis();
 	return true;
@@ -844,7 +881,7 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 		}
 	}
 
-	/*if (Q_stricmp(p, "!hs") == 0)
+	if (Q_stricmp(p, "!hs") == 0)
 	{
 		bool newHitSoundState = !AreHitSoundsEnabled();
 		SetHitSoundsEnabled(newHitSoundState);
@@ -876,7 +913,7 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 
 		SavePlayerSettings();
 		return;
-	}*/
+	}
 	return;
 
 	HL2MPRules()->CheckChatForReadySignal(this, pReadyCheck);
