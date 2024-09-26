@@ -441,6 +441,7 @@ CBaseEntity* CItem::Respawn( void )
 {
 	SetTouch( NULL );
 	AddEffects( EF_NODRAW );
+	AddEFlags(EFL_NO_PHYSCANNON_INTERACTION);
 
 	VPhysicsDestroyObject();
 
@@ -464,6 +465,7 @@ void CItem::Materialize( void )
 	if ( IsEffectActive( EF_NODRAW ) )
 	{
 		// changing from invisible state to visible.
+		RemoveEFlags(EFL_NO_PHYSCANNON_INTERACTION);
 
 #ifdef HL2MP
 		EmitSound( "AlyxEmp.Charge" );
