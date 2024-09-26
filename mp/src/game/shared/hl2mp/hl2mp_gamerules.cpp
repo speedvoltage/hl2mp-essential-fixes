@@ -576,72 +576,125 @@ void CHL2MPRules::Think(void)
 	/*
 		AUTO TEAM BALANCE
 	*/
+	// Refactor the team auto balance to actually do something
 	if (mp_autoteambalance.GetBool() && IsTeamplay())
 	{
 		if (gpGlobals->curtime > m_flBalanceTeamsTime)
-		{	
-			int iCombine = NULL;
-			int iRebels = NULL;
+		{
+			int iCombine = 0;
+			int iRebels = 0;
+
+			int combineScore = 0;  // Initialize Combine team score
+			int rebelScore = 0;    // Initialize Rebel team score
+
+			CUtlVector<CBasePlayer*> combinePlayers;
+			CUtlVector<CBasePlayer*> rebelPlayers;
+
+			CTeam* pCombine = g_Teams[TEAM_COMBINE];
+			CTeam* pRebels = g_Teams[TEAM_REBELS];
 
 			for (int i = 1; i <= gpGlobals->maxClients; i++)
 			{
 				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
 
-				// Only balance teams if 2 players at least are connected
+				// Only balance teams if at least 2 players are connected
 				if (pPlayer)
 				{
-					if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+					if (pPlayer->GetTeamNumber() == TEAM_COMBINE)
 					{
-						bSwitchCombinePlayer = false;
-						bSwitchRebelPlayer = false;
+						iCombine++;
+						combinePlayers.AddToTail(pPlayer); // Track Combine players
+						combineScore += pPlayer->FragCount(); // Add player frags to Combine score
 					}
-
-					if (pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
+					else if (pPlayer->GetTeamNumber() == TEAM_REBELS)
 					{
-						// Figure out how many players are on each team
-						if (pPlayer->GetTeamNumber() == TEAM_COMBINE)
-						{
-							iCombine++;
-						}
-
-						if (pPlayer->GetTeamNumber() == TEAM_REBELS)
-						{
-							iRebels++;
-						}
-#ifdef _DEBUG
-						Msg("%d Combine players, %d Rebel players, currently with %d connected players.\n", iCombine, iRebels, i);
-#endif
-						// If the difference is 2 or over, then teams are deemed unbalanced
-						// Change a player's team when they die to rebalance the teams
-						if ((iCombine - iRebels) > 1 && iCombine > 0)
-						{
-#ifdef _DEBUG
-							Msg("Unbalanced teams! More Combine players than Rebel players!\n");
-#endif
-							bSwitchCombinePlayer = true;
-							bSwitchRebelPlayer = false;
-						}
-						else if ((iRebels - iCombine) > 1 && iRebels > 0)
-						{
-#ifdef _DEBUG
-							Msg("Unbalanced teams! More Rebel players than Combine players!\n");
-#endif
-							bSwitchRebelPlayer = true;
-							bSwitchCombinePlayer = false;
-						}
-						else
-						{
-#ifdef _DEBUG
-							Msg("Teams are balanced!\n");
-#endif
-
-							// Ensure bools are false
-							bSwitchCombinePlayer = false;
-							bSwitchRebelPlayer = false;
-						}
+						iRebels++;
+						rebelPlayers.AddToTail(pPlayer); // Track Rebel players
+						rebelScore += pPlayer->FragCount(); // Add player frags to Rebel score
 					}
 				}
 			}
+
+#ifdef _DEBUG
+			Msg("%d Combine players, %d Rebel players, currently with %d connected players.\n", iCombine, iRebels, gpGlobals->maxClients);
+			Msg("Current team scores: Combine: %d, Rebels: %d\n", combineScore, rebelScore);
+#endif
+
+			// If the difference is 2 or more, the teams are deemed unbalanced
+			int difference = abs(iCombine - iRebels);
+			if (difference > 1)
+			{
+				// Determine which team has more players and needs balancing
+				CUtlVector<CBasePlayer*>* teamWithMorePlayers = nullptr;
+				int teamWithFewerPlayers = 0;
+				if (iCombine > iRebels)
+				{
+					teamWithMorePlayers = &combinePlayers;
+					teamWithFewerPlayers = TEAM_REBELS;
+#ifdef _DEBUG
+					Msg("Unbalanced teams! More Combine players than Rebel players!\n");
+#endif
+				}
+				else if (iRebels > iCombine)
+				{
+					teamWithMorePlayers = &rebelPlayers;
+					teamWithFewerPlayers = TEAM_COMBINE;
+#ifdef _DEBUG
+					Msg("Unbalanced teams! More Rebel players than Combine players!\n");
+#endif
+				}
+
+				// Move random players to the other team
+				if (teamWithMorePlayers)
+				{
+					for (int j = 0; j < difference / 2; j++)
+					{
+						// Select a random player from the team with more players
+						int randomIndex = RandomInt(0, teamWithMorePlayers->Count() - 1);
+						CBasePlayer* pSelectedPlayer = teamWithMorePlayers->Element(randomIndex);
+
+						if (pSelectedPlayer)
+						{
+							pSelectedPlayer->ChangeTeam(teamWithFewerPlayers);
+							teamWithMorePlayers->Remove(randomIndex); // Remove player after switching
+
+							// Update the scores after switching players
+							if (teamWithFewerPlayers == TEAM_REBELS)
+							{
+								// Deduct from Combine, add to Rebels
+								combineScore -= pSelectedPlayer->FragCount();
+								rebelScore += pSelectedPlayer->FragCount();
+							}
+							else if (teamWithFewerPlayers == TEAM_COMBINE)
+							{
+								// Deduct from Rebels, add to Combine
+								rebelScore -= pSelectedPlayer->FragCount();
+								combineScore += pSelectedPlayer->FragCount();
+							}
+
+#ifdef _DEBUG
+							Msg("Switched player %s to the opposite team.\n", pSelectedPlayer->GetPlayerName());
+							Msg("Updated team scores: Combine: %d, Rebels: %d\n", combineScore, rebelScore);
+#endif
+						}
+		}
+					UTIL_PrintToAllClients(CHAT_INFO "Teams have been balanced!");
+					UTIL_ClientPrintAll(HUD_PRINTCONSOLE, "Teams have been balanced!");
+	}
+			}
+			else
+			{
+#ifdef _DEBUG
+				Msg("Teams are balanced!\n");
+#endif
+			}
+
+			// Update global team scores with recalculated values
+			pCombine->SetScore(combineScore);
+			pRebels->SetScore(rebelScore);
+#ifdef _DEBUG
+			Msg("Final team scores after balance: Combine: %d, Rebels: %d\n", combineScore, rebelScore);
+#endif
 		}
 	}
 #ifdef _DEBUG
