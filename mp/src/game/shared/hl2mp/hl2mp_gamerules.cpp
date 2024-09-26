@@ -61,8 +61,6 @@ ConVar sv_rpg_respawn_time("sv_rpg_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NO
 ConVar sv_hl2mp_item_respawn_time("sv_hl2mp_item_respawn_time", "30", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 
-ConVar mp_change_level_on_game_over("mp_change_level_on_game_over", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY);
-
 ConVar sv_timeleft_enable("sv_timeleft_enable", "1", 0, "If non-zero,enables time left indication on the HUD.", true, 0.0, true, 1.0);
 ConVar sv_timeleft_teamscore("sv_timeleft_teamscore", "1", 0, "If non-zero,enables team scores on the HUD (left Combine, right Rebels)\nMust be enabled to use \"sv_timeleft_color_override\".", true, 0.0, true, 1.0);
 ConVar sv_timeleft_color_override("sv_timeleft_color_override", "0", 0, "If non-zero, automatically adjust text color to match the current winning team.", true, 0.0, true, 1.0);
@@ -510,6 +508,55 @@ void CHL2MPRules::Think(void)
 
 	CGameRules::Think();
 
+	/*
+		UPDATERATE AND CMDRATE CHECKER
+	*/
+
+	// We don't want people using 0
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		if (gpGlobals->curtime > m_tmNextPeriodicThink)
+		{
+			CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+			if (pPlayer && !pPlayer->IsBot() && !pPlayer->IsHLTV())
+			{
+				// Fetch client-side settings from the player
+				const char* cl_updaterate = engine->GetClientConVarValue(pPlayer->entindex(), "cl_updaterate");
+				const char* cl_cmdrate = engine->GetClientConVarValue(pPlayer->entindex(), "cl_cmdrate");
+
+				int updaterate = cl_updaterate && cl_updaterate[0] ? atoi(cl_updaterate) : 0;
+				int cmdrate = cl_cmdrate && cl_cmdrate[0] ? atoi(cl_cmdrate) : 0;
+
+				bool shouldKick = false;
+				char kickReason[128] = "";
+
+				// Check if cl_updaterate is set to 0 or less
+				if (updaterate <= 0)
+				{
+					shouldKick = true;
+					Q_snprintf(kickReason, sizeof(kickReason), "cl_updaterate is invalid (value: %d)", updaterate);
+				}
+
+				// Check if cl_cmdrate is set to 0 or less
+				if (cmdrate <= 0)
+				{
+					shouldKick = true;
+					Q_snprintf(kickReason, sizeof(kickReason), "cl_cmdrate is invalid (value: %d)", cmdrate);
+				}
+
+				if (shouldKick)
+				{
+					// Get the player's user ID instead of the entity index
+					int userID = pPlayer->GetUserID();  // This will provide the correct user ID for kicking
+
+					engine->ServerCommand(UTIL_VarArgs("kickid %d %s\n", userID, kickReason));  // Use userID instead of entindex()
+					return;
+				}
+			}
+		}
+	}
+
 	// Forcefully remove suit and weapons here to account for mp_restartgame
 	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
@@ -899,26 +946,8 @@ void CHL2MPRules::Think(void)
 		{
 			if (!m_bChangelevelDone)
 			{
-				if (mp_change_level_on_game_over.GetBool())
-				{
-					ChangeLevel(); // intermission is over
-					m_bChangelevelDone = true;
-				}
-				else
-				{
-					for (int i = 0; i < MAX_PLAYERS; i++)
-					{
-						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-
-						if (!pPlayer)
-							continue;
-
-						pPlayer->ShowViewPortPanel(PANEL_SCOREBOARD, false);
-						pPlayer->RemoveFlag(FL_FROZEN);
-
-						RestartGame();
-					}
-				}
+				ChangeLevel(); // intermission is over
+				m_bChangelevelDone = true;
 			}
 		}
 
@@ -1145,22 +1174,8 @@ bool CHL2MPRules::CheckGameOver()
 
 		if (m_flIntermissionEndTime < gpGlobals->curtime)
 		{
-			if (mp_change_level_on_game_over.GetBool())
-				ChangeLevel(); // intermission is over	
-			else
-			{
-				for (int i = 0; i < MAX_PLAYERS; i++)
-				{
-					CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-
-					if (!pPlayer)
-						continue;
-
-					pPlayer->ShowViewPortPanel(PANEL_SCOREBOARD, false);
-					pPlayer->RemoveFlag(FL_FROZEN);
-					RestartGame();
-				}
-			}
+			ChangeLevel(); // intermission is over
+			m_bChangelevelDone = true;
 		}
 
 		return true;
