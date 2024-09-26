@@ -763,7 +763,7 @@ void CHL2MPRules::Think(void)
 				textParams.holdTime = 1.10;
 				textParams.fxTime = 0;
 
-				if (!sv_timeleft_teamscore.GetBool())
+				if (!sv_timeleft_teamscore.GetBool() || teamplay.GetInt() < 1)
 					sv_timeleft_color_override.SetValue(0);
 
 				int iTimeRemaining = (int)HL2MPRules()->GetMapRemainingTime();
@@ -818,6 +818,52 @@ void CHL2MPRules::Think(void)
 
 
 				UTIL_HudMessage(UTIL_GetLocalPlayer(), textParams, stime);
+
+				if (!IsTeamplay())
+				{
+					// Get the unassigned team
+					CTeam* pTeamUnassigned = g_Teams[TEAM_UNASSIGNED];
+
+					if (pTeamUnassigned)
+					{
+						// Collect all players in the unassigned team
+						CUtlVector<CBaseMultiplayerPlayer*> unassignedPlayers;
+						for (int i = 1; i <= gpGlobals->maxClients; i++) // Iterate through all players
+						{
+							CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+							CBaseMultiplayerPlayer* pMultiplayerPlayer = ToBaseMultiplayerPlayer(pPlayer);
+
+							// Check if player is valid, on the unassigned team, and not a spectator
+							if (pMultiplayerPlayer && pMultiplayerPlayer->GetTeamNumber() == TEAM_UNASSIGNED && !pMultiplayerPlayer->IsObserver())
+							{
+								unassignedPlayers.AddToTail(pMultiplayerPlayer);
+							}
+						}
+
+						// Sort the unassigned players by frags in descending order
+						unassignedPlayers.Sort([](CBaseMultiplayerPlayer* const* a, CBaseMultiplayerPlayer* const* b) {
+							return (*b)->FragCount() - (*a)->FragCount();
+							});
+
+						// Now we loop over each player and display their stats on their own HUD
+						for (int i = 0; i < unassignedPlayers.Count(); i++)
+						{
+							CBaseMultiplayerPlayer* pCurrentPlayer = unassignedPlayers[i];
+							int playerRank = i + 1; // Rank starts from 1, not 0
+
+							hudtextparms_t playerTextParams = textParams;
+							playerTextParams.y = sv_timeleft_y.GetFloat() + 0.03f; // Position below the time
+							playerTextParams.channel = 1;
+
+							// Format the message
+							char playerStatText[128];
+							Q_snprintf(playerStatText, sizeof(playerStatText), "%d/%d | %d Frag%s", playerRank, unassignedPlayers.Count(), pCurrentPlayer->FragCount(), pCurrentPlayer->FragCount() < 2 ? "" : "s");
+
+							// Display the message to the player
+							UTIL_HudMessage(pCurrentPlayer, playerTextParams, playerStatText);
+						}
+					}
+				}
 			}
 		}
 	}
