@@ -133,7 +133,12 @@ public:
 
 	virtual bool	CanHearAndReadChatFrom( CBasePlayer *pPlayer );
 
-		
+	// Getter for m_flNextHudUpdate
+	float GetNextHudUpdate() const { return m_flNextHudUpdate; }
+
+	// Setter for m_flNextHudUpdate
+	void SetNextHudUpdate(float flNextUpdate) { m_flNextHudUpdate = flNextUpdate; }
+
 private:
 
 	void LadderRespawnFix();
@@ -160,6 +165,8 @@ private:
 	CUtlDict<float,int>	m_RateLimitLastCommandTimes;
 
     bool m_bEnterObserver;
+
+	float m_flNextHudUpdate;
 };
 
 inline CHL2MP_Player *ToHL2MPPlayer( CBaseEntity *pEntity )

@@ -73,6 +73,8 @@ ConVar sv_timeleft_channel("sv_timeleft_channel", "0", 0, "Alpha/Intensity.", tr
 ConVar sv_timeleft_x("sv_timeleft_x", "-1");
 ConVar sv_timeleft_y("sv_timeleft_y", "0.01");
 
+ConVar sv_hudtargetid_channel("sv_hudtargetid_channel", "2", 0, "Text channel (0-5). Use this if text channels conflict in-game", true, 0.0, true, 5.0);
+
 extern ConVar mp_chattime;
 extern ConVar mp_autoteambalance;
 extern ConVar sv_custom_sounds;
@@ -458,6 +460,75 @@ void CHL2MPRules::Think(void)
 #ifndef CLIENT_DLL
 
 	CGameRules::Think();
+
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CHL2MP_Player* pPlayer = dynamic_cast<CHL2MP_Player*>(UTIL_PlayerByIndex(i));
+
+		if (pPlayer && pPlayer->IsAlive())
+		{
+			// Limit HUD updates to once per second
+			if (gpGlobals->curtime > pPlayer->GetNextHudUpdate())
+			{
+				Vector vecDir;
+				AngleVectors(pPlayer->EyeAngles(), &vecDir);
+
+				Vector vecAbsStart = pPlayer->EyePosition();
+				Vector vecAbsEnd = vecAbsStart + (vecDir * 2048);
+
+				trace_t tr;
+				UTIL_TraceLine(vecAbsStart, vecAbsEnd, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &tr);
+
+				CBasePlayer* pPlayerEntity = dynamic_cast<CBasePlayer*>(tr.m_pEnt);
+
+				if (pPlayerEntity && pPlayerEntity->IsPlayer() && pPlayerEntity->IsAlive())
+				{
+					char entity[256];
+
+					if (IsTeamplay())
+					{
+						if (pPlayerEntity->GetTeamNumber() == pPlayer->GetTeamNumber())
+						{
+							if (pPlayerEntity->ArmorValue())
+								Q_snprintf(entity, sizeof(entity), "%s\nHP: %.0i\nAP: %.0i\n", pPlayerEntity->GetPlayerName(), pPlayerEntity->GetHealth(), pPlayerEntity->ArmorValue());
+							else
+								Q_snprintf(entity, sizeof(entity), "%s\nHP: %.0i\n", pPlayerEntity->GetPlayerName(), pPlayerEntity->GetHealth());
+						}
+						else
+						{
+							Q_snprintf(entity, sizeof(entity), "%s", pPlayerEntity->GetPlayerName());
+						}
+					}
+					else
+					{
+						Q_snprintf(entity, sizeof(entity), "%s", pPlayerEntity->GetPlayerName());
+					}
+
+					// HUD message setup
+					hudtextparms_s tTextParam;
+					tTextParam.x = 0.45;
+					tTextParam.y = 0.63;
+					tTextParam.effect = 0;
+					tTextParam.r1 = 255;
+					tTextParam.g1 = 128;
+					tTextParam.b1 = 0;
+					tTextParam.a1 = 255;
+					tTextParam.r2 = 255;
+					tTextParam.g2 = 128;
+					tTextParam.b2 = 0;
+					tTextParam.a2 = 255;
+					tTextParam.fadeinTime = 0.008;
+					tTextParam.fadeoutTime = 0.008;
+					tTextParam.holdTime = 1.0;
+					tTextParam.fxTime = 0;
+					tTextParam.channel = sv_hudtargetid_channel.GetInt();
+
+					UTIL_HudMessage(pPlayer, tTextParam, entity);
+				}
+				pPlayer->SetNextHudUpdate(gpGlobals->curtime + 1.0f); // Limit HUD updates to once per second
+			}
+		}
+	}
 
 	ConVar* sv_pausable = cvar->FindVar("sv_pausable");
 

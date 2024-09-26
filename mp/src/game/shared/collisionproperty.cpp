@@ -350,9 +350,24 @@ static void RecvProxy_IntDirtySurround( const CRecvProxyData *pData, void *pStru
 
 #else
 
-static void SendProxy_Solid( const SendProp *pProp, const void *pStruct, const void *pData, DVariant *pOut, int iElement, int objectID )
+static void SendProxy_Solid(const SendProp* pProp, const void* pStruct, const void* pData, DVariant* pOut, int iElement, int objectID)
 {
-	pOut->m_Int = ((CCollisionProperty*)pStruct)->GetSolid();
+	CCollisionProperty* pCollision = (CCollisionProperty*)pStruct;
+
+	CBaseEntity* pEntity = static_cast<CBaseEntity*>(pCollision->GetEntityHandle());
+
+	if (pEntity && pEntity->IsPlayer())
+	{
+		CBasePlayer* pPlayer = ToBasePlayer(pEntity);
+		if (pPlayer)
+		{
+			pOut->m_Int = FSOLID_NOT_SOLID;
+			return;
+		}
+	}
+
+	// Default behavior if it's not a player
+	pOut->m_Int = pCollision->GetSolid();
 }
 
 static void SendProxy_SolidFlags( const SendProp *pProp, const void *pStruct, const void *pData, DVariant *pOut, int iElement, int objectID )
