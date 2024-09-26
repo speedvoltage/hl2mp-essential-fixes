@@ -112,6 +112,11 @@ CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 
     m_bEnterObserver = false;
 
+	Set357ZoomLevel(20);  // Default zoom level for .357
+	SetXbowZoomLevel(20); // Default zoom level for crossbow
+	/*SetHitSoundsEnabled(true);
+	SetKillSoundsEnabled(true);*/
+
 	BaseClass::ChangeTeam( 0 );
 	
 //	UseClientSideAnimation();
@@ -611,6 +616,12 @@ bool CHL2MP_Player::SavePlayerSettings()
 	KeyValues* playerSettings = kv->FindKey(UTIL_VarArgs("%llu", steamID64), true);
 	playerSettings->SetInt("FOV", m_iFOV);
 	playerSettings->SetInt("FOVServer", m_iFOVServer);
+	playerSettings->SetInt(".357 Zoom Level", Get357ZoomLevel());
+	playerSettings->SetInt("Xbow Zoom Level", GetXbowZoomLevel());
+
+	// Save hit sound and kill sound settings using getters
+	/*playerSettings->SetInt("HitSoundsEnabled", AreHitSoundsEnabled() ? 1 : 0);
+	playerSettings->SetInt("KillSoundsEnabled", AreKillSoundsEnabled() ? 1 : 0);*/
 
 	if (kv->SaveToFile(filesystem, filename, "MOD"))
 	{
@@ -652,6 +663,12 @@ bool CHL2MP_Player::LoadPlayerSettings()
 
 	m_iFOV = playerSettings->GetInt("FOV", m_iFOV);
 	m_iFOVServer = playerSettings->GetInt("FOVServer", m_iFOVServer);
+	Set357ZoomLevel(playerSettings->GetInt(".357 Zoom Level", Get357ZoomLevel()));
+	SetXbowZoomLevel(playerSettings->GetInt("Xbow Zoom Level", GetXbowZoomLevel()));
+
+	// Load hit sound and kill sound settings using GetInt(), with default values of 1 (enabled)
+	/*SetHitSoundsEnabled(playerSettings->GetBool("HitSoundsEnabled", AreHitSoundsEnabled()));  // Default to enabled
+	SetKillSoundsEnabled(playerSettings->GetBool("KillSoundsEnabled", AreKillSoundsEnabled()));*/ // Default to enabled
 
 	kv->deleteThis();
 	return true;
@@ -728,7 +745,226 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 		}
 	}
 
+	if (Q_strncmp(p, "!mzl", strlen("!mzl")) == 0)
+	{
+		const char* argStart = strstr(p, "!mzl");
+
+		if (IsBot())
+			return;
+
+		if (argStart)
+		{
+			argStart += Q_strlen("!mzl");
+			while (*argStart == ' ')
+			{
+				argStart++;
+			}
+
+			// If no argument is provided, print the current value
+			if (*argStart == '\0')
+			{
+				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Your .357 zoom level: " CHAT_FOV "%d", Get357ZoomLevel()));
+				return;
+			}
+
+			// If an argument is provided, set the zoom level
+			int zoomLevel = atoi(argStart);
+
+			if (zoomLevel < 20 || zoomLevel > 40)
+			{
+				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT ".357 zoom level can only be set between " CHAT_FOV "20 " CHAT_CONTEXT "and " CHAT_FOV "40"));
+				return;
+			}
+
+			if (Get357ZoomLevel() == zoomLevel)
+			{
+				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT ".357 zoom level is already set to " CHAT_FOV "%d", zoomLevel));
+				return;
+			}
+
+
+			if (IsWeaponZoomActive())
+			{
+				UTIL_PrintToClient(this, CHAT_CONTEXT "You cannot change your zoom level while zoomed in");
+				return;
+			}
+
+			Set357ZoomLevel(zoomLevel);
+			SavePlayerSettings();  // Save the new zoom level to the file
+			UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT ".357 zoom level set to " CHAT_FOV "%d", zoomLevel));
+		}
+	}
+
+	if (Q_strncmp(p, "!czl", strlen("!czl")) == 0)
+	{
+		const char* argStart = strstr(p, "!czl");
+
+		if (IsBot())
+			return;
+
+		if (argStart)
+		{
+			argStart += Q_strlen("!czl");
+			while (*argStart == ' ')
+			{
+				argStart++;
+			}
+
+			// If no argument is provided, print the current value
+			if (*argStart == '\0')
+			{
+				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Crossbow zoom level: " CHAT_FOV "%d", GetXbowZoomLevel()));
+				return;
+			}
+
+			// If an argument is provided, set the zoom level
+			int zoomLevel = atoi(argStart);
+
+			if (zoomLevel < 20 || zoomLevel > 40)
+			{
+				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Crossbow zoom level can only be set between " CHAT_FOV "20 " CHAT_CONTEXT "and " CHAT_FOV "40"));
+				return;
+			}
+
+			if (GetXbowZoomLevel() == zoomLevel)
+			{
+				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Crossbow zoom level is already set to " CHAT_FOV "%d", zoomLevel));
+				return;
+			}
+
+			if (IsWeaponZoomActive())
+			{
+				UTIL_PrintToClient(this, CHAT_CONTEXT "You cannot change your zoom level while zoomed in");
+				return;
+			}
+
+			SetXbowZoomLevel(zoomLevel);
+			SavePlayerSettings();  // Save the new zoom level to the file
+			UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Crossbow zoom level set to " CHAT_FOV "%d", zoomLevel));
+		}
+	}
+
+	/*if (Q_stricmp(p, "!hs") == 0)
+	{
+		bool newHitSoundState = !AreHitSoundsEnabled();
+		SetHitSoundsEnabled(newHitSoundState);
+		if (newHitSoundState)
+		{
+			ClientPrint(this, HUD_PRINTTALK, "Hit sounds enabled.\n");
+		}
+		else
+		{
+			ClientPrint(this, HUD_PRINTTALK, "Hit sounds disabled.\n");
+		}
+		SavePlayerSettings();
+		return;
+	}
+
+	// Command to toggle kill sounds
+	if (Q_stricmp(p, "!ks") == 0)
+	{
+		bool newKillSoundState = !AreKillSoundsEnabled();
+		SetKillSoundsEnabled(newKillSoundState);
+		if (newKillSoundState)
+		{
+			ClientPrint(this, HUD_PRINTTALK, "Kill sounds enabled.\n");
+		}
+		else
+		{
+			ClientPrint(this, HUD_PRINTTALK, "Kill sounds disabled.\n");
+		}
+
+		SavePlayerSettings();
+		return;
+	}*/
+	return;
+
 	HL2MPRules()->CheckChatForReadySignal(this, pReadyCheck);
+}
+
+void FOVConsoleCommand(const CCommand& args);
+
+ConCommand fov("fov", FOVConsoleCommand, "Change player FOV via console. Usage: fov <value>", FCVAR_CLIENTCMD_CAN_EXECUTE);
+
+void FOVConsoleCommand(const CCommand& args)
+{
+	CHL2MP_Player* pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
+
+	if (pPlayer == NULL || args.ArgC() < 2)  // Make sure a valid argument is passed (FOV value)
+	{
+		ClientPrint(pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs("\"fov\" is \"%d\"\nUsage: fov <value>", pPlayer->GetFOV()));
+		return;
+	}
+
+	// Block bots from using the command
+	if (pPlayer->IsBot())
+	{
+		return;
+	}
+
+	int iFovValue = atoi(args[1]);  // Get the FOV value from console command argument
+
+	if (iFovValue < 70 || iFovValue > 110)
+	{
+		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "Your FOV can only be set between 70 and 110.\n");
+		return;
+	}
+
+	if (pPlayer->GetFOV() == iFovValue)
+	{
+		ClientPrint(pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs("Your FOV is already set to %d.\n", pPlayer->GetFOV()));
+		return;
+	}
+
+	pPlayer->SetFOVServer(iFovValue);  // Set the server FOV value
+	pPlayer->SetFOV(iFovValue);        // Update the FOV
+	pPlayer->SetDefaultFOV(iFovValue); // Update the player's default FOV
+
+	// Save player settings to the file
+	pPlayer->SavePlayerSettings();
+
+	// Inform the player via console
+	ClientPrint(pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs("Your FOV is now set to %d.\n", iFovValue));
+}
+
+CON_COMMAND(mzl, "Set or check .357 zoom level")
+{
+	CHL2MP_Player* pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
+	if (!pPlayer)
+		return;
+
+	if (args.ArgC() == 1) // No argument, print the current zoom level
+	{
+		char command[8];  // Create a writable buffer
+		Q_strncpy(command, "!mzl", sizeof(command));  // Copy the string into the buffer
+		pPlayer->CheckChatText(command, sizeof(command));  // Pass the writable buffer to CheckChatText
+	}
+	else if (args.ArgC() == 2) // Argument provided, set the zoom level
+	{
+		char command[16];
+		Q_snprintf(command, sizeof(command), "!mzl %s", args[1]);  // Ensure dynamic sizing
+		pPlayer->CheckChatText(command, sizeof(command));
+	}
+}
+
+CON_COMMAND(czl, "Set or check crossbow zoom level")
+{
+	CHL2MP_Player* pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
+	if (!pPlayer)
+		return;
+
+	if (args.ArgC() == 1) // No argument, print the current zoom level
+	{
+		char command[8];  // Create a writable buffer
+		Q_strncpy(command, "!czl", sizeof(command));  // Copy the string into the buffer
+		pPlayer->CheckChatText(command, sizeof(command));  // Pass the writable buffer to CheckChatText
+	}
+	else if (args.ArgC() == 2) // Argument provided, set the zoom level
+	{
+		char command[16];
+		Q_snprintf(command, sizeof(command), "!czl %s", args[1]);  // Ensure dynamic sizing
+		pPlayer->CheckChatText(command, sizeof(command));
+	}
 }
 
 void CHL2MP_Player::PostThink( void )
@@ -1672,6 +1908,8 @@ void CHL2MP_Player::FirstThinkAfterSpawn()
 void CHL2MP_Player::InitialSpawn( void )
 {
 	BaseClass::InitialSpawn();
+
+	LoadPlayerSettings();
 
 	if (engine->IsPaused())
 	{

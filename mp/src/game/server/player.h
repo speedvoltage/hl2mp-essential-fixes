@@ -748,6 +748,18 @@ public:
 	float	GetFOVDistanceAdjustFactor(); // shared between client and server
 	float	GetFOVDistanceAdjustFactorForNetworking();
 
+	int Get357ZoomLevel() const { return m_i357ZoomLevel; }
+	void Set357ZoomLevel(int level) { m_i357ZoomLevel = level; }
+
+	int GetXbowZoomLevel() const { return m_iXbowZoomLevel; }
+	void SetXbowZoomLevel(int level) { m_iXbowZoomLevel = level; }
+
+	bool IsSuitZoomActive() const { return m_bIsSuitZoomActive; }
+	void SetSuitZoomActive(bool state) { m_bIsSuitZoomActive = state; }
+
+	bool IsWeaponZoomActive() const { return m_bWeaponZoomActive; }
+	void SetWeaponZoomActive(bool state) { m_bWeaponZoomActive = state; }
+
 	float GetLadderCooldownTime() const { return m_flLadderCooldownTime; }
 	void SetLadderCooldownTime(float cooldownTime) { m_flLadderCooldownTime = cooldownTime; }
 
@@ -828,6 +840,11 @@ private:
 
 	int m_iOriginalFOV;
 	CBasePlayer* m_pObservedPlayer;
+
+	int m_i357ZoomLevel;   // .357 weapon zoom level
+	int m_iXbowZoomLevel;  // Crossbow weapon zoom level
+	bool m_bIsSuitZoomActive;
+	bool m_bWeaponZoomActive;
 
 public:
 	

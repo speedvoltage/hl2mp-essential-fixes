@@ -1014,6 +1014,13 @@ void CWeaponCrossbow::ToggleZoom(void)
 
 #ifndef CLIENT_DLL
 
+	if (pPlayer->IsSuitZoomActive())
+	{
+		return;
+	}
+
+	int zoomLevel = pPlayer->GetXbowZoomLevel();  // Retrieve zoom level from the player
+
 	if (m_bInZoom)
 	{
 		if (pPlayer->SetFOV(this, 0, 0.2f))
@@ -1021,13 +1028,15 @@ void CWeaponCrossbow::ToggleZoom(void)
 			pPlayer->SetCustomFOV(this, pPlayer->GetStoredCustomFOV());
 			pPlayer->SetDefaultFOV(pPlayer->GetCustomFOV());
 			m_bInZoom = false;
+			pPlayer->SetWeaponZoomActive(false);
 		}
 	}
 	else
 	{
 		pPlayer->SetStoredCustomFOV(pPlayer->GetFOV());
 		pPlayer->SetDefaultFOV(70);
-		if (pPlayer->SetFOV(this, 20, 0.2f))
+		pPlayer->SetWeaponZoomActive(true);
+		if (pPlayer->SetFOV(this, zoomLevel, 0.2f))
 		{
 			m_bInZoom = true;
 		}
