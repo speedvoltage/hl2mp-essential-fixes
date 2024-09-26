@@ -34,6 +34,10 @@
 #include "hl2mp_cvars.h"
 #include <networkstringtable_gamedll.h>
 #include "iserver.h"
+#include "filesystem.h"
+#include "networkstringtabledefs.h"
+
+#define DOWNLOADABLE_FILE_TABLENAME "downloadables"
 
 #ifdef DEBUG	
 #include "hl2mp_bot_temp.h"
@@ -71,9 +75,12 @@ ConVar sv_timeleft_y("sv_timeleft_y", "0.01");
 
 extern ConVar mp_chattime;
 extern ConVar mp_autoteambalance;
+extern ConVar sv_custom_sounds;
 
 extern CBaseEntity* g_pLastCombineSpawn;
 extern CBaseEntity* g_pLastRebelSpawn;
+
+static bool m_bFirstInitialization = true;
 
 #define WEAPON_MAX_DISTANCE_FROM_SPAWN 64
 
@@ -208,9 +215,116 @@ char* sTeamNames[] =
 	"Rebels",
 };
 
+CUtlVector<const char*> mExcludedUploadExts;
+
+// Example function to add extensions to the list
+void CHL2MPRules::InitExcludedExtensions()
+{
+	mExcludedUploadExts.AddToTail("bz2");
+	mExcludedUploadExts.AddToTail("cache");
+	mExcludedUploadExts.AddToTail("ztmp");
+}
+
+// Checking if an extension is excluded
+bool IsExtensionExcluded(const char* ext)
+{
+	for (int i = 0; i < mExcludedUploadExts.Count(); ++i)
+	{
+		if (Q_stricmp(mExcludedUploadExts[i], ext) == 0)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+#ifndef CLIENT_DLL
+void CHL2MPRules::RegisterDownloadableFiles(char* path, FileFindHandle_t findHandle, INetworkStringTable* pDownloadables)
+{
+	int dirLen = strlen(path);
+
+	// Modify the path to include a wildcard for files (e.g., *.wav)
+	char searchPattern[MAX_PATH];
+	Q_snprintf(searchPattern, sizeof(searchPattern), "%s*.*", path);
+
+	// Iterate over files in the directory
+	for (const char* pNextFileName = filesystem->FindFirstEx(searchPattern, "GAME", &findHandle);
+		pNextFileName != NULL; pNextFileName = filesystem->FindNext(findHandle))
+	{
+		path[dirLen] = '\0';  // Reset path length to directory length
+
+		// Check if it's a directory
+		if (filesystem->FindIsDirectory(findHandle))
+		{
+			if (*pNextFileName != '.')
+			{
+				// Append the directory to the path
+				Q_snprintf(path + dirLen, MAX_PATH - dirLen, "%s%c", pNextFileName, CORRECT_PATH_SEPARATOR);
+
+				// Recursively search in subdirectories
+				RegisterDownloadableFiles(path, findHandle, pDownloadables);
+#ifdef _DEBUG
+				// Debug for directories
+				Msg("Entering directory: %s\n", path);
+#endif
+			}
+		}
+		else
+		{
+#ifdef _DEBUG
+			// Debug for found files
+			Msg("Found file: %s\n", pNextFileName);
+#endif
+			// Only add files that are not in the excluded list
+			const char* extension = Q_GetFileExtension(pNextFileName);
+			if (!mExcludedUploadExts.HasElement(extension))
+			{
+				// Add the file to the downloadable table
+				Q_snprintf(path + dirLen, MAX_PATH - dirLen, "%s", pNextFileName);
+
+				Msg("Registering file: %s\n", path);
+
+				if (pDownloadables->AddString(true, path) == INVALID_STRING_INDEX)
+				{
+					Msg("Failed to register file: %s\n", path);
+					break; // Stop if we can't register more files
+				}
+			}
+#ifdef _DEBUG
+			else
+			{
+				Msg("File extension excluded: %s\n", pNextFileName);
+			}
+#endif
+		}
+	}
+
+	filesystem->FindClose(findHandle);
+}
+#endif
+
 CHL2MPRules::CHL2MPRules()
 {
 #ifndef CLIENT_DLL
+	if (m_bFirstInitialization)
+	{
+		if (sv_custom_sounds.GetBool())
+		{
+			// Get the downloadables string table
+			InitExcludedExtensions();
+
+			// Get the downloadables string table
+			INetworkStringTable* pDownloadables = networkstringtable->FindTable(DOWNLOADABLE_FILE_TABLENAME);
+
+			if (pDownloadables)
+			{
+				// Path to your custom sounds using a char array
+				char path[MAX_PATH] = "sound/server_sounds/";
+				RegisterDownloadableFiles(path, FILESYSTEM_INVALID_FIND_HANDLE, pDownloadables);
+			}
+		}
+	}
+
 	// Create the team managers
 	for (int i = 0; i < ARRAYSIZE(sTeamNames); i++)
 	{
@@ -233,6 +347,8 @@ CHL2MPRules::CHL2MPRules()
 	m_flBalanceTeamsTime = 0.0f;
 	bSwitchCombinePlayer = false;
 	bSwitchRebelPlayer = false;
+
+	m_bFirstInitialization = false;
 
 #endif
 }

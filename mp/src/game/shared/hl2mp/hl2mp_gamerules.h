@@ -18,9 +18,10 @@
 #include "gamerules.h"
 #include "teamplay_gamerules.h"
 #include "gamevars_shared.h"
-
+#include "filesystem.h"
 #ifndef CLIENT_DLL
 #include "hl2mp_player.h"
+#include "networkstringtabledefs.h"
 #endif
 
 #define VEC_CROUCH_TRACE_MIN	HL2MPRules()->GetHL2MPViewVectors()->m_vCrouchTraceMin
@@ -146,6 +147,11 @@ public:
 	bool	IsTeamplay( void ) { return m_bTeamPlayEnabled;	}
 
 	virtual bool IsConnectedUserInfoChangeAllowed( CBasePlayer *pPlayer );
+
+	void InitExcludedExtensions();
+#ifndef CLIENT_DLL
+	void RegisterDownloadableFiles(char* path, FileFindHandle_t findHandle, INetworkStringTable* pDownloadables);
+#endif
 	
 private:
 	

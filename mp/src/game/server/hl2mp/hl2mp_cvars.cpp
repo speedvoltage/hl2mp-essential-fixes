@@ -26,3 +26,9 @@ ConVar mp_ear_ringing(
 	"0",
 	FCVAR_GAMEDLL | FCVAR_NOTIFY,
 	"If non-zero, produce ringing sound caused by explosion/blast damage");
+
+ConVar sv_custom_sounds(
+	"sv_custom_sounds",
+	"1",
+	FCVAR_GAMEDLL,
+	"If non-zero, downloads the custom sounds in the server_sounds folder");
