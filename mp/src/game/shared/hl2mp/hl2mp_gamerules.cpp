@@ -75,6 +75,8 @@ ConVar sv_timeleft_y("sv_timeleft_y", "0.01");
 
 ConVar sv_hudtargetid_channel("sv_hudtargetid_channel", "2", 0, "Text channel (0-5). Use this if text channels conflict in-game", true, 0.0, true, 5.0);
 
+ConVar mp_noblock("mp_noblock", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "If non-zero, disable collisions between players");
+
 extern ConVar mp_chattime;
 extern ConVar mp_autoteambalance;
 extern ConVar sv_custom_sounds;
@@ -467,6 +469,24 @@ void CHL2MPRules::Think(void)
 #ifndef CLIENT_DLL
 
 	CGameRules::Think();
+
+	/*
+		NO BLOCK
+	*/
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+		if (pPlayer)
+		{
+			if (mp_noblock.GetBool())
+			{
+				pPlayer->SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER);
+			}
+			else
+				pPlayer->SetCollisionGroup(COLLISION_GROUP_PLAYER);
+		}
+	}
 
 	/*
 		UPDATE TEAMPLAY RULES
