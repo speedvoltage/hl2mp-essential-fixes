@@ -78,6 +78,8 @@ float k_flMaxEntitySpinRate = k_flMaxAngularVelocity * 10.0f;
 ConVar	ai_shot_bias_min( "ai_shot_bias_min", "-1.0", FCVAR_REPLICATED );
 ConVar	ai_shot_bias_max( "ai_shot_bias_max", "1.0", FCVAR_REPLICATED );
 ConVar	ai_debug_shoot_positions( "ai_debug_shoot_positions", "0", FCVAR_REPLICATED | FCVAR_CHEAT );
+ConVar sv_shotgun_hullsize("sv_shotgun_hullsize", "-1.5,-1.5,-1.5,1.5,1.5,1.5", FCVAR_REPLICATED | FCVAR_ARCHIVE, "Hull dimensions for bullet traces in the format 'minX, minY, minZ, maxX, maxY ,maxZ'\nYou should only use this for debugging and/or testing purposes!!!");
+ConVar sv_new_shotgun("sv_new_shotgun", "1", FCVAR_REPLICATED | FCVAR_ARCHIVE, "If non-zero, uses a more accurate hitbox detection method, including headshots");
 
 // Utility func to throttle rate at which the "reasonable position" spew goes out
 static double s_LastEntityReasonableEmitTime;
@@ -1708,15 +1710,65 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 		vecEnd = info.m_vecSrc + vecDir * info.m_flDistance;
 
 
-		if( IsPlayer() && info.m_iShots > 1 && iShot % 2 )
+#ifndef CLIENT_DLL
+		if (sv_new_shotgun.GetBool()) // More accurate hitbox detection
+#endif
 		{
-			// Half of the shotgun pellets are hulls that make it easier to hit targets with the shotgun.
-			AI_TraceHull(info.m_vecSrc, vecEnd, Vector(-1.5, -1.5, -1.5), Vector(1.5, 1.5, 1.5), MASK_SHOT, &traceFilter, &tr);
-		}
-		else
-		{
+			if (info.m_iAmmoType == GetAmmoDef()->Index("Buckshot"))
+			{
+				// Use all three trace methods for shotguns
+				trace_t trHull, trRay;
 
-			AI_TraceLine(info.m_vecSrc, vecEnd, MASK_SHOT, &traceFilter, &tr);
+#ifndef CLIENT_DLL
+				const char* hullDimensions = sv_shotgun_hullsize.GetString();
+				float minX, minY, minZ, maxX, maxY, maxZ;
+				sscanf(hullDimensions, "%f,%f,%f,%f,%f,%f", &minX, &minY, &minZ, &maxX, &maxY, &maxZ);
+
+				Vector vecHullMins(minX, minY, minZ);
+				Vector vecHullMaxs(maxX, maxY, maxZ);
+#else
+				Vector vecHullMins(-1.5f, -1.5f, -1.5f);
+				Vector vecHullMaxs(1.5f, 1.5f, 1.5f);
+#endif
+
+				AI_TraceHull(info.m_vecSrc, vecEnd, vecHullMins, vecHullMaxs, MASK_SHOT, &traceFilter, &trHull);
+
+				AI_TraceLine(info.m_vecSrc, vecEnd, MASK_SHOT, &traceFilter, &trRay);
+
+				Ray_t ray;
+				ray.Init(info.m_vecSrc, vecEnd);
+				enginetrace->TraceRay(ray, MASK_SHOT, &traceFilter, &trRay);
+
+				// Compare results and choose the more accurate one
+				if (trRay.fraction < trHull.fraction)
+				{
+					tr = trRay;
+				}
+				else
+				{
+					tr = trHull;
+				}
+			}
+			else
+			{
+				// Default behavior for non-shotgun weapons
+				AI_TraceLine(info.m_vecSrc, vecEnd, MASK_SHOT, &traceFilter, &tr);
+			}
+		}
+#ifndef CLIENT_DLL
+		else
+#endif
+		{
+			if (IsPlayer() && info.m_iShots > 1 && iShot % 2)
+			{
+				// Half of the shotgun pellets are hulls that make it easier to hit targets with the shotgun.
+				AI_TraceHull(info.m_vecSrc, vecEnd, Vector(-1.5, -1.5, -1.5), Vector(1.5, 1.5, 1.5), MASK_SHOT, &traceFilter, &tr);
+			}
+			else
+			{
+
+				AI_TraceLine(info.m_vecSrc, vecEnd, MASK_SHOT, &traceFilter, &tr);
+			}
 		}
 
 		// Tracker 70354/63250:  ywb 8/2/07
