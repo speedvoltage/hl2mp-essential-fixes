@@ -136,6 +136,19 @@ public:
 
 	virtual bool	CanHearAndReadChatFrom( CBasePlayer *pPlayer );
 
+	void DelayedLeaderCheck();
+
+	bool IsLeader() const
+	{
+		return m_bIsLeader;
+	}
+
+	// Setter for the leader status
+	void SetLeaderStatus(bool isLeader)
+	{
+		m_bIsLeader = isLeader;
+	}
+
 	bool SavePlayerSettings();
 	bool LoadPlayerSettings();
 
@@ -187,6 +200,8 @@ private:
 	float m_flNextHudUpdate;
 
 	bool g_bFirstSpawn;
+
+	bool m_bIsLeader;
 
 	bool m_bReady;
 };

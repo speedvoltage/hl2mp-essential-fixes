@@ -99,6 +99,8 @@ const char *g_ppszRandomCombineModels[] =
 
 #pragma warning( disable : 4355 )
 
+extern int g_iPreviousLeaderTeam;
+
 CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 {
 	m_angEyeAngles.Init();
@@ -111,6 +113,10 @@ CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 	m_iSpawnInterpCounter = 0;
 
     m_bEnterObserver = false;
+
+	m_bIsLeader = false;
+
+	g_iPreviousLeaderTeam = TEAM_UNASSIGNED;
 
 	Set357ZoomLevel(20);  // Default zoom level for .357
 	SetXbowZoomLevel(20); // Default zoom level for crossbow

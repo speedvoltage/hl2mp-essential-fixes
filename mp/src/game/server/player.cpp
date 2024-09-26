@@ -72,6 +72,7 @@
 #include "multiplay_gamerules.h"
 #include "te_effect_dispatch.h"
 #include "hl2mp_player.h"
+#include "hl2mp_cvars.h"
 #if defined USES_ECON_ITEMS
 #include "econ_wearable.h"
 #endif
@@ -7700,6 +7701,31 @@ void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent)
 		else if (iTeamNum == 1 && !IsDisconnecting())
 			UTIL_PrintToAllClients(CHAT_SPEC "%s1 " CHAT_CONTEXT "joined team " CHAT_SPEC "Spectators.", GetPlayerName());
 	}
+
+	if (sv_custom_sounds.GetBool())
+	{
+		// Play sound based on new team
+		if (iTeamNum == TEAM_REBELS)
+		{
+			/*CRecipientFilter filter;
+			filter.AddRecipient(this);
+			EmitSound(filter, entindex(), "server_sounds_red_team");  // Play the red team sound
+			Msg("Playing red_team sound for Rebels.\n");*/
+
+			engine->ClientCommand(edict(), "play server_sounds/red_team.wav\n");
+		}
+		else if (iTeamNum == TEAM_COMBINE)
+		{
+			/*CRecipientFilter filter;
+			filter.AddRecipient(this);
+			EmitSound(filter, entindex(), "server_sounds_blue_team");  // Play the blue team sound
+			Msg("Playing blue_team sound for Combine.\n");*/
+
+
+			engine->ClientCommand(edict(), "play server_sounds/blue_team.wav\n");
+
+		}
+	}
 	// Are we being added to a team?
 	if ( iTeamNum )
 	{
@@ -7708,8 +7734,6 @@ void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent)
 
 	BaseClass::ChangeTeam( iTeamNum );
 }
-
-
 
 //-----------------------------------------------------------------------------
 // Purpose: Locks a player to the spot; they can't move, shoot, or be hurt

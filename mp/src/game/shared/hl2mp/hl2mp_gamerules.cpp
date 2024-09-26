@@ -39,6 +39,8 @@
 
 #define DOWNLOADABLE_FILE_TABLENAME "downloadables"
 
+int g_iPreviousLeaderTeam = TEAM_UNASSIGNED;
+
 #ifdef DEBUG	
 #include "hl2mp_bot_temp.h"
 #endif
@@ -1439,6 +1441,171 @@ void CHL2MPRules::ClientDisconnected(edict_t* pClient)
 //=========================================================
 // Deathnotice. 
 //=========================================================
+#ifndef CLIENT_DLL
+void CHL2MP_Player::DelayedLeaderCheck()
+{
+	if (sv_custom_sounds.GetBool())
+	{
+		if (!HL2MPRules()->IsTeamplay())
+		{
+			CBasePlayer* pLeader = nullptr;
+			int maxFrags = -1;
+			int secondMaxFrags = -1; // Track the second-highest frag count
+			int leadCount = 0; // Track if more than one player is tied for the lead
+
+			// Iterate over all players to determine the leader
+			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			{
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+				if (pPlayer)
+				{
+					int frags = pPlayer->FragCount();
+
+					if (frags > maxFrags)
+					{
+						secondMaxFrags = maxFrags; // Keep track of the second-highest frag count
+						maxFrags = frags;
+						pLeader = pPlayer;
+						leadCount = 1; // Reset lead count since we found a new leader
+					}
+					else if (frags == maxFrags)
+					{
+						leadCount++; // Increment the count of players with the same frag count
+					}
+					else if (frags > secondMaxFrags)
+					{
+						secondMaxFrags = frags;
+					}
+				}
+			}
+
+			// If there's more than one player tied for the lead, there's no leader
+			if (leadCount > 1)
+			{
+				pLeader = nullptr;
+			}
+
+			// Iterate over all players and update their leader status
+			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			{
+				CHL2MP_Player* pPlayer = dynamic_cast<CHL2MP_Player*>(UTIL_PlayerByIndex(i));
+
+				if (pPlayer)
+				{
+					// If the player is the leader and has at least 1 frag lead, set their leader status
+					if (pPlayer == pLeader && (maxFrags - secondMaxFrags) > 0)
+					{
+						if (!pPlayer->IsLeader()) // Only play the sound if their status changes
+						{
+							pPlayer->SetLeaderStatus(true);
+							CRecipientFilter filter;
+							filter.AddRecipient(pPlayer);
+							filter.MakeReliable();
+							CBaseEntity::EmitSound(filter, pPlayer->entindex(), "server_sounds_youlead");
+						}
+					}
+					else
+					{
+						// If the player is not the leader or lost the lead, reset their leader status and play the sound
+						if (pPlayer->IsLeader())
+						{
+							pPlayer->SetLeaderStatus(false);
+							CRecipientFilter filter;
+							filter.AddRecipient(pPlayer);
+							filter.MakeReliable();
+							CBaseEntity::EmitSound(filter, pPlayer->entindex(), "server_sounds_younolead");
+						}
+					}
+				}
+			}
+
+			// Clear the think context after execution
+			SetThink(nullptr);
+		}
+		else
+		{
+			// We could definitely fetch the team scores directly with GetTeam(), 
+			// but we are doing it this way as a safety net 
+			// just to be sure we have accurate frag counts
+
+			// Initialize team variables
+			int combineScore = 0;
+			int rebelsScore = 0;
+
+			// Iterate over all players to accumulate scores for both teams
+			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			{
+				CHL2MP_Player* pPlayer = dynamic_cast<CHL2MP_Player*>(UTIL_PlayerByIndex(i));
+
+				if (pPlayer && !pPlayer->IsObserver()) // Exclude spectators
+				{
+					if (pPlayer->GetTeamNumber() == TEAM_COMBINE)
+					{
+						combineScore += pPlayer->FragCount(); // Accumulate Combine team score
+					}
+					else if (pPlayer->GetTeamNumber() == TEAM_REBELS)
+					{
+						rebelsScore += pPlayer->FragCount(); // Accumulate Rebels team score
+					}
+				}
+			}
+
+			int currentLeaderTeam = TEAM_UNASSIGNED; // Variable to track current leader
+
+			// Determine which team is leading
+			if (rebelsScore > combineScore)
+			{
+				currentLeaderTeam = TEAM_REBELS;
+			}
+			else if (combineScore > rebelsScore)
+			{
+				currentLeaderTeam = TEAM_COMBINE;
+			}
+
+			// Only play the sound if there's a change in the leader
+			if (currentLeaderTeam != g_iPreviousLeaderTeam)
+			{
+				if (currentLeaderTeam == TEAM_REBELS)
+				{
+					// Rebels take the lead, play the sound
+					for (int i = 0; i < gpGlobals->maxClients; i++)
+					{
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i + 1);
+						if (pPlayer)
+						{
+							engine->ClientCommand(pPlayer->edict(), "play server_sounds/red_leads.wav\n");
+						}
+					}
+				}
+				else if (currentLeaderTeam == TEAM_COMBINE)
+				{
+					// Combine take the lead, play the sound
+					for (int i = 0; i < gpGlobals->maxClients; i++)
+					{
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i + 1);
+						if (pPlayer)
+						{
+							engine->ClientCommand(pPlayer->edict(), "play server_sounds/blue_leads.wav\n");
+						}
+					}
+				}
+
+				// Update the previous leader team
+				g_iPreviousLeaderTeam = currentLeaderTeam;
+			}
+
+			// If the scores are tied, do nothing (no leader change)
+			if (rebelsScore == combineScore)
+			{
+				g_iPreviousLeaderTeam = TEAM_UNASSIGNED; // No leader during a tie
+			}
+
+			SetThink(nullptr);
+		}
+	}
+}
+#endif
+
 void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 {
 #ifndef CLIENT_DLL
@@ -1450,8 +1617,8 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 	CBaseEntity* pInflictor = info.GetInflictor();
 	CBaseEntity* pKiller = info.GetAttacker();
 	CBasePlayer* pScorer = GetDeathScorer(pKiller, pInflictor);
-
 	CBasePlayer* pVictimPlayer = dynamic_cast<CBasePlayer*>(pVictim);
+
 	CHL2MP_Player* pAttackerPlayer = dynamic_cast<CHL2MP_Player*>(pScorer);
 	CHL2MP_Player* pVictimHL2MP = dynamic_cast<CHL2MP_Player*>(pVictimPlayer);
 
@@ -1527,13 +1694,67 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 		}
 	}
 
-	if (HL2MPRules()->IsTeamplay() && pAttackerPlayer->GetTeamNumber() == pVictimHL2MP->GetTeamNumber())
+	// Check if the attacker is valid and not the same as the victim
+	if (pAttackerPlayer && pAttackerPlayer != pVictimHL2MP)
 	{
-		CTeam* pKillerTeam = pAttackerPlayer->GetTeam();
-		if (pKillerTeam)
+		if (HL2MPRules()->IsTeamplay() && pAttackerPlayer->GetTeamNumber() == pVictimHL2MP->GetTeamNumber())
 		{
-			pKillerTeam->AddScore(-2);
+			CTeam* pKillerTeam = pAttackerPlayer->GetTeam();
+			if (pKillerTeam)
+			{
+				pKillerTeam->AddScore(-2);
+			}
 		}
+
+		// Play sounds based on hitgroup (headshot or body)
+		if (pAttackerPlayer->AreKillSoundsEnabled() && sv_custom_sounds.GetBool())
+		{
+			CRecipientFilter filter;
+			filter.AddRecipient(pAttackerPlayer);
+			filter.MakeReliable();
+
+			if (pAttackerPlayer->GetTeamNumber() == pVictimHL2MP->GetTeamNumber() && IsTeamplay())
+			{
+				CBaseEntity::EmitSound(filter, pAttackerPlayer->entindex(), "server_sounds_tkill");
+			}
+			else
+			{
+				// Use trace logic to determine the final hitgroup
+				trace_t trace;
+				Vector vecStart = info.GetDamagePosition();
+				Vector vecEnd = pVictim->GetAbsOrigin();
+
+				// Trace line for precise hit detection
+				UTIL_TraceLine(vecStart, vecEnd, MASK_SHOT, pAttackerPlayer, COLLISION_GROUP_NONE, &trace);
+				int hitgroup = trace.hitgroup;
+
+				// Fall back to trace hull if necessary
+				if (hitgroup == 0)
+				{
+					Vector mins(-1.5f, -1.5f, -1.5f);
+					Vector maxs(1.5f, 1.5f, 1.5f);
+					UTIL_TraceHull(vecStart, vecEnd, mins, maxs, MASK_SHOT, pAttackerPlayer, COLLISION_GROUP_NONE, &trace);
+					hitgroup = trace.hitgroup;
+				}
+
+				if (hitgroup == HITGROUP_HEAD)
+				{
+					// Play headshot sound
+					CBaseEntity::EmitSound(filter, pAttackerPlayer->entindex(), "headshot_kill_snd");
+				}
+				else
+				{
+					// Play regular frag sound
+					CBaseEntity::EmitSound(filter, pAttackerPlayer->entindex(), "frag_snd");
+				}
+			}
+		}
+	}
+
+	if (pAttackerPlayer)
+	{
+		// Delay the leader check by 1 second to ensure frags are updated
+		pAttackerPlayer->SetContextThink(&CHL2MP_Player::DelayedLeaderCheck, gpGlobals->curtime + 0.2f, "DelayedLeaderCheck");
 	}
 
 	IGameEvent* event = gameeventmanager->CreateEvent("player_death");
