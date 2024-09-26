@@ -397,7 +397,13 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 						if ((pOtherEntity->GetMaterialType() == matGlass) || (pOtherEntity->GetMaterialType() == matWeb))
 							return;
 					}
-					else if (FClassnameIs(pOther, "prop_door_rotating") || FClassnameIs(pOther, "func_door"))
+					else if (FClassnameIs(pOther, "prop_door_rotating") || 
+						FClassnameIs(pOther, "func_door") || 
+						FClassnameIs(pOther, "func_door_rotating") ||
+						FClassnameIs(pOther, "func_movelinear") || 
+						FClassnameIs(pOther, "func_train") || 
+						FClassnameIs(pOther, "func_tanktrain") || 
+						FClassnameIs(pOther, "func_tracktrain"))
 					{
 						return;
 					}
