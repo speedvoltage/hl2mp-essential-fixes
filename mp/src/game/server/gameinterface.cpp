@@ -5,6 +5,7 @@
 //			This files ONLY contains functions and data necessary to build an interface
 //			to external modules
 //===========================================================================//
+
 #include "cbase.h"
 #include "gamestringpool.h"
 #include "mapentities_shared.h"
@@ -89,8 +90,8 @@
 #include "serverbenchmark_base.h"
 #include "querycache.h"
 #include "hl2mp_gamerules.h"
-#include <unordered_map>
-#include <string>
+#include "iserver.h"
+
 
 #ifdef TF_DLL
 #include "gc_clientsystem.h"
@@ -131,15 +132,10 @@ extern ConVar tf_mm_servermode;
 #include "replay/ireplaysystem.h"
 #endif
 
-HSteamPipe hSteamPipeGameInterface = 0;
-HSteamUser hSteamUserGameInterface = 0;
-ISteamClient* pSteamClientGameInterface = nullptr;
-
 extern IToolFrameworkServer *g_pToolFrameworkServer;
 extern IParticleSystemQuery *g_pParticleSystemQuery;
 
 extern ConVar commentary;
-extern ConVar sv_equalizer;
 
 #ifndef NO_STEAM
 // this context is not available on dedicated servers
@@ -958,6 +954,7 @@ bool CServerGameDLL::IsRestoring()
 bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, char const *pOldLevel, char const *pLandmarkName, bool loadGame, bool background )
 {
 	VPROF("CServerGameDLL::LevelInit");
+
 #ifdef USES_ECON_ITEMS
 	GameItemSchema_t *pItemSchema = ItemSystem()->GetItemSchema();
 	if ( pItemSchema )
@@ -968,8 +965,6 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 
 	ResetWindspeed();
 	UpdateChapterRestrictions( pMapName );
-
-	sv_equalizer.SetValue(0);
 
 	if ( IsX360() && !background && (gpGlobals->maxClients == 1) && (g_nCurrentChapterIndex >= 0) )
 	{
@@ -1073,50 +1068,6 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 	m_fAutoSaveDangerousTime = 0.0f;
 	m_fAutoSaveDangerousMinHealthToCommit = 0.0f;
 	return true;
-}
-
-void InitSteamworksAPI()
-{
-	if (pSteamClientGameInterface && hSteamPipeGameInterface && hSteamUserGameInterface)
-	{
-		// Steamworks is already initialized
-		Msg("Steamworks already initialized.\n");
-		return;
-	}
-
-	// Get SteamClient interface
-	pSteamClientGameInterface = SteamClient();
-	if (!pSteamClientGameInterface)
-	{
-		Msg("Failed to get SteamClient.\n");
-		return;
-	}
-
-	// Create Steam pipe
-	hSteamPipeGameInterface = pSteamClientGameInterface->CreateSteamPipe();
-	if (!hSteamPipeGameInterface)
-	{
-		Msg("Failed to create SteamPipe.\n");
-		return;
-	}
-
-	// Connect to global Steam user
-	hSteamUserGameInterface = pSteamClientGameInterface->ConnectToGlobalUser(hSteamPipeGameInterface);
-	if (!hSteamUserGameInterface)
-	{
-		Msg("Failed to connect to global Steam user.\n");
-		pSteamClientGameInterface->BReleaseSteamPipe(hSteamPipeGameInterface);
-		hSteamPipeGameInterface = 0;
-		return;
-	}
-
-	Msg("Steamworks initialized successfully!\n");
-}
-
-// Check if Steamworks is initialized
-bool IsSteamworksInitialized()
-{
-	return (pSteamClientGameInterface && hSteamPipeGameInterface && hSteamUserGameInterface);
 }
 
 //-----------------------------------------------------------------------------
@@ -1464,13 +1415,44 @@ ServerClass* CServerGameDLL::GetAllServerClasses()
 	return g_pServerClassHead;
 }
 
+CON_COMMAND(pause, "Pause or unpause the game")
+{
+	ConVar* sv_pausable = cvar->FindVar("sv_pausable");
+	CBasePlayer* pPlayer = ToBasePlayer(UTIL_GetCommandClient());
+
+	if (pPlayer && sv_pausable->GetBool() == true)
+	{
+		if (!engine->IsPaused())
+		{
+			engine->GetIServer()->SetPaused(true);
+			UTIL_PrintToAllClients(CHAT_CONTEXT "Player " CHAT_PAUSED "%s1 " CHAT_CONTEXT "has paused the game!", pPlayer->GetPlayerName());
+			UTIL_ClientPrintAll(HUD_PRINTCONSOLE, "%s paused the game.", pPlayer->GetPlayerName());
+		}
+		else
+		{
+			engine->GetIServer()->SetPaused(false);
+			UTIL_PrintToAllClients(CHAT_CONTEXT "Player " CHAT_PAUSED "%s1 " CHAT_CONTEXT "has unpaused the game!", pPlayer->GetPlayerName());
+			UTIL_ClientPrintAll(HUD_PRINTCONSOLE, "%s paused the game.", pPlayer->GetPlayerName());
+		}
+	}
+	else if (pPlayer && sv_pausable->GetBool() == false && engine->IsPaused())
+	{
+		// If the game is paused and sv_pausable is 0
+		// allow the pause command to still be used
+		// to unpause the game
+		// A think function is supposed to check for
+		// sv_pausable's value, but it seems unreliable 
+		// at best since it may or may not run
+		engine->GetIServer()->SetPaused(false);
+		UTIL_PrintToAllClients(CHAT_CONTEXT "Player " CHAT_PAUSED "%s1 " CHAT_CONTEXT "has unpaused the game!", pPlayer->GetPlayerName());
+	}
+}
+
 // No Air: Set the new game description in the master server browser
 bool SetGameDescription(const char* gameDescription)
 {
-	InitSteamworksAPI();
-
 	static auto pSteamClient = SteamClient();
-		
+
 	if (pSteamClient)
 	{
 		static auto srv = pSteamClient->GetISteamGameServer(1, 1, STEAMGAMESERVER_INTERFACE_VERSION);
@@ -2735,6 +2717,7 @@ CServerGameClients g_ServerGameClients;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameClients, IServerGameClients003, INTERFACEVERSION_SERVERGAMECLIENTS_VERSION_3, g_ServerGameClients );
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameClients, IServerGameClients, INTERFACEVERSION_SERVERGAMECLIENTS, g_ServerGameClients );
 
+
 //-----------------------------------------------------------------------------
 // Purpose: called when a player tries to connect to the server
 // Input  : *pEdict - the new player
@@ -2752,7 +2735,7 @@ bool CServerGameClients::ClientConnect( edict_t *pEdict, const char *pszName, co
 
 	if (sv_show_client_connect_msg.GetBool())
 		UTIL_PrintToAllClients(CHAT_DEFAULT "%s1 " CHAT_CONTEXT "has joined the game.", pszName[0] != 0 ? pszName : "<unconnected>");
-
+	
 	return g_pGameRules->ClientConnected( pEdict, pszName, pszAddress, reject, maxrejectlen );
 }
 
@@ -2824,13 +2807,6 @@ void CServerGameClients::ClientDisconnect( edict_t *pEdict )
 	extern bool	g_fGameOver;
 
 	CBasePlayer *player = ( CBasePlayer * )CBaseEntity::Instance( pEdict );
-	CHL2MP_Player* pPlayer = dynamic_cast<CHL2MP_Player*>(CBaseEntity::Instance(pEdict));
-
-	if (pPlayer)
-	{
-		pPlayer->SetFirstTimeSpawned(false);
-	}
-
 	if ( player )
 	{
 		if ( !g_fGameOver )

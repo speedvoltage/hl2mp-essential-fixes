@@ -66,7 +66,7 @@ void CSatchelCharge::Spawn( void )
 	Precache( );
 	SetModel( "models/Weapons/w_slam.mdl" );
 
-	VPhysicsInitNormal(SOLID_VPHYSICS, FSOLID_TRIGGER, false);
+	VPhysicsInitNormal( SOLID_BBOX, GetSolidFlags() | FSOLID_TRIGGER, false );
 	SetMoveType( MOVETYPE_VPHYSICS );
 
 	SetCollisionGroup( COLLISION_GROUP_WEAPON );
@@ -120,11 +120,8 @@ void CSatchelCharge::CreateEffects( void )
 //-----------------------------------------------------------------------------
 void CSatchelCharge::InputExplode( inputdata_t &inputdata )
 {
-	// Simply detonate instead of creating an explosion
-	// Fixes the double explosion, causing 500 damage
-	Detonate();
-	/*ExplosionCreate(GetAbsOrigin() + Vector(0, 0, 16), GetAbsAngles(), GetThrower(), GetDamage(), GetDamageRadius(),
-		SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this);*/
+	ExplosionCreate( GetAbsOrigin() + Vector( 0, 0, 16 ), GetAbsAngles(), GetThrower(), GetDamage(), GetDamageRadius(), 
+		SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this);
 
 	UTIL_Remove( this );
 }

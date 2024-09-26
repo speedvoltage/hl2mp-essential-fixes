@@ -22,33 +22,17 @@
 #include "eventqueue.h"
 #include "gamestats.h"
 #include "hl2mp_cvars.h"
-#include "iserver.h"
-#include "worldsize.h"
-#include "utlvector.h"
-#include "util.h"
-#include "mathlib/vector.h"
-#include "filesystem.h"
-#include "steam/steam_api.h"
-#include "engine/iserverplugin.h"
-#include "tier1/KeyValues.h"
-#include "game/server/iplayerinfo.h"
 
 #include "engine/IEngineSound.h"
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 
 #include "ilagcompensationmanager.h"
-#include <unordered_map>
-#include "utlvector.h"
-#include <cstring>
-
-extern IServerPluginHelpers* serverpluginhelpers;
 
 int g_iLastCitizenModel = 0;
 int g_iLastCombineModel = 0;
 
 CBaseEntity	 *g_pLastCombineSpawn = NULL;
 CBaseEntity	 *g_pLastRebelSpawn = NULL;
-
 extern CBaseEntity				*g_pLastSpawn;
 
 #define HL2MP_COMMAND_MAX_RATE 0.3
@@ -66,7 +50,7 @@ IMPLEMENT_SERVERCLASS_ST(CHL2MP_Player, DT_HL2MP_Player)
 	SendPropEHandle( SENDINFO( m_hRagdoll ) ),
 	SendPropInt( SENDINFO( m_iSpawnInterpCounter), 4 ),
 	SendPropInt( SENDINFO( m_iPlayerSoundType), 3 ),
-
+	
 	SendPropExclude( "DT_BaseAnimating", "m_flPoseParameter" ),
 	SendPropExclude( "DT_BaseFlex", "m_viewtarget" ),
 
@@ -105,37 +89,6 @@ const char *g_ppszRandomCombineModels[] =
 	"models/police.mdl",
 };
 
-// To enable us to create menus
-class CEmptyPluginCallbacks : public IServerPluginCallbacks
-{
-public:
-	virtual bool Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory) override { return true; }
-	virtual void Unload() override {}
-	virtual void Pause() override {}
-	virtual void UnPause() override {}
-	virtual const char* GetPluginDescription() override { return "Empty Plugin Callback"; }
-	virtual void LevelInit(const char* mapname) override {}
-	virtual void LevelShutdown() override {}
-	virtual void ClientActive(edict_t* pEntity) override {}
-	virtual void ClientDisconnect(edict_t* pEntity) override {}
-	virtual void ClientPutInServer(edict_t* pEntity, const char* playername) override {}
-	virtual void SetCommandClient(int index) override {}
-	virtual void ClientSettingsChanged(edict_t* pEdict) override {}
-	virtual PLUGIN_RESULT ClientCommand(edict_t* pEntity, const CCommand& args) override { return PLUGIN_CONTINUE; }
-	virtual PLUGIN_RESULT NetworkIDValidated(const char* pszUserName, const char* pszNetworkID) override { return PLUGIN_CONTINUE; }
-	virtual void OnQueryCvarValueFinished(QueryCvarCookie_t iCookie, edict_t* pPlayerEntity, EQueryCvarValueStatus eStatus, const char* pCvarName, const char* pCvarValue) override {}
-	virtual void OnEdictAllocated(edict_t* edict) override {}
-	virtual void OnEdictFreed(const edict_t* edict) override {}
-
-	// Implement the missing pure virtual functions
-	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) override {}
-	virtual void GameFrame(bool simulating) override {}
-	virtual PLUGIN_RESULT ClientConnect(bool* bAllowConnect, edict_t* pEntity, const char* pszName, const char* pszAddress, char* reject, int maxRejectLen) override { return PLUGIN_CONTINUE; }
-};
-
-// Global instance of the empty plugin callback
-CEmptyPluginCallbacks g_EmptyPluginCallbacks;
-
 
 #define MAX_COMBINE_MODELS 4
 #define MODEL_CHANGE_INTERVAL 0.1f
@@ -143,11 +96,7 @@ CEmptyPluginCallbacks g_EmptyPluginCallbacks;
 
 #define HL2MPPLAYER_PHYSDAMAGE_SCALE 4.0f
 
-ConVar sv_lockteams("sv_lockteams", "0", FCVAR_NOTIFY, "If non-zero, locks players to their current teams. ONLY USE THIS IN MATCHES!");
-ConVar sv_teamsmenu("sv_teamsmenu", "1");
 #pragma warning( disable : 4355 )
-
-extern int g_iPreviousLeaderTeam;
 
 CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 {
@@ -160,25 +109,7 @@ CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 
 	m_iSpawnInterpCounter = 0;
 
-	m_iTeamKillCount = 0;
-
-	SetTimerActive(false);
-	SetFugitiveStatus(false);
-
-	Set357ZoomLevel(20);  // Default zoom level for .357
-	SetXbowZoomLevel(20); // Default zoom level for crossbow
-	SetHitSoundsEnabled(true);
-	SetKillSoundsEnabled(true);
-
     m_bEnterObserver = false;
-
-	m_ConsecutiveKillsMap.clear();
-
-	m_bIsLeader = false;
-
-	g_iPreviousLeaderTeam = TEAM_UNASSIGNED;
-
-	m_flNextHudUpdate = 0.0f;
 
 	BaseClass::ChangeTeam( 0 );
 	
@@ -188,35 +119,6 @@ CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 CHL2MP_Player::~CHL2MP_Player( void )
 {
 
-}
-
-void CHL2MP_Player::IncrementConsecutiveKillsForVictim(int victimUserID)
-{
-	// Increment the kill count for this victim or insert 1 if it's the first kill
-	m_ConsecutiveKillsMap[victimUserID]++;
-}
-
-// Get the number of consecutive kills for a specific victim
-int CHL2MP_Player::GetConsecutiveKillsForVictim(int victimUserID) const
-{
-	auto it = m_ConsecutiveKillsMap.find(victimUserID);
-	if (it != m_ConsecutiveKillsMap.end())
-	{
-		return it->second;  // Return the current kill count
-	}
-	return 0;  // Return 0 if no kills have been recorded
-}
-
-// Reset the kill streak for a specific victim
-void CHL2MP_Player::ResetConsecutiveKillsForVictim(int victimUserID)
-{
-	m_ConsecutiveKillsMap.erase(victimUserID);  // Remove the victim's entry from the map
-}
-
-// Reset all kill streaks for this player
-void CHL2MP_Player::ResetAllConsecutiveKills()
-{
-	m_ConsecutiveKillsMap.clear();  // Clear all entries in the map
 }
 
 void CHL2MP_Player::UpdateOnRemove( void )
@@ -234,8 +136,6 @@ void CHL2MP_Player::UpdateOnRemove( void )
 
 	BaseClass::UpdateOnRemove();
 }
-
-extern ConVar sv_custom_sounds;
 
 void CHL2MP_Player::Precache( void )
 {
@@ -258,47 +158,9 @@ void CHL2MP_Player::Precache( void )
 
 	PrecacheFootStepSounds();
 
-	PrecacheScriptSound("NPC_MetroPolice.Die");
-	PrecacheScriptSound("NPC_CombineS.Die");
-	PrecacheScriptSound("NPC_Citizen.die");
-
-	if (sv_custom_sounds.GetBool())
-	{
-		PrecacheScriptSound("server_sounds_red_team");
-		PrecacheScriptSound("server_sounds_red_leads");
-		PrecacheScriptSound("server_sounds_blue_team");
-		PrecacheScriptSound("server_sounds_blue_leads");
-		PrecacheScriptSound("server_sounds_five");
-		PrecacheScriptSound("server_sounds_four");
-		PrecacheScriptSound("server_sounds_three");
-		PrecacheScriptSound("server_sounds_two");
-		PrecacheScriptSound("server_sounds_one");
-		PrecacheScriptSound("server_sounds_gameover");
-		PrecacheScriptSound("server_sounds_gamepaused");
-		PrecacheScriptSound("server_sounds_go1");
-		PrecacheScriptSound("server_sounds_go2");
-		PrecacheScriptSound("server_sounds_go3");
-		PrecacheScriptSound("server_sounds_matchcancel");
-		PrecacheScriptSound("server_sounds_rankdown");
-		PrecacheScriptSound("server_sounds_rankup");
-		PrecacheScriptSound("server_sounds_tie");
-		PrecacheScriptSound("server_sounds_overtime");
-		PrecacheScriptSound("server_sounds_youlead");
-		PrecacheScriptSound("server_sounds_youlost");
-		PrecacheScriptSound("server_sounds_younolead");
-		PrecacheScriptSound("server_sounds_youwin");
-		PrecacheScriptSound("kevlar1");
-		PrecacheScriptSound("kevlar2");
-		PrecacheScriptSound("kevlar3");
-		PrecacheScriptSound("kevlar4");
-		PrecacheScriptSound("kevlar5");
-		PrecacheScriptSound("server_sounds_bhit_helmet-1");
-		PrecacheScriptSound("server_sounds_hitbody");
-		PrecacheScriptSound("server_sounds_hithead");
-		PrecacheScriptSound("headshot_kill_snd");
-		PrecacheScriptSound("frag_snd");
-		PrecacheScriptSound("server_sounds_tkill");
-	}
+	PrecacheScriptSound( "NPC_MetroPolice.Die" );
+	PrecacheScriptSound( "NPC_CombineS.Die" );
+	PrecacheScriptSound( "NPC_Citizen.die" );
 }
 
 void CHL2MP_Player::GiveAllItems( void )
@@ -336,65 +198,46 @@ void CHL2MP_Player::GiveAllItems( void )
 	GiveNamedItem( "weapon_slam" );
 
 	GiveNamedItem( "weapon_physcannon" );
-
-	SetArmorValue(100);
 }
 
-extern bool g_bCopsVsFugitive;
-extern bool g_bCopsVsFugitiveGame;
 void CHL2MP_Player::GiveDefaultItems( void )
 {
-	if (GetTeamNumber() != TEAM_SPECTATOR)
+	EquipSuit();
+
+	if (!mp_noweapons.GetBool())
 	{
-		EquipSuit();
+		CBasePlayer::GiveAmmo(255, "Pistol");
+		CBasePlayer::GiveAmmo(45, "SMG1");
+		CBasePlayer::GiveAmmo(1, "grenade");
+		CBasePlayer::GiveAmmo(6, "Buckshot");
+		CBasePlayer::GiveAmmo(6, "357");
 
-		if (!mp_noweapons.GetBool() && !g_bCopsVsFugitive && !g_bCopsVsFugitiveGame)
+		if (GetPlayerModelType() == PLAYER_SOUNDS_METROPOLICE || GetPlayerModelType() == PLAYER_SOUNDS_COMBINESOLDIER)
 		{
-			CBasePlayer::GiveAmmo(255, "Pistol");
-			CBasePlayer::GiveAmmo(45, "SMG1");
-			CBasePlayer::GiveAmmo(1, "grenade");
-			CBasePlayer::GiveAmmo(6, "Buckshot");
-			CBasePlayer::GiveAmmo(6, "357");
-
-			if (GetPlayerModelType() == PLAYER_SOUNDS_METROPOLICE || GetPlayerModelType() == PLAYER_SOUNDS_COMBINESOLDIER)
-			{
-				GiveNamedItem("weapon_stunstick");
-			}
-			else if (GetPlayerModelType() == PLAYER_SOUNDS_CITIZEN)
-			{
-				GiveNamedItem("weapon_crowbar");
-			}
-
-			GiveNamedItem("weapon_pistol");
-			GiveNamedItem("weapon_smg1");
-			GiveNamedItem("weapon_frag");
-			GiveNamedItem("weapon_physcannon");
-
-			const char* szDefaultWeaponName = engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_defaultweapon");
-
-			CBaseCombatWeapon* pDefaultWeapon = Weapon_OwnsThisType(szDefaultWeaponName);
-
-			if (pDefaultWeapon)
-			{
-				Weapon_Switch(pDefaultWeapon);
-			}
-			else
-			{
-				Weapon_Switch(Weapon_OwnsThisType("weapon_physcannon"));
-			}
+			GiveNamedItem("weapon_stunstick");
 		}
-
-		else if (g_bCopsVsFugitiveGame)
+		else if (GetPlayerModelType() == PLAYER_SOUNDS_CITIZEN)
 		{
 			GiveNamedItem("weapon_crowbar");
-			GiveNamedItem("weapon_physcannon");
-			GiveNamedItem("weapon_pistol");
-			CBasePlayer::GiveAmmo(255, "Pistol");
 		}
-	}
-	else
-	{
-		RemoveAllItems(true);
+
+		GiveNamedItem("weapon_pistol");
+		GiveNamedItem("weapon_smg1");
+		GiveNamedItem("weapon_frag");
+		GiveNamedItem("weapon_physcannon");
+
+		const char *szDefaultWeaponName = engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_defaultweapon");
+
+		CBaseCombatWeapon *pDefaultWeapon = Weapon_OwnsThisType(szDefaultWeaponName);
+
+		if (pDefaultWeapon)
+		{
+			Weapon_Switch(pDefaultWeapon);
+		}
+		else
+		{
+			Weapon_Switch(Weapon_OwnsThisType("weapon_physcannon"));
+		}
 	}
 }
 
@@ -448,30 +291,9 @@ void CHL2MP_Player::PickDefaultSpawnTeam( void )
 	}
 }
 
-void CHL2MP_Player::SetFugitiveStatus(bool isFugitive)
-{
-	m_isFugitive = isFugitive;
-}
-
-bool CHL2MP_Player::IsFugitive() const
-{
-	return m_isFugitive;
-}
-
-void CHL2MP_Player::SetTimerActive(bool isActive)
-{
-	m_timerActive = isActive;
-}
-
-bool CHL2MP_Player::IsTimerActive() const
-{
-	return m_timerActive;
-}
-
 //-----------------------------------------------------------------------------
 // Purpose: Sets HL2 specific defaults.
 //-----------------------------------------------------------------------------
-extern bool g_bWasGamePausedOnJoin;
 void CHL2MP_Player::Spawn(void)
 {
 	m_flNextModelChangeTime = 0.0f;
@@ -480,9 +302,6 @@ void CHL2MP_Player::Spawn(void)
 	PickDefaultSpawnTeam();
 
 	BaseClass::Spawn();
-
-	SetNextThink(gpGlobals->curtime + 0.1f);
-	SetThink(&CHL2MP_Player::FirstThinkAfterSpawn);
 	
 	if ( !IsObserver() )
 	{
@@ -603,13 +422,6 @@ void CHL2MP_Player::SetPlayerTeamModel( void )
 	SetupPlayerSoundsByModel( szModelName );
 
 	m_flNextModelChangeTime = gpGlobals->curtime + MODEL_CHANGE_INTERVAL;
-
-	char szModelFileName[MAX_PATH];
-	V_FileBase(szModelName, szModelFileName, sizeof(szModelFileName));
-
-	// Print the model name to the client
-	if (!g_bCopsVsFugitiveGame)
-		UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Your player model is: " CHAT_INFO "%s\n", szModelFileName));
 }
 
 void CHL2MP_Player::SetPlayerModel( void )
@@ -722,6 +534,7 @@ void CHL2MP_Player::ResetAnimation( void )
 	}
 }
 
+
 bool CHL2MP_Player::Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex )
 {
 	bool bRet = BaseClass::Weapon_Switch( pWeapon, viewmodelindex );
@@ -756,406 +569,6 @@ void CHL2MP_Player::PreThink( void )
 	SetLocalAngles( vOldAngles );
 }
 
-bool CHL2MP_Player::IsReady()
-{
-	return m_bReady;
-}
-
-void CHL2MP_Player::SetReady(bool bReady)
-{
-	m_bReady = bReady;
-}
-
-bool CHL2MP_Player::SavePlayerSettings()
-{
-	const char* steamID3 = engine->GetPlayerNetworkIDString(edict());  // Fetch SteamID3
-	uint64 steamID64 = ConvertSteamID3ToSteamID64(steamID3);  // Convert to SteamID64
-
-	char filename[MAX_PATH];
-	Q_snprintf(filename, sizeof(filename), "cfg/core/%llu.txt", steamID64);  // Use SteamID64 for filename
-
-	// Ensure the directory exists
-	if (!filesystem->FileExists("cfg/core", "GAME"))
-	{
-		filesystem->CreateDirHierarchy("cfg/core", "GAME");
-	}
-
-	KeyValues* kv = new KeyValues("Settings");
-
-	// Load existing settings if the file exists
-	kv->LoadFromFile(filesystem, filename, "MOD");
-
-	KeyValues* playerSettings = kv->FindKey(UTIL_VarArgs("%llu", steamID64), true);
-	playerSettings->SetInt("FOV", m_iFOV);
-	playerSettings->SetInt("FOVServer", m_iFOVServer);
-	playerSettings->SetInt(".357 Zoom Level", Get357ZoomLevel());
-	playerSettings->SetInt("Xbow Zoom Level", GetXbowZoomLevel());
-
-	// Save hit sound and kill sound settings using getters
-	playerSettings->SetInt("HitSoundsEnabled", AreHitSoundsEnabled() ? 1 : 0);
-	playerSettings->SetInt("KillSoundsEnabled", AreKillSoundsEnabled() ? 1 : 0);
-
-	if (kv->SaveToFile(filesystem, filename, "MOD"))
-	{
-		Msg("Player settings saved successfully in cfg/core/.\n");
-	}
-	else
-	{
-		Warning("Failed to save player settings in cfg/core/.\n");
-	}
-
-	kv->deleteThis();
-	return true;
-}
-
-bool CHL2MP_Player::LoadPlayerSettings()
-{
-	const char* steamID3 = engine->GetPlayerNetworkIDString(edict());  // Fetch SteamID3
-	uint64 steamID64 = ConvertSteamID3ToSteamID64(steamID3);  // Convert to SteamID64
-
-	char filename[MAX_PATH];
-	Q_snprintf(filename, sizeof(filename), "cfg/core/%llu.txt", steamID64);  // Use SteamID64 for filename
-
-	KeyValues* kv = new KeyValues("Settings");
-
-	if (!kv->LoadFromFile(filesystem, filename, "MOD"))
-	{
-		Warning("Couldn't load settings from file %s\n", filename);
-		kv->deleteThis();
-		return false;
-	}
-
-	KeyValues* playerSettings = kv->FindKey(UTIL_VarArgs("%llu", steamID64));
-	if (!playerSettings)
-	{
-		Warning("Player settings not found in file %s\n", filename);
-		kv->deleteThis();
-		return false;
-	}
-
-	m_iFOV = playerSettings->GetInt("FOV", m_iFOV);
-	m_iFOVServer = playerSettings->GetInt("FOVServer", m_iFOVServer);
-	Set357ZoomLevel(playerSettings->GetInt(".357 Zoom Level", Get357ZoomLevel()));
-	SetXbowZoomLevel(playerSettings->GetInt("Xbow Zoom Level", GetXbowZoomLevel()));
-
-	// Load hit sound and kill sound settings using GetInt(), with default values of 1 (enabled)
-	SetHitSoundsEnabled(playerSettings->GetBool("HitSoundsEnabled", AreHitSoundsEnabled()));  // Default to enabled
-	SetKillSoundsEnabled(playerSettings->GetBool("KillSoundsEnabled", AreKillSoundsEnabled())); // Default to enabled
-
-	kv->deleteThis();
-	return true;
-}
-
-void CHL2MP_Player::CheckChatText(char* p, int bufsize)
-{
-	//Look for escape sequences and replace
-
-	char* buf = new char[bufsize];
-	int pos = 0;
-
-	// Parse say text for escape sequences
-	for (char* pSrc = p; pSrc != NULL && *pSrc != 0 && pos < bufsize - 1; pSrc++)
-	{
-		// copy each char across
-		buf[pos] = *pSrc;
-		pos++;
-	}
-
-	buf[pos] = '\0';
-
-	// copy buf back into p
-	Q_strncpy(p, buf, bufsize);
-
-	delete[] buf;
-
-	const char* pReadyCheck = p;
-
-	if (Q_strncmp(p, "!fov", strlen("!fov")) == 0)
-	{
-		const char* argStart = strstr(p, "!fov");
-
-		if ((IsBot()))
-			return;
-
-		if (argStart)
-		{
-			argStart += Q_strlen("!fov");
-			while (*argStart == ' ')
-			{
-				argStart++;
-			}
-
-			if (*argStart != '\0')
-			{
-				int iFovValue = atoi(argStart);
-
-				if (iFovValue < 70 || iFovValue > 110)
-				{
-					UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "FOV can only be set between " CHAT_FOV "70 " CHAT_CONTEXT "and " CHAT_FOV "110"));
-					return;
-				}
-
-				if (GetFOV() == iFovValue)
-				{
-					UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "FOV is already set to " CHAT_FOV "%d", GetFOV()));
-					return;
-				}
-
-				char sFovValue[64];
-				Q_snprintf(sFovValue, sizeof(sFovValue), CHAT_CONTEXT "FOV is now set to " CHAT_FOV "%d", iFovValue);
-				UTIL_PrintToClient(this, sFovValue);
-				iFovValue = clamp(iFovValue, 70, 110);
-				m_iFOVServer = iFovValue;
-				m_iFOV = iFovValue;
-				SetDefaultFOV(m_iFOV);
-				SavePlayerSettings();  // Save settings after changing the FOV
-			}
-			else
-			{
-				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "FOV is " CHAT_FOV "%d", GetFOV()));
-			}
-		}
-	}
-
-	if (Q_strncmp(p, "!mzl", strlen("!mzl")) == 0)
-	{
-		const char* argStart = strstr(p, "!mzl");
-
-		if (IsBot())
-			return;
-
-		if (argStart)
-		{
-			argStart += Q_strlen("!mzl");
-			while (*argStart == ' ')
-			{
-				argStart++;
-			}
-
-			// If no argument is provided, print the current value
-			if (*argStart == '\0')
-			{
-				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Your .357 zoom level: " CHAT_FOV "%d", Get357ZoomLevel()));
-				return;
-			}
-
-			// If an argument is provided, set the zoom level
-			int zoomLevel = atoi(argStart);
-
-			if (zoomLevel < 20 || zoomLevel > 40)
-			{
-				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT ".357 zoom level can only be set between " CHAT_FOV "20 " CHAT_CONTEXT "and " CHAT_FOV "40"));
-				return;
-			}
-
-			if (Get357ZoomLevel() == zoomLevel)
-			{
-				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT ".357 zoom level is already set to " CHAT_FOV "%d", zoomLevel));
-				return;
-			}
-
-			Set357ZoomLevel(zoomLevel);
-			SavePlayerSettings();  // Save the new zoom level to the file
-			UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT ".357 zoom level set to " CHAT_FOV "%d", zoomLevel));
-		}
-	}
-
-	if (Q_strncmp(p, "!czl", strlen("!czl")) == 0)
-	{
-		const char* argStart = strstr(p, "!czl");
-
-		if (IsBot())
-			return;
-
-		if (argStart)
-		{
-			argStart += Q_strlen("!czl");
-			while (*argStart == ' ')
-			{
-				argStart++;
-			}
-
-			// If no argument is provided, print the current value
-			if (*argStart == '\0')
-			{
-				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Crossbow zoom level: " CHAT_FOV "%d", GetXbowZoomLevel()));
-				return;
-			}
-
-			// If an argument is provided, set the zoom level
-			int zoomLevel = atoi(argStart);
-
-			if (zoomLevel < 20 || zoomLevel > 40)
-			{
-				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Crossbow zoom level can only be set between " CHAT_FOV "20 " CHAT_CONTEXT "and " CHAT_FOV "40"));
-				return;
-			}
-
-			if (GetXbowZoomLevel() == zoomLevel)
-			{
-				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Crossbow zoom level is already set to " CHAT_FOV "%d", zoomLevel));
-				return;
-			}
-
-			SetXbowZoomLevel(zoomLevel);
-			SavePlayerSettings();  // Save the new zoom level to the file
-			UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Crossbow zoom level set to " CHAT_FOV "%d", zoomLevel));
-		}
-	}
-
-	if (Q_stricmp(p, "!hs") == 0)
-	{
-		bool newHitSoundState = !AreHitSoundsEnabled();
-		SetHitSoundsEnabled(newHitSoundState);
-		if (newHitSoundState)
-		{
-			ClientPrint(this, HUD_PRINTTALK, "Hit sounds enabled.\n");
-		}
-		else
-		{
-			ClientPrint(this, HUD_PRINTTALK, "Hit sounds disabled.\n");
-		}
-		SavePlayerSettings();
-		return;
-	}
-
-	// Command to toggle kill sounds
-	if (Q_stricmp(p, "!ks") == 0)
-	{
-		bool newKillSoundState = !AreKillSoundsEnabled();
-		SetKillSoundsEnabled(newKillSoundState);
-		if (newKillSoundState)
-		{
-			ClientPrint(this, HUD_PRINTTALK, "Kill sounds enabled.\n");
-		}
-		else
-		{
-			ClientPrint(this, HUD_PRINTTALK, "Kill sounds disabled.\n");
-		}
-
-		SavePlayerSettings();
-		return;
-	}
-
-	if (Q_stricmp(p, "!teams") == 0 && sv_teamsmenu.GetBool())
-	{
-		if (serverpluginhelpers)
-		{
-			KeyValues* kv = new KeyValues("menu");
-
-			kv->SetString("title", "Team Selection");
-			kv->SetInt("level", 1);
-			kv->SetColor("color", Color(255, 255, 255, 255));
-			kv->SetInt("time", 20);
-			kv->SetString("msg", "Choose a team or hit ESC to exit");
-
-			KeyValues* item1 = kv->FindKey("1", true);
-			item1->SetString("msg", "Spectate");
-			item1->SetString("command", "spectate");
-
-			KeyValues* item2 = kv->FindKey("2", true);
-			item2->SetString("msg", "Combine");
-			item2->SetString("command", "jointeam 2");
-
-			KeyValues* item3 = kv->FindKey("3", true);
-			item3->SetString("msg", "Rebels");
-			item3->SetString("command", "jointeam 3");
-
-			serverpluginhelpers->CreateMessage(this->edict(), DIALOG_MENU, kv, &g_EmptyPluginCallbacks);
-
-			kv->deleteThis();
-		}
-		return;
-	}
-
-	HL2MPRules()->CheckChatForReadySignal(this, pReadyCheck);
-}
-
-void FOVConsoleCommand(const CCommand& args);
-
-ConCommand fov("fov", FOVConsoleCommand, "Change player FOV via console. Usage: fov <value>", FCVAR_CLIENTCMD_CAN_EXECUTE);
-
-void FOVConsoleCommand(const CCommand& args)
-{
-	CHL2MP_Player* pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
-
-	if (pPlayer == NULL || args.ArgC() < 2)  // Make sure a valid argument is passed (FOV value)
-	{
-		ClientPrint(pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs("\"fov\" is \"%d\"\nUsage: fov <value>", pPlayer->GetFOV()));
-		return;
-	}
-
-	// Block bots from using the command
-	if (pPlayer->IsBot())
-	{
-		return;
-	}
-
-	int iFovValue = atoi(args[1]);  // Get the FOV value from console command argument
-
-	if (iFovValue < 70 || iFovValue > 110)
-	{
-		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "Your FOV can only be set between 70 and 110.\n");
-		return;
-	}
-
-	if (pPlayer->GetFOV() == iFovValue)
-	{
-		ClientPrint(pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs("Your FOV is already set to %d.\n", pPlayer->GetFOV()));
-		return;
-	}
-
-	pPlayer->SetFOVServer(iFovValue);  // Set the server FOV value
-	pPlayer->SetFOV(iFovValue);        // Update the FOV
-	pPlayer->SetDefaultFOV(iFovValue); // Update the player's default FOV
-
-	// Save player settings to the file
-	pPlayer->SavePlayerSettings();
-
-	// Inform the player via console
-	ClientPrint(pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs("Your FOV is now set to %d.\n", iFovValue));
-}
-
-CON_COMMAND(fov_mzl, "Set or check .357 zoom level")
-{
-	CHL2MP_Player* pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
-	if (!pPlayer)
-		return;
-
-	if (args.ArgC() == 1) // No argument, print the current zoom level
-	{
-		char command[8];  // Create a writable buffer
-		Q_strncpy(command, "!mzl", sizeof(command));  // Copy the string into the buffer
-		pPlayer->CheckChatText(command, sizeof(command));  // Pass the writable buffer to CheckChatText
-	}
-	else if (args.ArgC() == 2) // Argument provided, set the zoom level
-	{
-		char command[16];
-		Q_snprintf(command, sizeof(command), "!mzl %s", args[1]);  // Ensure dynamic sizing
-		pPlayer->CheckChatText(command, sizeof(command));
-	}
-}
-
-CON_COMMAND(fov_czl, "Set or check crossbow zoom level")
-{
-	CHL2MP_Player* pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
-	if (!pPlayer)
-		return;
-
-	if (args.ArgC() == 1) // No argument, print the current zoom level
-	{
-		char command[8];  // Create a writable buffer
-		Q_strncpy(command, "!czl", sizeof(command));  // Copy the string into the buffer
-		pPlayer->CheckChatText(command, sizeof(command));  // Pass the writable buffer to CheckChatText
-	}
-	else if (args.ArgC() == 2) // Argument provided, set the zoom level
-	{
-		char command[16];
-		Q_snprintf(command, sizeof(command), "!czl %s", args[1]);  // Ensure dynamic sizing
-		pPlayer->CheckChatText(command, sizeof(command));
-	}
-}
-
 void CHL2MP_Player::PostThink( void )
 {
 	BaseClass::PostThink();
@@ -1165,7 +578,7 @@ void CHL2MP_Player::PostThink( void )
 		SetCollisionBounds( VEC_CROUCH_TRACE_MIN, VEC_CROUCH_TRACE_MAX );
 	}
 
-	// m_PlayerAnimState.Update();
+	m_PlayerAnimState.Update();
 
 	// Store the eye angles pitch so the client can compute its animation state correctly.
 	m_angEyeAngles = EyeAngles();
@@ -1272,7 +685,6 @@ Activity CHL2MP_Player::TranslateTeamActivity( Activity ActToTranslate )
 
 extern ConVar hl2_normspeed;
 
-// Attempt to fix the animation twitch
 // Set the activity based on an event or current state
 void CHL2MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 {
@@ -1495,7 +907,7 @@ bool CHL2MP_Player::BumpWeapon( CBaseCombatWeapon *pWeapon )
 
 void CHL2MP_Player::ChangeTeam( int iTeam )
 {
-	LadderRespawnFix();
+	LadderRespawnFix();		
 
 	// bool bKill = false;
 	bool bWasSpectator = false;
@@ -1594,17 +1006,11 @@ bool CHL2MP_Player::HandleCommand_JoinTeam(int team)
 	// end early
 	if (this->GetTeamNumber() == TEAM_SPECTATOR)
 	{
-		if (sv_lockteams.GetBool())
-		{
-			UTIL_PrintToClient(this, CHAT_RED "Teams are currently locked!\n");
-			return true;
-		}
-
 		ChangeTeam(team);
 		return true;
 	}
 
-	if (team == TEAM_SPECTATOR && !sv_lockteams.GetBool())
+	if (team == TEAM_SPECTATOR)
 	{
 		// Prevent this is the cvar is set
 		if (!mp_allowspectators.GetInt())
@@ -1617,8 +1023,10 @@ bool CHL2MP_Player::HandleCommand_JoinTeam(int team)
 		{
 			m_fNextSuicideTime = gpGlobals->curtime;	// allow the suicide to work
 
+			CommitSuicide();
+
 			// add 1 to frags to balance out the 1 subtracted for killing yourself
-			// IncrementFragCount(1);
+			IncrementFragCount(1);
 		}
 
 		ChangeTeam(TEAM_SPECTATOR);
@@ -1627,15 +1035,10 @@ bool CHL2MP_Player::HandleCommand_JoinTeam(int team)
 	}
 	else
 	{
-		if (sv_lockteams.GetBool())
-		{
-			UTIL_PrintToClient(this, CHAT_RED "Teams are currently locked!\n");
-			return true;
-		}
-
 		StopObserverMode();
 		State_Transition(STATE_ACTIVE);
 	}
+
 	// Switch their actual team...
 	ChangeTeam(team);
 
@@ -1644,37 +1047,32 @@ bool CHL2MP_Player::HandleCommand_JoinTeam(int team)
 
 bool CHL2MP_Player::ClientCommand( const CCommand &args )
 {
-	if (engine->IsPaused())
-		return true;
-
-	if (FStrEq(args[0], "spectate"))
+	if ( FStrEq( args[0], "spectate" ) )
 	{
-		if (ShouldRunRateLimitedCommand(args))
+		if ( ShouldRunRateLimitedCommand( args ) )
 		{
 			// instantly join spectators
-			HandleCommand_JoinTeam(TEAM_SPECTATOR);
+			HandleCommand_JoinTeam( TEAM_SPECTATOR );	
 		}
 
 		return true;
 	}
-	else if (FStrEq(args[0], "jointeam"))
+	else if ( FStrEq( args[0], "jointeam" ) ) 
 	{
-		if (ShouldRunRateLimitedCommand(args))
+		if ( ShouldRunRateLimitedCommand( args ) )
 		{
-			int iTeam = atoi(args[1]);
-			HandleCommand_JoinTeam(iTeam);
+			int iTeam = atoi( args[1] );
+			HandleCommand_JoinTeam( iTeam );
 		}
 		return true;
 	}
-	else if (FStrEq(args[0], "joingame"))
+	else if ( FStrEq( args[0], "joingame" ) )
 	{
 		if (IsObserver())
-		{
-			HandleCommand_JoinTeam(random->RandomInt(2, 3));
-		}
+			this->ChangeTeam(random->RandomInt(2, 3));
 		return true;
 	}
-	
+
 	return BaseClass::ClientCommand( args );
 }
 
@@ -2079,81 +1477,9 @@ ReturnSpot:
 
 	return pSpot;
 }
-
-void CHL2MP_Player::ResetTeamKillCount()
-{
-	m_iTeamKillCount = 0;
-}
-
-void CHL2MP_Player::IncrementTeamKillCount()
-{
-	++m_iTeamKillCount;
-}
-
-int CHL2MP_Player::GetTeamKillCount() const
-{
-	return m_iTeamKillCount;
-}
-
-extern bool g_bWasGamePausedOnJoin;
-
-void CHL2MP_Player::FirstThinkAfterSpawn()
-{
-	if (HasFirstTimeSpawned())
-		return;
-
-	SetFirstTimeSpawned(true);
-
-	if (HL2MPRules()->IsTeamplay() == true)
-	{
-		if (GetTeamNumber() == TEAM_SPECTATOR)
-			UTIL_PrintToClient(this, CHAT_CONTEXT "You are on team " CHAT_SPEC "%s1", GetTeam()->GetName());
-		else if (GetTeamNumber() == TEAM_COMBINE)
-			UTIL_PrintToClient(this, CHAT_CONTEXT "You are on team " CHAT_BLUE "%s1", GetTeam()->GetName());
-		else if (GetTeamNumber() == TEAM_REBELS)
-			UTIL_PrintToClient(this, CHAT_CONTEXT "You are on team " CHAT_RED "%s1", GetTeam()->GetName());
-	}
-
-	if (!engine->IsPaused() && g_bWasGamePausedOnJoin)
-	{
-		engine->GetIServer()->SetPaused(true);
-		g_bWasGamePausedOnJoin = false;
-
-		for (int i = 0; i < MAX_PLAYERS; i++)
-		{
-			CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-
-			if (pPlayer)
-			{
-				pPlayer->RemoveEFlags(FL_FROZEN);
-			}
-		}
-	}
-
-	// Remove this think context after it runs
-	SetThink(nullptr);
-}
-
 void CHL2MP_Player::InitialSpawn( void )
 {
 	BaseClass::InitialSpawn();
-
-	if (engine->IsPaused())
-	{
-		engine->GetIServer()->SetPaused(false);
-		g_bWasGamePausedOnJoin = true;
-		
-		for (int i = 0; i < MAX_PLAYERS; i++)
-		{
-			CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-
-			if (pPlayer)
-			{
-				pPlayer->AddEFlags(FL_FROZEN);
-			}
-		}
-	}
-
 #if !defined(NO_STEAM)
 	uint64 thisSteamID = GetSteamIDAsUInt64();
 	const CEntInfo* pInfo = gEntList.FirstEntInfo();
@@ -2184,9 +1510,9 @@ void CHL2MP_Player::InitialSpawn( void )
 			}
 		}
 	}
-	LoadPlayerSettings();
 #endif
 }
+
 
 CON_COMMAND( timeleft, "prints the time remaining in the match" )
 {

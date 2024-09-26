@@ -25,10 +25,6 @@
 #include "engine/IEngineSound.h"
 #include "team.h"
 #include "viewport_panel_names.h"
-#include "filesystem.h"
-#include "KeyValues.h"
-#include "steam/steam_api.h"
-#include "iserver.h"
 
 #include "tier0/vprof.h"
 
@@ -45,16 +41,13 @@ ConVar sv_join_spec_on_connect("sv_join_spec_on_connect", "0", 0, "If non-zero, 
 extern ConVar sv_timeleft_color_override;
 extern CBaseEntity*	FindPickerEntityClass( CBasePlayer *pPlayer, char *classname );
 extern bool			g_fGameOver;
-bool g_bWasGamePausedOnJoin = false;
 
 void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 {
 	pPlayer->InitialSpawn();
 
-	if (sv_join_spec_on_connect.GetBool())
-		pPlayer->ChangeTeam(TEAM_SPECTATOR);
-
-	pPlayer->Spawn();
+	if (!sv_join_spec_on_connect.GetBool())
+		pPlayer->Spawn();
 
 	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
 	{
@@ -85,7 +78,6 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 		data->SetString("title", title);		// info panel title
 		data->SetString("type", "1");			// show userdata from stringtable entry
 		data->SetString("msg", "motd");		// use this stringtable entry
-		data->SetBool("unload", sv_motd_unload_on_dismissal.GetBool());
 
 		pPlayer->ShowViewPortPanel(PANEL_INFO, true, data);
 
@@ -96,6 +88,15 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
 	{
 		pPlayer->RemoveAllItems(true);
+	}
+
+	if (sv_join_spec_on_connect.GetBool())
+		pPlayer->ChangeTeam(TEAM_SPECTATOR);
+
+	if (HL2MPRules()->IsTeamplay() == true)
+	{
+		pPlayer->SetNextThink(gpGlobals->curtime + 0.1f);
+		ClientPrint(pPlayer, HUD_PRINTTALK, "\x01You are on team \x05%s1\x01.\n", pPlayer->GetTeam()->GetName());
 	}
 }
 
@@ -108,9 +109,11 @@ called each time a player is spawned into the game
 */
 void ClientPutInServer( edict_t *pEdict, const char *playername )
 {
+	// Allocate a CBaseTFPlayer for pev, and call spawn
 	CHL2MP_Player *pPlayer = CHL2MP_Player::CreatePlayer( "player", pEdict );
-	pPlayer->SetPlayerName(playername);
+	pPlayer->SetPlayerName( playername );
 }
+
 
 void ClientActive( edict_t *pEdict, bool bLoadGame )
 {

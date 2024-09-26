@@ -70,8 +70,6 @@
 #include "vote_controller.h"
 #include "ai_speech.h"
 #include "multiplay_gamerules.h"
-#include "te_effect_dispatch.h"
-#include "hl2mp_player.h"
 #if defined USES_ECON_ITEMS
 #include "econ_wearable.h"
 #endif
@@ -83,8 +81,6 @@
 #include "combine_mine.h"
 #include "weapon_physcannon.h"
 #endif
-
-#include "iserver.h"
 
 ConVar autoaim_max_dist( "autoaim_max_dist", "2160" ); // 2160 = 180 feet
 ConVar autoaim_max_deflect( "autoaim_max_deflect", "0.99" );
@@ -115,7 +111,6 @@ ConVar cl_sidespeed( "cl_sidespeed", "450", FCVAR_REPLICATED | FCVAR_CHEAT );
 ConVar cl_upspeed( "cl_upspeed", "320", FCVAR_REPLICATED | FCVAR_CHEAT );
 ConVar cl_forwardspeed( "cl_forwardspeed", "450", FCVAR_REPLICATED | FCVAR_CHEAT );
 ConVar cl_backspeed( "cl_backspeed", "450", FCVAR_REPLICATED | FCVAR_CHEAT );
-ConVar mp_armor_sparks("mp_armor_sparks", "0", FCVAR_NOTIFY, "If non-zero, shows sparks coming out of a hurt player when they have armor");
 #endif // CSTRIKE_DLL
 
 // This is declared in the engine, too
@@ -1602,143 +1597,68 @@ const impactdamagetable_t &CBasePlayer::GetPhysicsImpactDamageTable()
 }
 
 
-int CBasePlayer::OnTakeDamage_Alive(const CTakeDamageInfo& info)
+int CBasePlayer::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 {
 	// set damage type sustained
 	m_bitsDamageType |= info.GetDamageType();
 
-	if (!BaseClass::OnTakeDamage_Alive(info))
+	if ( !BaseClass::OnTakeDamage_Alive( info ) )
 		return 0;
 
-	CBaseEntity* attacker = info.GetAttacker();
+	CBaseEntity * attacker = info.GetAttacker();
 
-	if (!attacker)
+	if ( !attacker )
 		return 0;
 
 	Vector vecDir = vec3_origin;
-	if (info.GetInflictor())
+	if ( info.GetInflictor() )
 	{
-		vecDir = info.GetInflictor()->WorldSpaceCenter() - Vector(0, 0, 10) - WorldSpaceCenter();
-		VectorNormalize(vecDir);
+		vecDir = info.GetInflictor()->WorldSpaceCenter() - Vector ( 0, 0, 10 ) - WorldSpaceCenter();
+		VectorNormalize( vecDir );
 	}
 
-	if (info.GetInflictor() && (GetMoveType() == MOVETYPE_WALK) &&
-		(!attacker->IsSolidFlagSet(FSOLID_TRIGGER)))
+	if ( info.GetInflictor() && (GetMoveType() == MOVETYPE_WALK) && 
+		( !attacker->IsSolidFlagSet(FSOLID_TRIGGER)) )
 	{
-		Vector force = vecDir * -DamageForce(WorldAlignSize(), info.GetBaseDamage());
-		if (force.z > 250.0f)
+		Vector force = vecDir * -DamageForce( WorldAlignSize(), info.GetBaseDamage() );
+		if ( force.z > 250.0f )
 		{
 			force.z = 250.0f;
 		}
-		ApplyAbsVelocityImpulse(force);
+		ApplyAbsVelocityImpulse( force );
 	}
 
-	// Since we are sending a FSOLID_NOT_SOLID to hide the HUD target ID, 
-	// the body hit sounds with the crowbar and stunstick no longer happen, 
-	// so we are compensating this with the custom hit sounds
-	if (attacker->IsPlayer())
+	// fire global game event
+
+	IGameEvent * event = gameeventmanager->CreateEvent( "player_hurt" );
+	if ( event )
 	{
-		CBasePlayer* pAttacker = ToBasePlayer(attacker);
+		event->SetInt("userid", GetUserID() );
+		event->SetInt("health", MAX(0, m_iHealth) );
+		event->SetInt("priority", 5 );	// HLTV event priority, not transmitted
 
-		// Check the weapon used for the hit
-		CBaseCombatWeapon* pWeapon = pAttacker->GetActiveWeapon();
-
-		if (pWeapon)
+		if ( attacker->IsPlayer() )
 		{
-			const char* soundToPlay = nullptr;
-
-			if (FClassnameIs(pWeapon, "weapon_crowbar"))
-			{
-				soundToPlay = "server_sounds_hitbody";
-			}
-
-			else if (FClassnameIs(pWeapon, "weapon_stunstick"))
-			{
-				soundToPlay = "server_sounds_hitbody";
-			}
-
-
-			if (soundToPlay)
-			{
-				
-				CPASAttenuationFilter filter(this);
-
-
-				EmitSound_t params;
-				params.m_pSoundName = soundToPlay;
-				params.m_flSoundTime = 0;
-				params.m_pOrigin = &GetAbsOrigin();
-				EmitSound(filter, entindex(), params);
-			}
-		}
-	}
-
-	// Shotgun hit tracking
-	static float lastShotgunHitTime = 0.0f;
-	bool isShotgun = (info.GetDamageType() & DMG_BUCKSHOT) != 0;
-
-	// Allow sounds to be played once per shotgun hit
-	bool playSound = true;
-
-	// If it's a shotgun, ensure that the sound plays only once per shot
-	if (isShotgun)
-	{
-		// If this is the same frame or very close in time, prevent the sound from playing multiple times
-		if (gpGlobals->curtime == lastShotgunHitTime)
-		{
-			playSound = false;
+			CBasePlayer *player = ToBasePlayer( attacker );
+			event->SetInt("attacker", player->GetUserID() ); // hurt by other player
 		}
 		else
 		{
-			lastShotgunHitTime = gpGlobals->curtime;
+			event->SetInt("attacker", 0 ); // hurt by "world"
 		}
+
+        gameeventmanager->FireEvent( event );
 	}
-
-	if (ArmorValue() > 5)
-	{
-		Vector vecDamagePos = info.GetDamagePosition();
-
-		if (vecDamagePos != vec3_origin)
-		{
-			CEffectData data;
-			data.m_vOrigin = vecDamagePos;
-			data.m_vNormal = Vector(0, 0, 1);
-			data.m_flScale = 0.01f;
-			data.m_fFlags = 0;
-
-			DispatchEffect("cball_explode", data);
-		}
-	}
-
-	// Fire global game event
-	IGameEvent* event = gameeventmanager->CreateEvent("player_hurt");
-	if (event)
-	{
-		event->SetInt("userid", GetUserID());
-		event->SetInt("health", MAX(0, m_iHealth));
-		event->SetInt("priority", 5);    // HLTV event priority, not transmitted
-
-		if (attacker->IsPlayer())
-		{
-			CBasePlayer* player = ToBasePlayer(attacker);
-			event->SetInt("attacker", player->GetUserID()); // hurt by other player
-		}
-		else
-		{
-			event->SetInt("attacker", 0); // hurt by "world"
-		}
-
-		gameeventmanager->FireEvent(event);
-	}
-
+	
 	// Insert a combat sound so that nearby NPCs hear battle
-	if (attacker->IsNPC())
+	if ( attacker->IsNPC() )
 	{
-		CSoundEnt::InsertSound(SOUND_COMBAT, GetAbsOrigin(), 512, 0.5, this); // magic number
+		CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), 512, 0.5, this );//<<TODO>>//magic number
 	}
 
 	return 1;
 }
+
 
 void CBasePlayer::Event_Killed( const CTakeDamageInfo &info )
 {
@@ -2378,7 +2298,7 @@ bool CBasePlayer::StartObserverMode(int mode)
 	}
 	
 	// Setup flags
-	m_Local.m_iHideHUD = HIDEHUD_HEALTH;
+    m_Local.m_iHideHUD = HIDEHUD_HEALTH;
 	m_takedamage = DAMAGE_NO;		
 
 	// Become invisible
@@ -4619,8 +4539,6 @@ void CBasePlayer::PostThink()
 {
 	if (IsObserver())
 	{
-		m_pObservedPlayer = NULL; // Initialize
-
 		m_Local.m_iHideHUD = HIDEHUD_HEALTH;
 
 		if (m_iObserverMode == OBS_MODE_POI || m_iObserverMode == OBS_MODE_FIXED)
@@ -4637,20 +4555,12 @@ void CBasePlayer::PostThink()
 		if (m_iObserverMode != OBS_MODE_IN_EYE)
 		{
 			m_Local.m_iHideHUD = HIDEHUD_CROSSHAIR;
-			SetDefaultFOV(m_iFOVServer);
 		}
 		else
 		{
 			m_Local.m_iHideHUD &= ~HIDEHUD_CROSSHAIR;
-
-			m_pObservedPlayer = static_cast<CBasePlayer*>(GetObserverTarget());
-			if (m_pObservedPlayer)
-			{
-				// Set the FOV to match the observed player's FOV
-				SetDefaultFOV(m_pObservedPlayer->GetFOV());
-
-			}
 		}
+
 	}
 
 	m_vecSmoothedVelocity = m_vecSmoothedVelocity * SMOOTHING_FACTOR + GetAbsVelocity() * ( 1 - SMOOTHING_FACTOR );
@@ -5039,8 +4949,6 @@ void CBasePlayer::InitialSpawn( void )
 //-----------------------------------------------------------------------------
 // Purpose: Called everytime the player respawns
 //-----------------------------------------------------------------------------
-extern bool g_bWasGamePausedOnJoin;
-
 void CBasePlayer::Spawn( void )
 {
 	// Needs to be done before weapons are given
@@ -5075,12 +4983,6 @@ void CBasePlayer::Spawn( void )
 
 	AddFlag( FL_AIMTARGET );
 
-	CHL2MP_Player* pPlayer = dynamic_cast<CHL2MP_Player*>(this);
-	if (pPlayer)
-	{
-		pPlayer->ResetAllConsecutiveKills();
-	}
-
 	m_AirFinished	= gpGlobals->curtime + AIRTIME;
 	m_nDrownDmgRate	= DROWNING_DAMAGE_INITIAL;
 	
@@ -5101,8 +5003,7 @@ void CBasePlayer::Spawn( void )
 
 	m_idrownrestored = m_idrowndmg;
 
-	SetCustomFOV( this, 0 );
-	SetDefaultFOV(m_iFOV);
+	SetFOV( this, 0 );
 
 	m_flNextDecalTime	= 0;// let this player decal as soon as he spawns.
 
@@ -5210,75 +5111,6 @@ void CBasePlayer::Spawn( void )
 	m_weaponFiredTimer.Invalidate();
 }
 
-uint64 CBasePlayer::ConvertSteamID3ToSteamID64(const char* steamID3)
-{
-	int universe = 1; // Default universe (1 = Public)
-	int accountID = 0;
-	sscanf(steamID3, "[U:%d:%d]", &universe, &accountID);
-
-	// SteamID64 calculation formula
-	uint64 steamID64 = 0x0110000100000000ULL + accountID;
-	return steamID64;
-}
-
-KeyValues* kvFOV = NULL;
-
-bool CBasePlayer::SetCustomFOV(CBaseEntity* pRequester, int FOV, float zoomRate, int iZoomStart /* = 0 */)
-{
-	if (IsBot())
-		return false;
-
-	// Get player's SteamID64 for unique filename
-	const char* steamID3 = engine->GetPlayerNetworkIDString(edict());  // Fetch SteamID3
-	uint64 steamID64 = this->ConvertSteamID3ToSteamID64(steamID3);  // Convert to SteamID64
-
-	char filename[MAX_PATH];
-	Q_snprintf(filename, sizeof(filename), "cfg/core/%llu.txt", steamID64);  // Use SteamID64 for filename
-	V_FixSlashes(filename);
-
-	// Load player's settings file
-	if (!filesystem->FileExists(filename, "GAME"))
-	{
-		Warning("File [%s] does not exist.\n", filename);
-		return false;
-	}
-
-	KeyValues* kvFOV = new KeyValues("Settings");
-
-	if (!kvFOV->LoadFromFile(filesystem, filename, "GAME"))
-	{
-		Warning("ERROR: Unable to load settings from file [%s]. The file may be corrupted.\n", filename);
-		kvFOV->deleteThis();
-		return false;
-	}
-
-	KeyValues* playerSettings = kvFOV->FindKey(UTIL_VarArgs("%llu", steamID64));
-	if (!playerSettings)
-	{
-		Warning("ERROR: Player settings not found in file [%s].\n", filename);
-		kvFOV->deleteThis();
-		return false;
-	}
-
-	// Find the FOV setting and apply it
-	int savedFOV = playerSettings->GetInt("FOV", -1);  // Use -1 as a default if FOV is not found
-	if (savedFOV == -1)
-	{
-		Warning("ERROR: FOV setting not found for player in file [%s].\n", filename);
-		kvFOV->deleteThis();
-		return false;
-	}
-
-	// Apply the saved FOV value to the player
-	m_iFOV = savedFOV;
-	m_iFOVServer = savedFOV;
-
-	// Msg("Custom FOV set to %d from file [%s].\n", m_iFOV, filename);
-
-	kvFOV->deleteThis();
-	return true;
-}
-
 void CBasePlayer::Activate( void )
 {
 	BaseClass::Activate();
@@ -5305,8 +5137,6 @@ void CBasePlayer::Precache( void )
 	PrecacheScriptSound( "Player.DrownContinue" );
 	PrecacheScriptSound( "Player.Wade" );
 	PrecacheScriptSound( "Player.AmbientUnderWater" );
-	// PrecacheSound("ambient/energy/spark1.wav");
-
 	enginesound->PrecacheSentenceGroup( "HEV" );
 
 	// These are always needed
@@ -7671,14 +7501,9 @@ void CBasePlayer::PlayWearableAnimsForPlaybackEvent( wearableanimplayback_t iPla
 // Purpose: Put the player in the specified team
 //-----------------------------------------------------------------------------
 
-extern ConVar sv_custom_sounds;
-extern bool g_bCopsVsFugitiveGame;
 ConVar sv_show_team_change_msg("sv_show_team_change_msg", "1", 0, "Show team change messages in the chat when a player changes teams.");
 void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent)
 {
-	if (engine->IsPaused())
-		return;
-
 	if ( !GetGlobalTeam( iTeamNum ) )
 	{
 		Warning( "CBasePlayer::ChangeTeam( %d ) - invalid team index.\n", iTeamNum );
@@ -7714,10 +7539,10 @@ void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent)
 		GetTeam()->RemovePlayer( this );
 
 		// Compensate the team score by adding 1 frag when switching to spectators
-		/*if (GameRules()->IsTeamplay() && iTeamNum == 1 && !IsDisconnecting())
-			GetTeam()->AddScore(1);*/
+		if (GameRules()->IsTeamplay() && iTeamNum == 1 && !IsDisconnecting())
+			GetTeam()->AddScore(1);
 
-		if (GameRules()->IsTeamplay() && GetTeam())
+		if (GameRules()->IsTeamplay() && GetTeam() && !IsDisconnecting())
 		{
 			int iFrags = FragCount();
 			GetTeam()->AddScore(-iFrags);
@@ -7729,7 +7554,7 @@ void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent)
 		}
 	}
 
-	if (sv_show_team_change_msg.GetBool() && !g_bCopsVsFugitiveGame)
+	if (sv_show_team_change_msg.GetBool())
 	{
 		if (iTeamNum == 0 && gpGlobals->teamplay == 0 && !IsDisconnecting())
 			UTIL_PrintToAllClients(CHAT_UNASSIGNED "%s1 " CHAT_CONTEXT "joined team " CHAT_UNASSIGNED "Players.", GetPlayerName());
@@ -7740,46 +7565,16 @@ void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent)
 		else if (iTeamNum == 1 && !IsDisconnecting())
 			UTIL_PrintToAllClients(CHAT_SPEC "%s1 " CHAT_CONTEXT "joined team " CHAT_SPEC "Spectators.", GetPlayerName());
 	}
-
-	if (sv_custom_sounds.GetBool())
-	{
-		// Play sound based on new team
-		if (iTeamNum == TEAM_REBELS)
-		{
-			/*CRecipientFilter filter;
-			filter.AddRecipient(this);
-			EmitSound(filter, entindex(), "server_sounds_red_team");  // Play the red team sound
-			Msg("Playing red_team sound for Rebels.\n");*/
-
-			engine->ClientCommand(edict(), "play server_sounds/red_team.wav\n");
-		}
-		else if (iTeamNum == TEAM_COMBINE)
-		{
-			/*CRecipientFilter filter;
-			filter.AddRecipient(this);
-			EmitSound(filter, entindex(), "server_sounds_blue_team");  // Play the blue team sound
-			Msg("Playing blue_team sound for Combine.\n");*/
-
-
-			engine->ClientCommand(edict(), "play server_sounds/blue_team.wav\n");
-
-		}
-	}
-
 	// Are we being added to a team?
 	if ( iTeamNum )
 	{
 		GetGlobalTeam( iTeamNum )->AddPlayer( this );
 	}
 
-	CHL2MP_Player* pPlayer = dynamic_cast<CHL2MP_Player*>(this);
-	if (pPlayer)
-	{
-		pPlayer->ResetAllConsecutiveKills();
-	}
-
 	BaseClass::ChangeTeam( iTeamNum );
 }
+
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Locks a player to the spot; they can't move, shoot, or be hurt

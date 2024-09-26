@@ -5758,27 +5758,8 @@ void CPhysicsPropRespawnable::Spawn( void )
 {
 	BaseClass::Spawn();
 
-	// Fix for barrels clipping through the floor for some reason
-	Vector fixorigin = GetLocalOrigin();
-
-	fixorigin.z += 1.0;
-
-	if (FStrEq(STRING(gpGlobals->mapname), "dm_lockdown"))
-	{
-		IPhysicsObject* pPhysics = VPhysicsGetObject();
-		if (pPhysics)
-		{
-			pPhysics->SetPosition(fixorigin, GetLocalAngles(), true);
-		}
-	}
-
 	m_vOriginalSpawnOrigin = GetAbsOrigin();
 	m_vOriginalSpawnAngles = GetAbsAngles();
-
-	if (FStrEq(STRING(gpGlobals->mapname), "dm_lockdown"))
-	{
-		m_vOriginalSpawnOrigin.z += 1.0;
-	}
 
 	m_vOriginalMins = CollisionProp()->OBBMins();
 	m_vOriginalMaxs = CollisionProp()->OBBMaxs();

@@ -311,47 +311,31 @@ void CGrenadeFrag::SetTimer( float detonateDelay, float warnDelay )
 	CreateEffects();
 }
 
-void CGrenadeFrag::OnPhysGunPickup(CBasePlayer* pPhysGunUser, PhysGunPickup_t reason)
+void CGrenadeFrag::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t reason )
 {
-	IPhysicsObject* pPhysicsObject = VPhysicsGetObject();
-
-	if (pPhysicsObject && (pPhysicsObject->GetGameFlags() & FVPHYSICS_PLAYER_HELD))
-	{
-		CBasePlayer* pCurrentOwner = ToBasePlayer(GetOwnerEntity());
-		if (pCurrentOwner && pCurrentOwner != pPhysGunUser)
-		{
-#ifdef HL2MP
-			SetTimer(FRAG_GRENADE_GRACE_TIME_AFTER_PICKUP, FRAG_GRENADE_GRACE_TIME_AFTER_PICKUP / 2);
-			m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FAST_FREQUENCY;
-			m_bHasWarnedAI = true;
-#endif
-			Msg("Grenade punted by: %s, but ownership remains with: %s\n", pPhysGunUser->GetPlayerName(), pCurrentOwner->GetPlayerName());
-			return;
-		}
-	}
-
-	// If not being held, set the new owner
-	SetThrower(pPhysGunUser);
+	SetThrower( pPhysGunUser );
 
 #ifdef HL2MP
-	SetTimer(FRAG_GRENADE_GRACE_TIME_AFTER_PICKUP, FRAG_GRENADE_GRACE_TIME_AFTER_PICKUP / 2);
-	// BlipSound();
+	SetTimer( FRAG_GRENADE_GRACE_TIME_AFTER_PICKUP, FRAG_GRENADE_GRACE_TIME_AFTER_PICKUP / 2);
+
+	BlipSound();
 	m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FAST_FREQUENCY;
 	m_bHasWarnedAI = true;
 #else
-	if (IsX360())
+	if( IsX360() )
 	{
-		SetTimer(2.0f, 1.0f);
+		// Give 'em a couple of seconds to aim and throw. 
+		SetTimer( 2.0f, 1.0f);
 		BlipSound();
 		m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FAST_FREQUENCY;
 	}
 #endif
 
 #ifdef HL2_EPISODIC
-	SetPunted(true);
+	SetPunted( true );
 #endif
 
-	BaseClass::OnPhysGunPickup(pPhysGunUser, reason);
+	BaseClass::OnPhysGunPickup( pPhysGunUser, reason );
 }
 
 void CGrenadeFrag::DelayThink() 
@@ -461,7 +445,7 @@ CBaseGrenade *Fraggrenade_Create( const Vector &position, const QAngle &angles, 
 
 	return pGrenade;
 }
-// "Damage taken" and "Picked up a nade"
+
 bool Fraggrenade_WasPunted( const CBaseEntity *pEntity )
 {
 	const CGrenadeFrag *pFrag = dynamic_cast<const CGrenadeFrag *>( pEntity );

@@ -33,12 +33,9 @@ public:
 	void	PrimaryAttack( void );
 
 	// Default calls through to m_hOwner, but plasma weapons can override and shoot projectiles here.
-	virtual void	ItemPostFrame(void);
-	virtual void	FireBullets(const FireBulletsInfo_t& info);
-	virtual bool	Deploy(void);
-	virtual bool	Holster(CBaseCombatWeapon* pSwitchingTo);
-	virtual void	AddViewmodelBob(CBaseViewModel* viewmodel, Vector& origin, QAngle& angles);
-	virtual float	CalcViewmodelBob(void);
+	virtual void	ItemPostFrame( void );
+	virtual void	FireBullets( const FireBulletsInfo_t &info );
+	virtual bool	Deploy( void );
 
 	virtual const Vector &GetBulletSpread( void );
 
@@ -46,8 +43,6 @@ public:
 
 	// utility function
 	static void DoMachineGunKick( CBasePlayer *pPlayer, float dampEasy, float maxVerticleKickAngle, float fireDurationTime, float slideLimitTime );
-
-	virtual void	ItemHolsterFrame(void);
 
 private:
 	
@@ -58,8 +53,6 @@ protected:
 	int	m_nShotsFired;	// Number of consecutive shots fired
 
 	float	m_flNextSoundTime;	// real-time clock of when to make next sound
-
-	float m_flHolsterTime;
 };
 
 #endif // BASEHLCOMBATWEAPON_H

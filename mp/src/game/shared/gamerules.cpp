@@ -665,6 +665,32 @@ CBaseCombatWeapon *CGameRules::GetNextBestWeapon( CBaseCombatCharacter *pPlayer,
 	return NULL;
 }
 
+void mp_noblock_changed(IConVar* pConVar, const char* pOldString, float flOldValue)
+{
+	for (int i = 1; i <= MAX_PLAYERS; i++)
+	{
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+		if (pPlayer)
+		{
+			if (((ConVar*)pConVar)->GetBool() == true)
+				pPlayer->SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER);
+
+			else
+				pPlayer->SetCollisionGroup(COLLISION_GROUP_PLAYER);
+
+
+		}
+	}
+}
+
+ConVar mp_noblock(
+	"mp_noblock",
+	"0",
+	FCVAR_GAMEDLL | FCVAR_NOTIFY,
+	"If non-zero, disable collisions between players",
+	mp_noblock_changed);
+
 bool CGameRules::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 {
 	if ( collisionGroup0 > collisionGroup1 )
@@ -769,16 +795,27 @@ bool CGameRules::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 		// vehicle clip against non-vehicle, no collision
 		return false;
 	}
-
-	// This causes prediction issues. 
-	// Instead, we will use pPlayer->SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER)
-	/*if (collisionGroup1 == COLLISION_GROUP_PLAYER || collisionGroup1 == COLLISION_GROUP_PLAYER_MOVEMENT)
+#ifndef CLIENT_DLL
+	if (mp_noblock.GetBool())
 	{
-		if (collisionGroup0 == COLLISION_GROUP_PLAYER || collisionGroup0 == COLLISION_GROUP_PLAYER_MOVEMENT)
+		if (collisionGroup1 == COLLISION_GROUP_PLAYER || collisionGroup1 == COLLISION_GROUP_PLAYER_MOVEMENT)
 		{
-			return false;
+			if (collisionGroup0 == COLLISION_GROUP_PLAYER || collisionGroup0 == COLLISION_GROUP_PLAYER_MOVEMENT)
+			{
+				for (int i = 1; i <= MAX_PLAYERS; i++)
+				{
+					CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+					if (pPlayer)
+					{
+						pPlayer->SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER);
+					}
+				}
+				return false;
+			}
 		}
-	}*/
+	}
+#endif
 
 	return true;
 }

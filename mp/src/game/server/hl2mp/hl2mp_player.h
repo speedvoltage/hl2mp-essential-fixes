@@ -19,8 +19,6 @@ class CHL2MP_Player;
 #include "hl2mp_player_shared.h"
 #include "hl2mp_gamerules.h"
 #include "utldict.h"
-#include <unordered_map>
-#include "Sprite.h"
 
 //=============================================================================
 // >> HL2MP_Player
@@ -54,8 +52,6 @@ public:
 	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 
-	void UpdateClientCollisionGroup();
-
 	virtual void Precache( void );
 	virtual void Spawn( void );
 	virtual void PostThink( void );
@@ -80,9 +76,6 @@ public:
 	virtual void DeathSound( const CTakeDamageInfo &info );
 	virtual CBaseEntity* EntSelectSpawnPoint( void );
 	virtual void InitialSpawn( void );
-	void CheckChatText(char* p, int bufsize); 
-	void SetReady(bool bReady);
-	bool IsReady();
 		
 	int FlashlightIsOn( void );
 	void FlashlightTurnOn( void );
@@ -132,10 +125,6 @@ public:
 	virtual bool StartObserverMode( int mode );
 	virtual void StopObserverMode( void );
 
-	bool LoadPlayerSettings();
-	bool SavePlayerSettings();
-
-	int GetReportedSolidFlags(void);
 
 	Vector m_vecTotalBulletForce;	//Accumulator for bullet force in a single frame
 
@@ -144,77 +133,10 @@ public:
 
 	virtual bool	CanHearAndReadChatFrom( CBasePlayer *pPlayer );
 
-	void IncrementConsecutiveKillsForVictim(int victimUserID);
-	int GetConsecutiveKillsForVictim(int victimUserID) const;
-	void ResetConsecutiveKillsForVictim(int victimUserID);
-	void ResetAllConsecutiveKills();
-
-	void FirstThinkAfterSpawn();
-
-	void DelayedLeaderCheck();
-
-	bool IsLeader() const
-	{
-		return m_bIsLeader;
-	}
-
-	// Setter for the leader status
-	void SetLeaderStatus(bool isLeader)
-	{
-		m_bIsLeader = isLeader;
-	}
-
-	void SetFirstTimeSpawned(bool HasFirstTimeSpawned)
-	{
-		g_bFirstSpawn = HasFirstTimeSpawned;
-	}
-
-	bool HasFirstTimeSpawned()
-	{
-		return g_bFirstSpawn;
-	}
-
-	// Team kill related functions
-	void IncrementTeamKillCount();
-	int GetTeamKillCount() const;
-	void ResetTeamKillCount();
-
-	// Cops vs Fugitive
-
-	// Getter for fugitive timer
-	float GetFugitiveTimer() const { return m_fugitiveTimer; }
-
-	// Setter for fugitive timer
-	void SetFugitiveTimer(float time) { m_fugitiveTimer = time; }
-
-	// Reset fugitive timer to 0
-	void ResetFugitiveTimer() { m_fugitiveTimer = 0.0f; }
-
-	// Getter for whether the player is a fugitive
-	bool IsFugitive() const;
-
-	// Setter for fugitive status
-	void SetFugitiveStatus(bool status);
-
-	// Getter for timer active status
-	bool IsTimerActive() const;
-
-	// Setter for timer active status
-	void SetTimerActive(bool active);
-
-	// Getter for m_flNextHudUpdate
-	float GetNextHudUpdate() const { return m_flNextHudUpdate; }
-
-	// Setter for m_flNextHudUpdate
-	void SetNextHudUpdate(float flNextUpdate) { m_flNextHudUpdate = flNextUpdate; }
 		
 private:
 
 	void LadderRespawnFix();
-
-	float m_fugitiveTimer;    // Total fugitive time for this player
-	bool m_isFugitive;        // Whether the player is the current fugitive
-	bool m_timerActive;       // Whether the fugitive timer is currently counting
 
 	CNetworkQAngle( m_angEyeAngles );
 	CPlayerAnimState   m_PlayerAnimState;
@@ -238,20 +160,6 @@ private:
 	CUtlDict<float,int>	m_RateLimitLastCommandTimes;
 
     bool m_bEnterObserver;
-	bool m_bReady;
-
-	bool m_bIsLeader;
-
-	bool g_bFirstSpawn;
-
-	int m_iTeamKillCount;
-
-	float m_flNextHudUpdate;
-
-	// Peter: I know, I know, CUtl exists, but it crashes
-	// the server for some baffling reason in this instance, 
-	// so we're using a classic unordered map
-	std::unordered_map<int, int> m_ConsecutiveKillsMap;
 };
 
 inline CHL2MP_Player *ToHL2MPPlayer( CBaseEntity *pEntity )

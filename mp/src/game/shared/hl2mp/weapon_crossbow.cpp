@@ -25,9 +25,6 @@
 #ifndef CLIENT_DLL
 #include "func_break.h"
 #endif
-#include "filesystem.h"
-#include "engine/IEngineTrace.h"
-#include "trace.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -200,63 +197,14 @@ void CCrossbowBolt::Precache( void )
 // Purpose: 
 // Input  : *pOther - 
 //-----------------------------------------------------------------------------
-ConVar sv_penetration_bolt_mode("sv_penetration_bolt_mode", "0");
-
-void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
+void CCrossbowBolt::BoltTouch(CBaseEntity *pOther)
 {
-	// Check if the entity is not solid or has the FSOLID_VOLUME_CONTENTS flag set
 	if (!pOther->IsSolid() || pOther->IsSolidFlagSet(FSOLID_VOLUME_CONTENTS))
 		return;
-
-	if ((FClassnameIs(pOther, "item_*") || FClassnameIs(pOther, "weapon_*")) && !FClassnameIs(pOther, "weapon_rpg"))
-	{
-		CGameTrace tr;
-		Ray_t ray;
-		ray.Init(GetAbsOrigin(), GetAbsOrigin() + GetAbsVelocity() * gpGlobals->frametime);
-
-		CTraceFilterSkipTwoEntities traceFilter(this, GetOwnerEntity(), COLLISION_GROUP_NONE);
-
-		enginetrace->TraceRay(ray, MASK_SOLID, &traceFilter, &tr);
-
-		if (tr.m_pEnt != pOther)
-		{
-			SetCollisionGroup(COLLISION_GROUP_DEBRIS);
-			return;
-		}
-
-		IPhysicsObject* pPhysics = pOther->VPhysicsGetObject();
-		if (pPhysics)
-		{
-
-			Vector vecVelocity = GetAbsVelocity();
-			Vector vecImpulse = vecVelocity * 10.0f;
-
-			pPhysics->ApplyForceCenter(vecImpulse);
-		}
-
-		UTIL_Remove(this);
-		return;
-	}
-
-	if (FClassnameIs(pOther, "weapon_rpg"))
-	{
-		IPhysicsObject* pPhysics = pOther->VPhysicsGetObject();
-		if (pPhysics)
-		{
-			Vector vecVelocity = GetAbsVelocity();
-			Vector vecImpulse = vecVelocity * 10.0f;
-
-			pPhysics->ApplyForceCenter(vecImpulse);
-		}
-
-		UTIL_Remove(this);
-		return;
-	}
 
 	if (pOther->m_takedamage != DAMAGE_NO)
 	{
 		trace_t	tr;
-		trace_t	tr2;
 		tr = BaseClass::GetTouchTrace();
 
 		Vector	vecNormalizedVel = GetAbsVelocity();
@@ -271,279 +219,78 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 			CalculateMeleeDamageForce(&dmgInfo, vecNormalizedVel, tr.endpos, 0.7f);
 			dmgInfo.SetDamagePosition(tr.endpos);
 			pOther->DispatchTraceAttack(dmgInfo, vecNormalizedVel, &tr);
+		}
+		else
+		{
+			CTakeDamageInfo    dmgInfo(this, GetOwnerEntity(), m_iDamage, DMG_BULLET | DMG_NEVERGIB);
+			CalculateMeleeDamageForce(&dmgInfo, vecNormalizedVel, tr.endpos, 0.7f);
+			dmgInfo.SetDamagePosition(tr.endpos);
+			pOther->DispatchTraceAttack(dmgInfo, vecNormalizedVel, &tr);
+			// if what we hit is static architecture, can stay around for a while.
+			Vector vecDir = GetAbsVelocity();
+			float speed = VectorNormalize(vecDir);
 
-			EmitSound("Weapon_Crossbow.BoltHitBody");
+			// See if we should reflect off this surface
+			float hitDot = DotProduct(tr.plane.normal, -vecDir);
 
-			UTIL_ImpactTrace(&tr, DMG_BULLET);
-
-			if (sv_penetration_bolt_mode.GetBool())
+			if ((hitDot < 0.5f) && (speed > 100))
 			{
-				if ((pOther->m_iHealth > m_iDamage))
+				if (pOther->GetCollisionGroup() == COLLISION_GROUP_BREAKABLE_GLASS)
+					return;
+
+				// Go through thin material types
+				if (FClassnameIs(pOther, "func_breakable") || FClassnameIs(pOther, "func_breakable_surf"))
 				{
-					Vector vForward;
-
-					AngleVectors(GetAbsAngles(), &vForward);
-					VectorNormalize(vForward);
-
-					SetMoveType(MOVETYPE_NONE);
-
-					AddEffects(EF_NODRAW);
-
-					UTIL_TraceLine(GetAbsOrigin(), GetAbsOrigin() + vForward * 128, MASK_OPAQUE, pOther, COLLISION_GROUP_NONE, &tr2);
-
-					if (tr2.fraction != 1.0f)
-					{
-						if (tr2.m_pEnt == NULL || (tr2.m_pEnt && tr2.m_pEnt->GetMoveType() == MOVETYPE_NONE))
-						{
-							CEffectData data;
-
-							data.m_vOrigin = tr2.endpos;
-							data.m_vNormal = vForward;
-							data.m_nEntIndex = tr2.fraction != 1.0f;
-
-							DispatchEffect("BoltImpact", data);
-						}
-					}
-
-					SetTouch(NULL);
-					SetThink(NULL);
-
-					UTIL_Remove(this);
-
-					if (m_pGlowSprite != NULL)
-					{
-						m_pGlowSprite->TurnOn();
-						m_pGlowSprite->FadeAndDie(3.0f);
-					}
+					CBreakable* pOtherEntity = static_cast<CBreakable*> (pOther);
+					if ((pOtherEntity->GetMaterialType() == matGlass) || (pOtherEntity->GetMaterialType() == matWeb))
+						return;
 				}
+
+				Vector vReflection = 2.0f * tr.plane.normal * hitDot + vecDir;
+
+				QAngle reflectAngles;
+
+				VectorAngles(vReflection, reflectAngles);
+
+				SetLocalAngles(reflectAngles);
+
+				SetAbsVelocity(vReflection * speed * 0.75f);
 			}
 			else
 			{
+				if (pOther->GetCollisionGroup() == COLLISION_GROUP_BREAKABLE_GLASS)
+					return;
+
+				SetThink(&CCrossbowBolt::SUB_Remove);
+				SetNextThink(gpGlobals->curtime + 2.0f);
+
+				//FIXME: We actually want to stick (with hierarchy) to what we've hit
+				SetMoveType(MOVETYPE_NONE);
+
 				Vector vForward;
 
 				AngleVectors(GetAbsAngles(), &vForward);
 				VectorNormalize(vForward);
 
-				SetMoveType(MOVETYPE_NONE);
+				UTIL_ImpactTrace(&tr, DMG_BULLET);
 
 				AddEffects(EF_NODRAW);
-
-				UTIL_TraceLine(GetAbsOrigin(), GetAbsOrigin() + vForward * 128, MASK_OPAQUE, pOther, COLLISION_GROUP_NONE, &tr2);
-
-				if (tr2.fraction != 1.0f)
-				{
-					if (tr2.m_pEnt == NULL || (tr2.m_pEnt && tr2.m_pEnt->GetMoveType() == MOVETYPE_NONE))
-					{
-						CEffectData data;
-
-						data.m_vOrigin = tr2.endpos;
-						data.m_vNormal = vForward;
-						data.m_nEntIndex = tr2.fraction != 1.0f;
-
-						DispatchEffect("BoltImpact", data);
-					}
-				}
-
 				SetTouch(NULL);
-				SetThink(NULL);
-
-				UTIL_Remove(this);
+				SetThink(&CCrossbowBolt::SUB_Remove);
+				SetNextThink(gpGlobals->curtime + 2.0f);
 
 				if (m_pGlowSprite != NULL)
 				{
-					m_pGlowSprite->TurnOn();
-					m_pGlowSprite->FadeAndDie(3.0f);
-				}
-			}
-		}
-		else
-		{
-			if (IntersectsBox(pOther) && !pOther->IsPlayer())
-			{
-				CTakeDamageInfo    dmgInfo(this, GetOwnerEntity(), m_iDamage, DMG_NEVERGIB);
-				dmgInfo.AdjustPlayerDamageInflictedForSkillLevel();
-				CalculateMeleeDamageForce(&dmgInfo, vecNormalizedVel, tr.endpos, 0.7f);
-				dmgInfo.SetDamagePosition(tr.endpos);
-				pOther->DispatchTraceAttack(dmgInfo, vecNormalizedVel, &tr);
-				// if what we hit is static architecture, can stay around for a while.
-				Vector vecDir = GetAbsVelocity();
-				float speed = VectorNormalize(vecDir);
-
-				// See if we should reflect off this surface
-				float hitDot = DotProduct(tr.plane.normal, -vecDir);
-
-				if ((hitDot < 0.5f) && (speed > 100))
-				{
-					if (pOther->GetCollisionGroup() == COLLISION_GROUP_BREAKABLE_GLASS)
-						return;
-
-					Vector vReflection = 2.0f * tr.plane.normal * hitDot + vecDir;
-
-					QAngle reflectAngles;
-
-					VectorAngles(vReflection, reflectAngles);
-
-					SetLocalAngles(reflectAngles);
-
-					SetAbsVelocity(vReflection * speed * 0.90f);
-
-					SetGravity(1.0f);
-				}
-				else
-				{
-					if (FClassnameIs(pOther, "func_breakable") || FClassnameIs(pOther, "func_breakable_surf"))
-					{
-						CBreakable* pOtherEntity = static_cast<CBreakable*> (pOther);
-						if ((pOtherEntity->GetMaterialType() == matGlass) || (pOtherEntity->GetMaterialType() == matWeb))
-							return;
-					}
-
-					SetAbsVelocity(Vector(0, 0, 0));
-
-					Vector vForward;
-
-					AngleVectors(GetAbsAngles(), &vForward);
-					VectorNormalize(vForward);
-
-					EmitSound("Weapon_Crossbow.BoltHitBody");
-
-					UTIL_ImpactTrace(&tr, DMG_BULLET);
-
-					UTIL_TraceLine(GetAbsOrigin(), GetAbsOrigin() + vForward * 128, MASK_OPAQUE, pOther, COLLISION_GROUP_NONE, &tr2);
-
-					if (tr2.fraction != 1.0f)
-					{
-						if (tr2.m_pEnt == NULL || (tr2.m_pEnt && tr2.m_pEnt->GetMoveType() == MOVETYPE_NONE))
-						{
-							CEffectData	data;
-
-							data.m_vOrigin = tr2.endpos;
-							data.m_vNormal = vForward;
-							data.m_nEntIndex = tr2.fraction != 1.0f;
-
-							DispatchEffect("BoltImpact", data);
-						}
-					}
-
-					SetTouch(NULL);
-					SetThink(NULL);
-
-					UTIL_Remove(this);
-
-					if (m_pGlowSprite != NULL)
-					{
-						m_pGlowSprite->TurnOn();
-						m_pGlowSprite->FadeAndDie(3.0f);
-					}
-				}
-			}
-			else if (pOther->IsPlayer())
-			{
-				CTakeDamageInfo    dmgInfo(this, GetOwnerEntity(), m_iDamage, DMG_NEVERGIB);
-				dmgInfo.AdjustPlayerDamageInflictedForSkillLevel();
-				CalculateMeleeDamageForce(&dmgInfo, vecNormalizedVel, tr.endpos, 0.7f);
-				dmgInfo.SetDamagePosition(tr.endpos);
-				pOther->DispatchTraceAttack(dmgInfo, vecNormalizedVel, &tr);
-
-				CBasePlayer* pPlayer = assert_cast<CBasePlayer*>(pOther);
-				int nHealth = pPlayer->GetHealth();
-				int nArmor = pPlayer->ArmorValue();
-
-				int nHealthandArmor = nArmor + nHealth;
-
-				EmitSound("Weapon_Crossbow.BoltHitBody");
-				EmitSound("Weapon_Crossbow.BoltHitBody");
-
-				UTIL_ImpactTrace(&tr, DMG_BULLET);
-
-				if (sv_penetration_bolt_mode.GetBool())
-				{
-					if ((pPlayer->GetFlags() & FL_GODMODE) || (nHealthandArmor > m_iDamage))
-					{
-						Vector vForward;
-
-						AngleVectors(GetAbsAngles(), &vForward);
-						VectorNormalize(vForward);
-
-						SetMoveType(MOVETYPE_NONE);
-
-						AddEffects(EF_NODRAW);
-
-						UTIL_TraceLine(GetAbsOrigin(), GetAbsOrigin() + vForward * 128, MASK_OPAQUE, pOther, COLLISION_GROUP_NONE, &tr2);
-
-						if (tr2.fraction != 1.0f)
-						{
-							if (tr2.m_pEnt == NULL || (tr2.m_pEnt && tr2.m_pEnt->GetMoveType() == MOVETYPE_NONE))
-							{
-								CEffectData	data;
-
-								data.m_vOrigin = tr2.endpos;
-								data.m_vNormal = vForward;
-								data.m_nEntIndex = tr2.fraction != 1.0f;
-
-								DispatchEffect("BoltImpact", data);
-							}
-						}
-
-						SetTouch(NULL);
-						SetThink(NULL);
-
-						UTIL_Remove(this);
-
-						if (m_pGlowSprite != NULL)
-						{
-							m_pGlowSprite->TurnOn();
-							m_pGlowSprite->FadeAndDie(3.0f);
-						}
-					}
-				}
-				else
-				{
-					Vector vForward;
-
-					AngleVectors(GetAbsAngles(), &vForward);
-					VectorNormalize(vForward);
-
-					SetMoveType(MOVETYPE_NONE);
-
-					AddEffects(EF_NODRAW);
-
-					UTIL_TraceLine(GetAbsOrigin(), GetAbsOrigin() + vForward * 128, MASK_OPAQUE, pOther, COLLISION_GROUP_NONE, &tr2);
-
-					if (tr2.fraction != 1.0f)
-					{
-						if (tr2.m_pEnt == NULL || (tr2.m_pEnt && tr2.m_pEnt->GetMoveType() == MOVETYPE_NONE))
-						{
-							CEffectData	data;
-
-							data.m_vOrigin = tr2.endpos;
-							data.m_vNormal = vForward;
-							data.m_nEntIndex = tr2.fraction != 1.0f;
-
-							DispatchEffect("BoltImpact", data);
-						}
-					}
-
-					SetTouch(NULL);
-					SetThink(NULL);
-
-					UTIL_Remove(this);
-
-					if (m_pGlowSprite != NULL)
-					{
-						m_pGlowSprite->TurnOn();
-						m_pGlowSprite->FadeAndDie(3.0f);
-					}
+					m_pGlowSprite->TurnOff();
 				}
 			}
 		}
 
 		ApplyMultiDamage();
-
 	}
 	else
 	{
-		trace_t tr;
+		trace_t	tr;
 		tr = BaseClass::GetTouchTrace();
 
 		// See if we struck the world
@@ -576,17 +323,19 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 			else
 			{
 				SetThink(&CCrossbowBolt::SUB_Remove);
-				SetNextThink(gpGlobals->curtime + 0.0f);
+				SetNextThink(gpGlobals->curtime + 2.0f);
 
 				//FIXME: We actually want to stick (with hierarchy) to what we've hit
 				SetMoveType(MOVETYPE_NONE);
+				// ATTEMPT HOT BOLT FIX
+				speed = 0;
 
 				Vector vForward;
 
 				AngleVectors(GetAbsAngles(), &vForward);
 				VectorNormalize(vForward);
 
-				CEffectData data;
+				CEffectData	data;
 
 				data.m_vOrigin = tr.endpos;
 				data.m_vNormal = vForward;
@@ -599,6 +348,7 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 				AddEffects(EF_NODRAW);
 				SetTouch(NULL);
 				SetThink(&CCrossbowBolt::SUB_Remove);
+				// ATTEMPT HOT BOLT FIX
 				SetNextThink(gpGlobals->curtime + 0.0f);
 
 				if (m_pGlowSprite != NULL)
@@ -995,42 +745,31 @@ bool CWeaponCrossbow::Holster( CBaseCombatWeapon *pSwitchingTo )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponCrossbow::ToggleZoom(void)
+void CWeaponCrossbow::ToggleZoom( void )
 {
-	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
-
-	if (pPlayer == NULL)
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+	
+	if ( pPlayer == NULL )
 		return;
 
 #ifndef CLIENT_DLL
 
-	if (pPlayer->IsSuitZoomActive())
+	if ( m_bInZoom )
 	{
-		return;
-	}
-
-	int zoomLevel = pPlayer->GetXbowZoomLevel();  // Retrieve zoom level from the player
-
-	if (m_bInZoom)
-	{
-		if (pPlayer->SetFOV(this, 0, 0.2f))
+		if ( pPlayer->SetFOV( this, 0, 0.2f ) )
 		{
-			pPlayer->SetDefaultFOV(pPlayer->GetCustomFOV());
 			m_bInZoom = false;
 		}
 	}
 	else
 	{
-		pPlayer->SetStoredCustomFOV(pPlayer->GetFOV());
-		pPlayer->SetDefaultFOV(70);
-		if (pPlayer->SetFOV(this, zoomLevel, 0.2f))
+		if ( pPlayer->SetFOV( this, 20, 0.1f ) )
 		{
 			m_bInZoom = true;
 		}
 	}
 #endif
 }
-
 
 #define	BOLT_TIP_ATTACHMENT	2
 

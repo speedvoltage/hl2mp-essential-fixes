@@ -18,7 +18,6 @@
 #include "hintsystem.h"
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 #include "util_shared.h"
-#include <string>
 
 #if defined USES_ECON_ITEMS
 #include "game_item_schema.h"
@@ -356,9 +355,6 @@ public:
 	virtual void			Event_KilledOther( CBaseEntity *pVictim, const CTakeDamageInfo &info );
 
 	virtual void			Event_Dying( const CTakeDamageInfo &info );
-
-	void SetHitgroup(int newHitgroup) { hitgroup = newHitgroup; }
-	int GetHitgroup() const { return hitgroup; }
 
 	bool					IsHLTV( void ) const { return pl.hltv; }
 	bool					IsReplay( void ) const { return pl.replay; }
@@ -745,15 +741,11 @@ public:
 	int		GetFOV( void );														// Get the current FOV value
 	int		GetDefaultFOV( void ) const;										// Default FOV if not specified otherwise
 	int		GetFOVForNetworking( void );										// Get the current FOV used for network computations
-	bool    SetCustomFOV(CBaseEntity* pRequester, int FOV, float zoomRate = 0.0f, int iZoomStart = 0);
 	bool	SetFOV( CBaseEntity *pRequester, int FOV, float zoomRate = 0.0f, int iZoomStart = 0 );	// Alters the base FOV of the player (must have a valid requester)
 	void	SetDefaultFOV( int FOV );											// Sets the base FOV if nothing else is affecting it by zooming
 	CBaseEntity *GetFOVOwner( void ) { return m_hZoomOwner; }
 	float	GetFOVDistanceAdjustFactor(); // shared between client and server
 	float	GetFOVDistanceAdjustFactorForNetworking();
-
-	float GetLadderCooldownTime() const { return m_flLadderCooldownTime; }
-	void SetLadderCooldownTime(float cooldownTime) { m_flLadderCooldownTime = cooldownTime; }
 
 	int		GetImpulse( void ) const { return m_nImpulse; }
 
@@ -827,12 +819,6 @@ private:
 
 	int					DetermineSimulationTicks( void );
 	void				AdjustPlayerTimeBase( int simulation_ticks );
-
-	int m_iOriginalFOV;
-	CBasePlayer* m_pObservedPlayer;
-
-	int hitgroup;
-	float m_flLadderCooldownTime;
 
 public:
 	
@@ -908,46 +894,6 @@ public:
 
 	void		AdjustDrownDmg( int nAmount );
 
-	int GetCustomFOV() const
-	{
-		return m_iFOV;
-	}
-
-	int GetStoredCustomFOV() const
-	{
-		return m_iStoredCustomFOV;
-	}
-
-	void SetStoredCustomFOV(int fov)
-	{
-		m_iStoredCustomFOV = fov;
-	}
-
-	int GetFOVServer() const { return m_iFOVServer; }
-	void SetFOVServer(int fov) { m_iFOVServer = fov; }
-
-	// Getter and Setter for m_iFOV
-	int GetFOV() const { return m_iFOV; }
-	void SetFOV(int fov) { m_iFOV = fov; }
-
-	bool IsSuitZoomActive() const { return m_bIsSuitZoomActive; }
-	void SetSuitZoomActive(bool state) { m_bIsSuitZoomActive = state; }
-
-	int Get357ZoomLevel() const { return m_i357ZoomLevel; }
-	void Set357ZoomLevel(int level) { m_i357ZoomLevel = level; }
-
-	int GetXbowZoomLevel() const { return m_iXbowZoomLevel; }
-	void SetXbowZoomLevel(int level) { m_iXbowZoomLevel = level; }
-
-	// Getter and Setter methods for hit sounds and kill sounds
-	bool AreHitSoundsEnabled() const { return m_bHitSoundsEnabled; }
-	void SetHitSoundsEnabled(bool enabled) { m_bHitSoundsEnabled = enabled; }
-
-	bool AreKillSoundsEnabled() const { return m_bKillSoundsEnabled; }
-	void SetKillSoundsEnabled(bool enabled) { m_bKillSoundsEnabled = enabled; }
-
-	uint64 ConvertSteamID3ToSteamID64(const char* steamID3);
-
 #if defined USES_ECON_ITEMS
 	CEconWearable			*GetWearable( int i ) { return m_hMyWearables[i]; }
 	const CEconWearable		*GetWearable( int i ) const { return m_hMyWearables[i]; }
@@ -956,13 +902,6 @@ public:
 
 private:
 
-	bool m_bHitSoundsEnabled;  // Hit sound toggle
-	bool m_bKillSoundsEnabled; // Kill sound toggle
-	int m_i357ZoomLevel;   // .357 weapon zoom level
-	int m_iXbowZoomLevel;  // Crossbow weapon zoom level
-	int m_iStoredCustomFOV;
-	bool m_bIsSuitZoomActive;
-	bool m_bIsFOVTransitionActive;
 	Activity				m_Activity;
 	float					m_flLastObjectiveTime;				// Last curtime player touched/killed something the gamemode considers an objective
 
@@ -985,8 +924,6 @@ protected:
 	Vector					m_vecCameraPVSOrigin;
 
 	CNetworkHandle( CBaseEntity, m_hUseEntity );			// the player is currently controlling this entity because of +USE latched, NULL if no entity
-	CNetworkVar(int, m_iFOVServer);			// field of view server-side below 	CNetworkVar( int,	m_iFOV );			// field of view in protected: player.h
-
 
 	int						m_iTrain;				// Train control position
 

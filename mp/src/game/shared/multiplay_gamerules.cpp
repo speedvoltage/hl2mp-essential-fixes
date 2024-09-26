@@ -58,7 +58,7 @@ ConVar mp_chattime(
 		FCVAR_REPLICATED,
 		"amount of time players can chat after the game is over",
 		true, 1,
-		true, 60 );
+		true, 120 );
 
 #ifdef GAME_DLL
 void MPTimeLimitCallback( IConVar *var, const char *pOldString, float flOldValue )
@@ -608,12 +608,9 @@ bool CMultiplayRules::Init()
 	{
 		int iFallDamage = (int)falldamage.GetFloat();
 
-		switch (iFallDamage)
+		switch ( iFallDamage )
 		{
-		case 2:
-			return 0; // no fall damage
-			break;
-		case 1:// progressive
+		case 1://progressive
 			pPlayer->m_Local.m_flFallVelocity -= PLAYER_MAX_SAFE_FALL_SPEED;
 			return pPlayer->m_Local.m_flFallVelocity * DAMAGE_FOR_FALL_SPEED;
 			break;

@@ -16,7 +16,6 @@
 #endif
 
 #include "weapon_hl2mpbasehlmpcombatweapon.h"
-#include "filesystem.h"
 
 #ifdef CLIENT_DLL
 #define CWeapon357 C_Weapon357
@@ -39,11 +38,9 @@ public:
 	CWeapon357(void);
 
 	void	PrimaryAttack(void);
-	void ItemBusyFrame(void);
-	void ItemPostFrame(void);
-	bool Holster(CBaseCombatWeapon* pSwitchingTo);
-	void CheckZoomToggle(void);
-	void ToggleZoom(void);
+#ifdef _WIN32
+	void	SecondaryAttack(void);
+#endif
 	DECLARE_NETWORKCLASS();
 	DECLARE_PREDICTABLE();
 
@@ -54,7 +51,6 @@ public:
 private:
 
 	CWeapon357(const CWeapon357&);
-	CNetworkVar(bool, m_bInZoom);
 };
 
 IMPLEMENT_NETWORKCLASS_ALIASED(Weapon357, DT_Weapon357)
@@ -95,7 +91,6 @@ CWeapon357::CWeapon357(void)
 {
 	m_bReloadsSingly = false;
 	m_bFiresUnderwater = false;
-	m_bInZoom = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -153,6 +148,7 @@ void CWeapon357::PrimaryAttack(void)
 	angles.y += random->RandomInt(-1, 1);
 	angles.z = 0;
 
+
 	pPlayer->ViewPunch(QAngle(-8, random->RandomFloat(-2, 2), 0));
 
 	if (!m_iClip1 && pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
@@ -162,73 +158,15 @@ void CWeapon357::PrimaryAttack(void)
 	}
 }
 
-void CWeapon357::ItemBusyFrame(void)
+#ifdef _WIN32
+void CWeapon357::SecondaryAttack(void)
 {
-	// Allow zoom toggling even when we're reloading
-	CheckZoomToggle();
-}
-
-void CWeapon357::CheckZoomToggle(void)
-{
-	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
-
-	if (pPlayer->m_afButtonPressed & IN_ATTACK2)
-	{
-		ToggleZoom();
-	}
-}
-
-void CWeapon357::ItemPostFrame(void)
-{
-	// Allow zoom toggling
-	CheckZoomToggle();
-
-	BaseClass::ItemPostFrame();
-}
-
-void CWeapon357::ToggleZoom(void)
-{
-	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
-
-	if (pPlayer == NULL)
+	if (!mp_357_zoom.GetBool())
 		return;
 
-#ifndef CLIENT_DLL
+	// Handle zoom
+	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
 
-	if (pPlayer->IsSuitZoomActive())
-	{
-		return;
-	}
-
-	int zoomLevel = pPlayer->Get357ZoomLevel();  // Retrieve zoom level from the player
-
-	if (m_bInZoom)
-	{
-		if (pPlayer->SetFOV(this, 0, 0.2f))
-		{
-			WeaponSound(SPECIAL2);
-			pPlayer->SetDefaultFOV(pPlayer->GetCustomFOV());
-			m_bInZoom = false;
-		}
-	}
-	else
-	{
-		pPlayer->SetStoredCustomFOV(pPlayer->GetFOV());
-		pPlayer->SetDefaultFOV(70);
-		if (pPlayer->SetFOV(this, zoomLevel, 0.2f))
-		{
-			m_bInZoom = true;
-		}
-	}
+	pPlayer->SetFOV(pPlayer, mp_357_zoom_fov.GetInt());
+}
 #endif
-}
-
-bool CWeapon357::Holster(CBaseCombatWeapon* pSwitchingTo)
-{
-	if (m_bInZoom)
-	{
-		ToggleZoom();
-	}
-
-	return BaseClass::Holster(pSwitchingTo);
-}

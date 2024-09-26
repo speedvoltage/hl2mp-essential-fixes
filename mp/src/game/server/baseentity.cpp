@@ -5039,16 +5039,6 @@ static ConCommand ent_viewoffset("ent_viewoffset", CC_Ent_ViewOffset, "Displays 
 //------------------------------------------------------------------------------
 void CC_Ent_Remove( const CCommand& args )
 {
-	CBasePlayer* pPlayer = UTIL_GetCommandClient();
-
-	if (pPlayer)
-	{
-		if (!Q_stricmp(args[1], "player") || !Q_stricmp(args[1], "worldspawn") || !Q_stricmp(args[1], "info_player_deathmatch") || !Q_stricmp(args[1], "info_player_rebel") || !Q_stricmp(args[1], "info_player_combine"))
-		{
-			ClientPrint(pPlayer, HUD_PRINTCONSOLE, "This entity cannot be removed.");
-			return;
-		}
-	}
 	CBaseEntity *pEntity = NULL;
 
 	// If no name was given set bits based on the picked
@@ -7492,26 +7482,3 @@ void CC_Ent_Orient( const CCommand& args )
 }
 
 static ConCommand ent_orient("ent_orient", CC_Ent_Orient, "Orient the specified entity to match the player's angles. By default, only orients target entity's YAW. Use the 'allangles' option to orient on all axis.\n\tFormat: ent_orient <entity name> <optional: allangles>", FCVAR_CHEAT);
-
-bool CBaseEntity::IntersectsBox(CBaseEntity* pOther)
-{
-	if (!edict() || !pOther->edict())
-		return false;
-
-	CCollisionProperty* pMyProp = CollisionProp();
-	CCollisionProperty* pOtherProp = pOther->CollisionProp();
-	Vector vecPhysMins, vecPhysMaxs;
-
-	vecPhysMins = pOtherProp->OBBMins();
-	vecPhysMaxs = pOtherProp->OBBMaxs();
-
-	if (pOther->GetSolid() == SOLID_BBOX)
-	{
-		vecPhysMins = pOtherProp->OBBMins() * 1.01;
-		vecPhysMaxs = pOtherProp->OBBMaxs() * 1.01;
-	}
-
-	return IsOBBIntersectingOBB(
-		pMyProp->GetCollisionOrigin(), pMyProp->GetCollisionAngles(), pMyProp->OBBMins(), pMyProp->OBBMaxs(),
-		pOtherProp->GetCollisionOrigin(), pOtherProp->GetCollisionAngles(), vecPhysMins, vecPhysMaxs);
-}

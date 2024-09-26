@@ -199,7 +199,7 @@ public:
 	virtual bool		IsDucking( void ) const { return !!( GetFlags() & FL_DUCKING ); }
 
 	virtual bool		PassesDamageFilter( const CTakeDamageInfo &info );
-	void				InputIgnoreFallDamage(inputdata_t& inputdata);
+	void				InputIgnoreFallDamage( inputdata_t &inputdata );
 	void				InputIgnoreFallDamageWithoutReset( inputdata_t &inputdata );
 	void				InputEnableFlashlight( inputdata_t &inputdata );
 	void				InputDisableFlashlight( inputdata_t &inputdata );

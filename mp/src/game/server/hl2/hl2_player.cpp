@@ -1242,14 +1242,10 @@ void CHL2_Player::ToggleZoom(void)
 //-----------------------------------------------------------------------------
 // Purpose: +zoom suit zoom
 //-----------------------------------------------------------------------------
-void CHL2_Player::StartZooming(void)
+void CHL2_Player::StartZooming( void )
 {
-	SetSuitZoomActive(true);
-
-	SetStoredCustomFOV(m_iFOV);
-	SetDefaultFOV(90);
 	int iFOV = 25;
-	if (SetFOV(this, iFOV, 0.4f))
+	if ( SetFOV( this, iFOV, 0.4f ) )
 	{
 		m_HL2Local.m_bZooming = true;
 	}
@@ -1260,13 +1256,10 @@ void CHL2_Player::StartZooming(void)
 //-----------------------------------------------------------------------------
 void CHL2_Player::StopZooming( void )
 {
-	SetSuitZoomActive(false);
-
 	int iFOV = GetZoomOwnerDesiredFOV( m_hZoomOwner );
 
 	if ( SetFOV( this, iFOV, 0.2f ) )
 	{
-		SetDefaultFOV(GetStoredCustomFOV());
 		m_HL2Local.m_bZooming = false;
 	}
 }

@@ -449,7 +449,6 @@ public:
 	CUserCmd		m_LastUserCmd;
 	bool			m_bGamePaused;
 	float			m_flPauseStartTime;
-	int				m_iCount;
 
 	CGamestatsData	*m_pGamestatsData;
 };

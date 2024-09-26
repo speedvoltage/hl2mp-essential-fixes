@@ -44,7 +44,6 @@
 #include "weapon_hl2mpbasehlmpcombatweapon.h"
 #include "vphysics/friction.h"
 #include "debugoverlay_shared.h"
-#include "basegrenade_shared.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -64,8 +63,6 @@ ConVar physcannon_pullforce( "physcannon_pullforce", "4000", FCVAR_REPLICATED | 
 ConVar physcannon_cone( "physcannon_cone", "0.97", FCVAR_REPLICATED | FCVAR_CHEAT );
 ConVar physcannon_ball_cone( "physcannon_ball_cone", "0.997", FCVAR_REPLICATED | FCVAR_CHEAT );
 ConVar player_throwforce( "player_throwforce", "1000", FCVAR_REPLICATED | FCVAR_CHEAT );
-ConVar mp_held_fragnade_punt("mp_held_fragnade_punt", "0", FCVAR_REPLICATED, "If non-zero, held grenade frags in another player's physcannon will not be puntable");
-ConVar sv_physcannon_default_pollrate("sv_physcannon_default_pollrate", "0", FCVAR_REPLICATED, "If non-zero, it will use the default poll rate of 0.1 second");
 
 #ifndef CLIENT_DLL
 extern ConVar hl2_normspeed;
@@ -878,7 +875,6 @@ void CPlayerPickupController::Use( CBaseEntity *pActivator, CBaseEntity *pCaller
 		// +ATTACK will throw phys objects
 		if (pPhys && (m_pPlayer->m_nButtons & IN_ATTACK))
 		{
-			IPredictionSystem::SuppressHostEvents(NULL);
 			Shutdown( true );
 			Vector vecLaunch;
 			m_pPlayer->EyeVectors( &vecLaunch );
@@ -1675,6 +1671,7 @@ void CWeaponPhysCannon::PuntVPhysics( CBaseEntity *pEntity, const Vector &vecFor
 	pEntity->DispatchTraceAttack( info, forward, &tr );
 	ApplyMultiDamage();
 
+
 	if ( Pickup_OnAttemptPhysGunPickup( pEntity, pOwner, PUNTED_BY_CANNON ) )
 	{
 		IPhysicsObject *pList[VPHYSICS_MAX_OBJECT_LIST_COUNT];
@@ -1922,9 +1919,9 @@ void CWeaponPhysCannon::PrimaryAttack( void )
 				return;
 			}
 		}
+
 		PuntNonVPhysics( pEntity, forward, tr );
 	}
-	// Check for frag grenade here
 	else
 	{
 		if ( pEntity->VPhysicsIsFlesh( ) )
@@ -1932,37 +1929,6 @@ void CWeaponPhysCannon::PrimaryAttack( void )
 			DryFire();
 			return;
 		}
-
-		if (mp_held_fragnade_punt.GetBool())
-		{
-			auto pGrenade = dynamic_cast<CBaseGrenade*>(pEntity);
-			if (pGrenade)
-			{
-				// Ensure the grenade is held by any player's Physcannon
-				bool isHeldByAnyPhyscannon = false;
-
-				for (int i = 1; i <= gpGlobals->maxClients; ++i)
-				{
-					CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-					if (pPlayer && pPlayer->IsAlive())
-					{
-						CWeaponPhysCannon* pPhysCannon = dynamic_cast<CWeaponPhysCannon*>(pPlayer->GetActiveWeapon());
-						if (pPhysCannon && pPhysCannon->m_grabController.GetAttached() == pGrenade)
-						{
-							isHeldByAnyPhyscannon = true;
-							break;
-						}
-					}
-				}
-
-				if (isHeldByAnyPhyscannon)
-				{
-					// If the grenade is held by any player's Physcannon, block punt attempt
-					return;
-				}
-			}
-		}
-
 		PuntVPhysics( pEntity, forward, tr );
 	}
 }
@@ -2013,10 +1979,7 @@ void CWeaponPhysCannon::SecondaryAttack( void )
 
 		case OBJECT_NOT_FOUND:
 			//POLL EVERY TICK INSTEAD 100 ms
-			if (sv_physcannon_default_pollrate.GetBool())
-				m_flNextSecondaryAttack = gpGlobals->curtime + 0.1f;
-			else
-				m_flNextSecondaryAttack = gpGlobals->curtime + TICK_INTERVAL;
+			m_flNextSecondaryAttack = gpGlobals->curtime + TICK_INTERVAL;
 			CloseElements();
 			break;
 
@@ -2423,7 +2386,6 @@ void CWeaponPhysCannon::DetachObject( bool playSound, bool wasLaunched )
 	if ( m_bActive == false )
 		return;
 
-	// For detach object
 	CBaseEntity* pObject = m_grabController.GetAttached();
 
 	m_grabController.DetachEntity( wasLaunched );

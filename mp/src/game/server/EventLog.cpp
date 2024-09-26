@@ -9,8 +9,6 @@
 #include "EventLog.h"
 #include "team.h"
 #include "KeyValues.h"
-#include "hl2mp_player.h"
-#include "filesystem.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -227,7 +225,6 @@ bool CEventLog::PrintPlayerEvent( IGameEvent *event )
 	{
 		const char *newName = event->GetString( "newname" );
 		const char *oldName = event->GetString( "oldname" );
-
 		CTeam *team = pPlayer->GetTeam();
 		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" changed name to \"%s\"\n", 
 					oldName,
@@ -236,15 +233,6 @@ bool CEventLog::PrintPlayerEvent( IGameEvent *event )
 					team ? team->GetName() : "",
 					newName
 					);
-
-		UTIL_PrintToAllClients(CHAT_DEFAULT "%s1 " CHAT_CONTEXT "changed name to " CHAT_SPEC "%s2", oldName, newName);
-
-		if (Q_strcmp(eventName, "player_changename") == 0)
-		{
-			event->SetString("newname", "NULLNAME");
-			event->SetString("oldname", "NULLNAME");
-		}
-
 		return true;
 	}
 				   

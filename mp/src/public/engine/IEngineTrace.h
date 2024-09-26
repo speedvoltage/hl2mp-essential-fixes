@@ -49,28 +49,6 @@ public:
 //-----------------------------------------------------------------------------
 // Classes are expected to inherit these + implement the ShouldHitEntity method
 //-----------------------------------------------------------------------------
-class CTraceFilterSkipEntities : public ITraceFilter
-{
-public:
-	CTraceFilterSkipEntities(const IHandleEntity* passEntity1, const IHandleEntity* passEntity2)
-		: m_pPassEntity1(passEntity1), m_pPassEntity2(passEntity2) {}
-
-	virtual bool ShouldHitEntity(IHandleEntity* pEntityHandle, int contentsMask) override
-	{
-		if (pEntityHandle == m_pPassEntity1 || pEntityHandle == m_pPassEntity2)
-			return false;
-		return true;
-	}
-
-	virtual TraceType_t GetTraceType() const override
-	{
-		return TRACE_EVERYTHING;
-	}
-
-private:
-	const IHandleEntity* m_pPassEntity1;
-	const IHandleEntity* m_pPassEntity2;
-};
 
 // This is the one most normal traces will inherit from
 class CTraceFilter : public ITraceFilter

@@ -24,7 +24,6 @@
 #include "baseanimating.h"
 #include "sendproxy.h"
 #include "hierarchy.h"
-#include "hl2mp_player.h"
 #endif
 
 #include "predictable_entity.h"
@@ -285,15 +284,15 @@ void CDirtySpatialPartitionEntityList::OnPostQuery( SpatialPartitionListMask_t l
 //-----------------------------------------------------------------------------
 // Prediction
 //-----------------------------------------------------------------------------
-BEGIN_PREDICTION_DATA_NO_BASE(CCollisionProperty)
+BEGIN_PREDICTION_DATA_NO_BASE( CCollisionProperty )
 
-DEFINE_PRED_FIELD(m_vecMinsPreScaled, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
-DEFINE_PRED_FIELD(m_vecMaxsPreScaled, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
-DEFINE_PRED_FIELD(m_vecMins, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
-DEFINE_PRED_FIELD(m_vecMaxs, FIELD_VECTOR, FTYPEDESC_INSENDTABLE),
-DEFINE_PRED_FIELD(m_nSolidType, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE),
-DEFINE_PRED_FIELD(m_usSolidFlags, FIELD_SHORT, FTYPEDESC_INSENDTABLE),
-DEFINE_PRED_FIELD(m_triggerBloat, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE),
+	DEFINE_PRED_FIELD( m_vecMinsPreScaled, FIELD_VECTOR, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_vecMaxsPreScaled, FIELD_VECTOR, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_vecMins, FIELD_VECTOR, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_vecMaxs, FIELD_VECTOR, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_nSolidType, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_usSolidFlags, FIELD_SHORT, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_triggerBloat, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE ),
 
 END_PREDICTION_DATA()
 
@@ -304,45 +303,45 @@ END_PREDICTION_DATA()
 //-----------------------------------------------------------------------------
 #ifdef CLIENT_DLL
 
-static void RecvProxy_Solid(const CRecvProxyData* pData, void* pStruct, void* pOut)
+static void RecvProxy_Solid( const CRecvProxyData *pData, void *pStruct, void *pOut )
 {
-	((CCollisionProperty*)pStruct)->SetSolid((SolidType_t)pData->m_Value.m_Int);
+	((CCollisionProperty*)pStruct)->SetSolid( (SolidType_t)pData->m_Value.m_Int );
 }
 
-static void RecvProxy_SolidFlags(const CRecvProxyData* pData, void* pStruct, void* pOut)
+static void RecvProxy_SolidFlags( const CRecvProxyData *pData, void *pStruct, void *pOut )
 {
-	((CCollisionProperty*)pStruct)->SetSolidFlags(pData->m_Value.m_Int);
+	((CCollisionProperty*)pStruct)->SetSolidFlags( pData->m_Value.m_Int );
 }
 
-static void RecvProxy_OBBMinsPreScaled(const CRecvProxyData* pData, void* pStruct, void* pOut)
+static void RecvProxy_OBBMinsPreScaled( const CRecvProxyData *pData, void *pStruct, void *pOut )
 {
-	CCollisionProperty* pProp = ((CCollisionProperty*)pStruct);
-	Vector& vecMins = *((Vector*)pData->m_Value.m_Vector);
-	pProp->SetCollisionBounds(vecMins, pProp->OBBMaxsPreScaled());
+	CCollisionProperty *pProp = ((CCollisionProperty*)pStruct);
+	Vector &vecMins = *((Vector*)pData->m_Value.m_Vector);
+	pProp->SetCollisionBounds( vecMins, pProp->OBBMaxsPreScaled() );
 }
 
-static void RecvProxy_OBBMaxsPreScaled(const CRecvProxyData* pData, void* pStruct, void* pOut)
+static void RecvProxy_OBBMaxsPreScaled( const CRecvProxyData *pData, void *pStruct, void *pOut )
 {
-	CCollisionProperty* pProp = ((CCollisionProperty*)pStruct);
-	Vector& vecMaxs = *((Vector*)pData->m_Value.m_Vector);
-	pProp->SetCollisionBounds(pProp->OBBMinsPreScaled(), vecMaxs);
+	CCollisionProperty *pProp = ((CCollisionProperty*)pStruct);
+	Vector &vecMaxs = *((Vector*)pData->m_Value.m_Vector);
+	pProp->SetCollisionBounds( pProp->OBBMinsPreScaled(), vecMaxs );
 }
 
-static void RecvProxy_VectorDirtySurround(const CRecvProxyData* pData, void* pStruct, void* pOut)
+static void RecvProxy_VectorDirtySurround( const CRecvProxyData *pData, void *pStruct, void *pOut )
 {
-	Vector& vecold = *((Vector*)pOut);
-	Vector vecnew(pData->m_Value.m_Vector[0], pData->m_Value.m_Vector[1], pData->m_Value.m_Vector[2]);
+	Vector &vecold = *((Vector*)pOut);
+	Vector vecnew( pData->m_Value.m_Vector[0], pData->m_Value.m_Vector[1], pData->m_Value.m_Vector[2] );
 
-	if (vecold != vecnew)
+	if ( vecold != vecnew )
 	{
 		vecold = vecnew;
 		((CCollisionProperty*)pStruct)->MarkSurroundingBoundsDirty();
 	}
 }
 
-static void RecvProxy_IntDirtySurround(const CRecvProxyData* pData, void* pStruct, void* pOut)
+static void RecvProxy_IntDirtySurround( const CRecvProxyData *pData, void *pStruct, void *pOut )
 {
-	if (*((unsigned char*)pOut) != pData->m_Value.m_Int)
+	if ( *((unsigned char*)pOut) != pData->m_Value.m_Int )
 	{
 		*((unsigned char*)pOut) = pData->m_Value.m_Int;
 		((CCollisionProperty*)pStruct)->MarkSurroundingBoundsDirty();
@@ -351,27 +350,12 @@ static void RecvProxy_IntDirtySurround(const CRecvProxyData* pData, void* pStruc
 
 #else
 
-static void SendProxy_Solid(const SendProp* pProp, const void* pStruct, const void* pData, DVariant* pOut, int iElement, int objectID)
+static void SendProxy_Solid( const SendProp *pProp, const void *pStruct, const void *pData, DVariant *pOut, int iElement, int objectID )
 {
-	CCollisionProperty* pCollision = (CCollisionProperty*)pStruct;
-
-	CBaseEntity* pEntity = static_cast<CBaseEntity*>(pCollision->GetEntityHandle());
-
-	if (pEntity && pEntity->IsPlayer())
-	{
-		CBasePlayer* pPlayer = ToBasePlayer(pEntity);
-		if (pPlayer)
-		{
-			pOut->m_Int = FSOLID_NOT_SOLID;
-			return;
-		}
-	}
-
-	// Default behavior if it's not a player
-	pOut->m_Int = pCollision->GetSolid();
+	pOut->m_Int = ((CCollisionProperty*)pStruct)->GetSolid();
 }
 
-static void SendProxy_SolidFlags(const SendProp* pProp, const void* pStruct, const void* pData, DVariant* pOut, int iElement, int objectID)
+static void SendProxy_SolidFlags( const SendProp *pProp, const void *pStruct, const void *pData, DVariant *pOut, int iElement, int objectID )
 {
 	pOut->m_Int = ((CCollisionProperty*)pStruct)->GetSolidFlags();
 }
@@ -399,7 +383,7 @@ BEGIN_NETWORK_TABLE_NOBASE( CCollisionProperty, DT_CollisionProperty )
 	SendPropVector( SENDINFO(m_vecMins), 0, SPROP_NOSCALE),
 	SendPropVector( SENDINFO(m_vecMaxs), 0, SPROP_NOSCALE),
 	SendPropInt( SENDINFO( m_nSolidType ),		3, SPROP_UNSIGNED, SendProxy_Solid ),
-	SendPropInt(SENDINFO(m_usSolidFlags), FSOLID_MAX_BITS, SPROP_UNSIGNED, SendProxy_SolidFlags),
+	SendPropInt( SENDINFO( m_usSolidFlags ),	FSOLID_MAX_BITS, SPROP_UNSIGNED, SendProxy_SolidFlags ),
 	SendPropInt( SENDINFO( m_nSurroundType ), SURROUNDING_TYPE_BIT_COUNT, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO(m_triggerBloat), 0, SPROP_UNSIGNED),
 	SendPropVector( SENDINFO(m_vecSpecifiedSurroundingMinsPreScaled), 0, SPROP_NOSCALE),
