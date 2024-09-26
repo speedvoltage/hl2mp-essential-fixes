@@ -46,8 +46,10 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 {
 	pPlayer->InitialSpawn();
 
-	if (!sv_join_spec_on_connect.GetBool())
-		pPlayer->Spawn();
+	if (sv_join_spec_on_connect.GetBool())
+		pPlayer->ChangeTeam(TEAM_SPECTATOR);
+
+	pPlayer->Spawn();
 
 	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
 	{
@@ -78,6 +80,7 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 		data->SetString("title", title);		// info panel title
 		data->SetString("type", "1");			// show userdata from stringtable entry
 		data->SetString("msg", "motd");		// use this stringtable entry
+		data->SetBool("unload", sv_motd_unload_on_dismissal.GetBool());
 
 		pPlayer->ShowViewPortPanel(PANEL_INFO, true, data);
 
