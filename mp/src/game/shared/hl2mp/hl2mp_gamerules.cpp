@@ -80,6 +80,10 @@ ConVar sv_equalizer_rebels_red("sv_equalizer_rebels_red", "255", 0, "Sets the Re
 ConVar sv_equalizer_rebels_green("sv_equalizer_rebels_green", "0", 0, "Sets the Rebels's team green color for equalizer mode");
 ConVar sv_equalizer_rebels_blue("sv_equalizer_rebels_blue", "0", 0, "Sets the Rebels's team blue color for equalizer mode");
 
+ConVar sv_overtime("sv_overtime", "1", FCVAR_NOTIFY, "If non-zero, additional time will be added if multiple players have the same number of frags at the top of the scoreboard");
+ConVar sv_overtime_limit("sv_overtime_limit", "0", 0, "The number of times the game adds time", true, 0.0, true, 10.0);
+ConVar sv_overtime_time("sv_overtime_time", "1", 0, "The amount of time to add in minutes", true, 1.0, true, 5.0);
+
 ConVar sv_hudtargetid_channel("sv_hudtargetid_channel", "2", 0, "Text channel (0-5). Use this if text channels conflict in-game", true, 0.0, true, 5.0);
 
 ConVar mp_noblock("mp_noblock", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "If non-zero, disable collisions between players");
@@ -93,6 +97,8 @@ extern CBaseEntity* g_pLastRebelSpawn;
 
 static bool m_bFirstInitialization = true;
 static bool g_bGameOverSounds = false;
+
+static int iOvertimeLimit = 0;
 
 #define WEAPON_MAX_DISTANCE_FROM_SPAWN 64
 
@@ -388,6 +394,8 @@ CHL2MPRules::CHL2MPRules()
 
 	m_bFirstInitialization = false;
 	g_bGameOverSounds = false;
+
+	iOvertimeLimit = 0;
 
 #endif
 }
@@ -1275,6 +1283,119 @@ void CHL2MPRules::Think(void)
 
 	if (GetMapRemainingTime() < 0)
 	{
+		if (sv_overtime.GetBool() && (sv_overtime_limit.GetInt() > iOvertimeLimit) || 
+			sv_overtime.GetBool() && sv_overtime_limit.GetInt() == 0)
+		{
+			if (!IsTeamplay())
+			{
+				// Check for a tie before going to intermission
+				int highestFrags = -1;
+				int tieCount = 0;
+
+				iOvertimeLimit++;
+
+				// Loop through all players to find the highest frag count
+				for (int i = 1; i <= gpGlobals->maxClients; i++)
+				{
+					CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+					if (pPlayer && pPlayer->IsConnected())
+					{
+						int frags = pPlayer->FragCount();
+
+						// If we find a higher frag count, reset the tie count and update the highest frags
+						if (frags > highestFrags)
+						{
+							highestFrags = frags;
+							tieCount = 1; // Reset to 1 because we found a new highest frag player
+						}
+						// If another player has the same frag count, increase the tie count
+						else if (frags == highestFrags)
+						{
+							tieCount++;
+						}
+					}
+				}
+
+				// If we have a tie (2 or more players with the highest frag count)
+				if (tieCount > 1)
+				{
+					// Add 1 minute to the game time (60 seconds)
+					float flExtraTime = sv_overtime_time.GetInt() * 60.0f; // 1 minute in seconds
+
+					// Use the same formula from GetMapRemainingTime() and add 60 seconds
+					float currentRemainingTime = (m_flGameStartTime + mp_timelimit.GetInt() * 60.0f) - gpGlobals->curtime;
+
+					// Add the extra time to the remaining time
+					currentRemainingTime += flExtraTime;
+
+					// Update m_flGameStartTime to reflect the new end time based on the remaining time
+					m_flGameStartTime = gpGlobals->curtime - (mp_timelimit.GetInt() * 60.0f - currentRemainingTime);
+
+					// Play overtime sound to all players
+					for (int i = 1; i <= gpGlobals->maxClients; i++)
+					{
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+						if (pPlayer && pPlayer->IsConnected())
+						{
+							CRecipientFilter filter;
+							filter.AddRecipient(pPlayer);
+							filter.MakeReliable();
+
+							if (sv_custom_sounds.GetBool())
+								CBaseEntity::EmitSound(filter, pPlayer->entindex(), "server_sounds_overtime");
+
+							UTIL_ClientPrintAll(HUD_PRINTCENTER, UTIL_VarArgs("+0%d:00 OVERTIME", sv_overtime_time.GetInt()));
+						}
+					}
+
+					// Don't go to intermission just yet
+					return;
+				}
+			}
+			else
+			{
+				CTeam* pCombine = g_Teams[TEAM_COMBINE];
+				CTeam* pRebels = g_Teams[TEAM_REBELS];
+
+				if (pCombine->GetScore() == pRebels->GetScore())
+				{
+					// Add 1 minute to the game time (60 seconds)
+					float flExtraTime = sv_overtime_time.GetInt() * 60.0f; // 1 minute in seconds
+
+					// Use the same formula from GetMapRemainingTime() and add 60 seconds
+					float currentRemainingTime = (m_flGameStartTime + mp_timelimit.GetInt() * 60.0f) - gpGlobals->curtime;
+
+					// Add the extra time to the remaining time
+					currentRemainingTime += flExtraTime;
+
+					// Update m_flGameStartTime to reflect the new end time based on the remaining time
+					m_flGameStartTime = gpGlobals->curtime - (mp_timelimit.GetInt() * 60.0f - currentRemainingTime);
+
+					// Play overtime sound to all players
+					for (int i = 1; i <= gpGlobals->maxClients; i++)
+					{
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+						if (pPlayer && pPlayer->IsConnected())
+						{
+							CRecipientFilter filter;
+							filter.AddRecipient(pPlayer);
+							filter.MakeReliable();
+
+							if (sv_custom_sounds.GetBool())
+								CBaseEntity::EmitSound(filter, pPlayer->entindex(), "server_sounds_overtime");
+
+							UTIL_ClientPrintAll(HUD_PRINTCENTER, UTIL_VarArgs("+0%d:00 OVERTIME", sv_overtime_time.GetInt()));
+						}
+					}
+
+					// Don't go to intermission just yet
+					return;
+				}
+			}
+		}
+
+		// Else, go to intermission
 		GoToIntermission();
 		return;
 	}

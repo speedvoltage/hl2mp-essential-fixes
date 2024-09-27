@@ -44,6 +44,9 @@ public:
 	CGameMovement( void );
 	virtual			~CGameMovement( void );
 
+	virtual void DoDuckJump(float flFraction);
+	virtual void DoUnDuckJump(float flFraction);
+
 	virtual void	ProcessMovement( CBasePlayer *pPlayer, CMoveData *pMove );
 
 	virtual void	StartTrackPredictionErrors( CBasePlayer *pPlayer );

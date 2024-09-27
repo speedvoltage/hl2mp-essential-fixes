@@ -50,7 +50,6 @@ ConVar player_limit_jump_speed("player_limit_jump_speed", "1", FCVAR_REPLICATED)
 #endif
 
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
-ConVar sv_enable_bunnyhop("sv_enable_bunnyhop", "0", FCVAR_NOTIFY | FCVAR_CHEAT);
 ConVar sv_allow_bunnyhop("sv_auto_bhop", "0", FCVAR_NOTIFY);
 #endif
 
@@ -2467,29 +2466,6 @@ bool CGameMovement::CheckJumpButton(void)
 	{
 		mv->m_vecVelocity[2] += flGroundFactor * flMul;  // 2 * gravity * height
 	}
-
-	// Add a little forward velocity based on your current forward velocity - if you are not sprinting.
-#if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
-	if (sv_enable_bunnyhop.GetBool())
-	{
-		CHLMoveData* pMoveData = (CHLMoveData*)mv;
-		Vector vecForward;
-		AngleVectors(mv->m_vecViewAngles, &vecForward);
-		vecForward.z = 0;
-		VectorNormalize(vecForward);
-
-		// We give a certain percentage of the current forward movement as a bonus to the jump speed.  That bonus is clipped
-		// to not accumulate over time.
-		float flSpeedBoostPerc = (!pMoveData->m_bIsSprinting && !player->m_Local.m_bDucked) ? 0.5f : 0.1f;
-		float flSpeedAddition = fabs(mv->m_flForwardMove * flSpeedBoostPerc);
-
-		if (mv->m_flForwardMove < 0.0f)
-			flSpeedAddition *= -1.0f;
-
-		// Add it on
-		VectorAdd((vecForward * flSpeedAddition), mv->m_vecVelocity, mv->m_vecVelocity);
-	}
-#endif
 
 	FinishGravity();
 
