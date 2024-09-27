@@ -479,7 +479,8 @@ void CHL2MP_Player::SetPlayerTeamModel( void )
 	V_FileBase(szModelName, szModelFileName, sizeof(szModelFileName));
 
 	// Print the model name to the client
-	UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Your player model is: " CHAT_INFO "%s\n", szModelFileName));
+	if (GetTeamNumber() != TEAM_SPECTATOR)
+		UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Your player model is: " CHAT_INFO "%s\n", szModelFileName));
 }
 
 void CHL2MP_Player::SetPlayerModel( void )
@@ -1445,8 +1446,14 @@ bool CHL2MP_Player::HandleCommand_JoinTeam(int team)
 	}
 
 	// end early
-	if (GetTeamNumber() == TEAM_SPECTATOR)
+	if (GetTeamNumber() == TEAM_SPECTATOR && !sv_lockteams.GetBool())
 	{
+		if (sv_lockteams.GetBool())
+		{
+			UTIL_PrintToClient(this, CHAT_RED "Teams are currently locked!\n");
+			return true;
+		}
+
 		ChangeTeam(team);
 		return true;
 	}
@@ -1460,12 +1467,24 @@ bool CHL2MP_Player::HandleCommand_JoinTeam(int team)
 			return false;
 		}
 
+		if (sv_lockteams.GetBool())
+		{
+			UTIL_PrintToClient(this, CHAT_RED "Teams are currently locked!\n");
+			return true;
+		}
+
 		ChangeTeam(TEAM_SPECTATOR);
 
 		return true;
 	}
 	else
 	{
+		if (sv_lockteams.GetBool())
+		{
+			UTIL_PrintToClient(this, CHAT_RED "Teams are currently locked!\n");
+			return true;
+		}
+
 		StopObserverMode();
 		State_Transition(STATE_ACTIVE);
 	}

@@ -46,3 +46,8 @@ ConVar sv_custom_sounds(
 	"1",
 	FCVAR_GAMEDLL,
 	"If non-zero, downloads the custom sounds in the server_sounds folder");
+
+ConVar sv_lockteams(
+	"sv_lockteams", 
+	"0", FCVAR_GAMEDLL | FCVAR_NOTIFY,
+	"If non-zero, locks players to their current teams. ONLY USE THIS IN MATCHES!");

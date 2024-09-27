@@ -1559,6 +1559,7 @@ static ConCommand test_dispatcheffect("test_dispatcheffect", CC_Player_TestDispa
 //-----------------------------------------------------------------------------
 // Purpose: Quickly switch to the physics cannon, or back to previous item
 //-----------------------------------------------------------------------------
+// Shouldn't this be client side code?
 void CC_Player_PhysSwap(void)
 {
 	CBasePlayer* pPlayer = ToBasePlayer(UTIL_GetCommandClient());

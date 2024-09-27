@@ -167,6 +167,7 @@ private:
 	float m_flBalanceTeamsTime;
 	bool bSwitchCombinePlayer;
 	bool bSwitchRebelPlayer;
+	int iConnected;
 
 #ifndef CLIENT_DLL
 	bool m_bChangelevelDone;

@@ -18,5 +18,6 @@ extern ConVar mp_restartround;
 extern ConVar mp_noweapons;
 extern ConVar mp_suitvoice;
 extern ConVar sv_custom_sounds;
+extern ConVar sv_lockteams;
 
 #endif //HL2MP_CVARS_H

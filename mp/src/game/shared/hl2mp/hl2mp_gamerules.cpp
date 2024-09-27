@@ -512,6 +512,25 @@ void CHL2MPRules::Think(void)
 
 	CGameRules::Think();
 
+	iConnected = NULL;
+
+	// For match servers
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+		if (pPlayer)
+			iConnected++;
+	}
+
+	if (iConnected < 2)
+	{
+		sv_lockteams.SetValue(0);
+
+		if (engine->IsPaused())
+			engine->GetIServer()->SetPaused(false);
+	}
+
 	/*
 		UPDATERATE AND CMDRATE CHECKER
 	*/
