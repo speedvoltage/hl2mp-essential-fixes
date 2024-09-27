@@ -153,13 +153,7 @@ bool Flashlight_UseLegacyVersion( void )
 	// If this is the first run through, cache off what the answer should be (cannot change during a session)
 	if ( g_bCacheLegacyFlashlightStatus )
 	{
-		char modDir[MAX_PATH];
-		if ( UTIL_GetModDir( modDir, sizeof(modDir) ) == false )
-			return false;
-
-		g_bUseLegacyFlashlight = ( !Q_strcmp( modDir, "hl2" ) ||
-					   !Q_strcmp( modDir, "episodic" ) ||
-					   !Q_strcmp( modDir, "lostcoast" ) || !Q_strcmp( modDir, "hl1" ));
+		g_bUseLegacyFlashlight = false;
 
 		g_bCacheLegacyFlashlightStatus = false;
 	}
