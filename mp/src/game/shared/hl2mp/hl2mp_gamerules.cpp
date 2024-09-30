@@ -2323,11 +2323,18 @@ void CHL2MPRules::RestartGame()
 	{
 		mp_timelimit.SetValue(0);
 	}
-	m_flGameStartTime = gpGlobals->curtime;
-	if (!IsFinite(m_flGameStartTime.Get()))
+
+	// Allow restarting of a game without resetting the time limit 
+	// Useful for game modes that require restarting the game, 
+	// but without resetting the clock (e.g. Deathrun, minigame, etc.)
+	if (mp_restartgame_notimelimitreset.GetBool())
 	{
-		Warning("Trying to set a NaN game start time\n");
-		m_flGameStartTime.GetForModify() = 0.0f;
+		m_flGameStartTime = gpGlobals->curtime;
+		if (!IsFinite(m_flGameStartTime.Get()))
+		{
+			Warning("Trying to set a NaN game start time\n");
+			m_flGameStartTime.GetForModify() = 0.0f;
+		}
 	}
 
 	CleanUpMap();
@@ -2507,9 +2514,6 @@ void CHL2MPRules::CheckRestartGame(void)
 	{
 		// Restart the game if specified by the server
 		int iRestartDelay = mp_restartgame.GetInt();
-
-		if (g_fGameOver)
-			return;
 
 		if (iRestartDelay > 0)
 		{

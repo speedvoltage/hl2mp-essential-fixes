@@ -19,5 +19,8 @@ extern ConVar mp_noweapons;
 extern ConVar mp_suitvoice;
 extern ConVar sv_custom_sounds;
 extern ConVar sv_lockteams;
+extern ConVar sv_teamsmenu;
+extern ConVar sv_showhelpmessages;
+extern ConVar mp_restartgame_notimelimitreset;
 
 #endif //HL2MP_CVARS_H

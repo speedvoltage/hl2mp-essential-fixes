@@ -107,22 +107,18 @@ enum soundlevel_t
 */
 inline soundlevel_t ATTN_TO_SNDLVL(float a)
 {
-	soundlevel_t sndlvl = SNDLVL_NONE;
-
 	if (a >= 0.0f)
 	{
-		// Perform the calculation using float, then cast the result to int and soundlevel_t
-		int sndlvl_int = int(float(SNDLVL_50dB) + (float(SNDLVL_20dB) / a));
-		sndlvl = static_cast<soundlevel_t>(sndlvl_int);
+		int sndlvl_int = int(float(SNDLVL_50dB) + (float(SNDLVL_40dB) / a));
+		return static_cast<soundlevel_t>(sndlvl_int);
 	}
-
-	return sndlvl;
+	return SNDLVL_NONE;
 }
 
 inline float SNDLVL_TO_ATTN(soundlevel_t s)
 {
 	// Explicitly cast soundlevel_t to float for arithmetic
-	return (s > SNDLVL_50dB) ? (20.0f / float(s - SNDLVL_50dB)) : 4.0f;
+	return (s > SNDLVL_50dB) ? (40.0f / float(s - SNDLVL_50dB)) : 4.0f;
 }
 
 // This is a limit due to network encoding.

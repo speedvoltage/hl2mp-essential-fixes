@@ -35,6 +35,7 @@ int g_iLastCombineModel = 0;
 CBaseEntity	 *g_pLastCombineSpawn = NULL;
 CBaseEntity	 *g_pLastRebelSpawn = NULL;
 extern CBaseEntity				*g_pLastSpawn;
+extern IServerPluginHelpers* serverpluginhelpers;
 
 #define HL2MP_COMMAND_MAX_RATE 0.3
 
@@ -90,6 +91,36 @@ const char *g_ppszRandomCombineModels[] =
 	"models/police.mdl",
 };
 
+// To enable us to create menus
+class CEmptyPluginCallbacks : public IServerPluginCallbacks
+{
+public:
+	virtual bool Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory) override { return true; }
+	virtual void Unload() override {}
+	virtual void Pause() override {}
+	virtual void UnPause() override {}
+	virtual const char* GetPluginDescription() override { return "Empty Plugin Callback"; }
+	virtual void LevelInit(const char* mapname) override {}
+	virtual void LevelShutdown() override {}
+	virtual void ClientActive(edict_t* pEntity) override {}
+	virtual void ClientDisconnect(edict_t* pEntity) override {}
+	virtual void ClientPutInServer(edict_t* pEntity, const char* playername) override {}
+	virtual void SetCommandClient(int index) override {}
+	virtual void ClientSettingsChanged(edict_t* pEdict) override {}
+	virtual PLUGIN_RESULT ClientCommand(edict_t* pEntity, const CCommand& args) override { return PLUGIN_CONTINUE; }
+	virtual PLUGIN_RESULT NetworkIDValidated(const char* pszUserName, const char* pszNetworkID) override { return PLUGIN_CONTINUE; }
+	virtual void OnQueryCvarValueFinished(QueryCvarCookie_t iCookie, edict_t* pPlayerEntity, EQueryCvarValueStatus eStatus, const char* pCvarName, const char* pCvarValue) override {}
+	virtual void OnEdictAllocated(edict_t* edict) override {}
+	virtual void OnEdictFreed(const edict_t* edict) override {}
+
+	// Implement the missing pure virtual functions
+	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) override {}
+	virtual void GameFrame(bool simulating) override {}
+	virtual PLUGIN_RESULT ClientConnect(bool* bAllowConnect, edict_t* pEntity, const char* pszName, const char* pszAddress, char* reject, int maxRejectLen) override { return PLUGIN_CONTINUE; }
+};
+
+// Global instance of the empty plugin callback
+CEmptyPluginCallbacks g_EmptyPluginCallbacks;
 
 #define MAX_COMBINE_MODELS 4
 #define MODEL_CHANGE_INTERVAL 0.1f
@@ -763,18 +794,18 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 
 				if (iFovValue < 70 || iFovValue > 110)
 				{
-					UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "FOV can only be set between " CHAT_FOV "70 " CHAT_CONTEXT "and " CHAT_FOV "110"));
+					UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "FOV can only be set between " CHAT_WHITE "70 " CHAT_CONTEXT "and " CHAT_WHITE "110"));
 					return;
 				}
 
 				if (GetFOV() == iFovValue)
 				{
-					UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "FOV is already set to " CHAT_FOV "%d", GetFOV()));
+					UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "FOV is already set to " CHAT_WHITE "%d", GetFOV()));
 					return;
 				}
 
 				char sFovValue[64];
-				Q_snprintf(sFovValue, sizeof(sFovValue), CHAT_CONTEXT "FOV is now set to " CHAT_FOV "%d", iFovValue);
+				Q_snprintf(sFovValue, sizeof(sFovValue), CHAT_CONTEXT "FOV is now set to " CHAT_WHITE "%d", iFovValue);
 				UTIL_PrintToClient(this, sFovValue);
 				iFovValue = clamp(iFovValue, 70, 110);
 				m_iFOVServer = iFovValue;
@@ -784,7 +815,7 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 			}
 			else
 			{
-				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "FOV is " CHAT_FOV "%d", GetFOV()));
+				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "FOV is " CHAT_WHITE "%d", GetFOV()));
 			}
 		}
 	}
@@ -807,7 +838,7 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 			// If no argument is provided, print the current value
 			if (*argStart == '\0')
 			{
-				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Your .357 zoom level: " CHAT_FOV "%d", Get357ZoomLevel()));
+				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Your .357 zoom level: " CHAT_WHITE "%d", Get357ZoomLevel()));
 				return;
 			}
 
@@ -816,13 +847,13 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 
 			if (zoomLevel < 20 || zoomLevel > 40)
 			{
-				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT ".357 zoom level can only be set between " CHAT_FOV "20 " CHAT_CONTEXT "and " CHAT_FOV "40"));
+				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT ".357 zoom level can only be set between " CHAT_WHITE "20 " CHAT_CONTEXT "and " CHAT_WHITE "40"));
 				return;
 			}
 
 			if (Get357ZoomLevel() == zoomLevel)
 			{
-				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT ".357 zoom level is already set to " CHAT_FOV "%d", zoomLevel));
+				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT ".357 zoom level is already set to " CHAT_WHITE "%d", zoomLevel));
 				return;
 			}
 
@@ -835,7 +866,7 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 
 			Set357ZoomLevel(zoomLevel);
 			SavePlayerSettings();  // Save the new zoom level to the file
-			UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT ".357 zoom level set to " CHAT_FOV "%d", zoomLevel));
+			UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT ".357 zoom level set to " CHAT_WHITE "%d", zoomLevel));
 		}
 	}
 
@@ -857,7 +888,7 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 			// If no argument is provided, print the current value
 			if (*argStart == '\0')
 			{
-				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Crossbow zoom level: " CHAT_FOV "%d", GetXbowZoomLevel()));
+				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Crossbow zoom level: " CHAT_WHITE "%d", GetXbowZoomLevel()));
 				return;
 			}
 
@@ -866,13 +897,13 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 
 			if (zoomLevel < 20 || zoomLevel > 40)
 			{
-				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Crossbow zoom level can only be set between " CHAT_FOV "20 " CHAT_CONTEXT "and " CHAT_FOV "40"));
+				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Crossbow zoom level can only be set between " CHAT_WHITE "20 " CHAT_CONTEXT "and " CHAT_WHITE "40"));
 				return;
 			}
 
 			if (GetXbowZoomLevel() == zoomLevel)
 			{
-				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Crossbow zoom level is already set to " CHAT_FOV "%d", zoomLevel));
+				UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Crossbow zoom level is already set to " CHAT_WHITE "%d", zoomLevel));
 				return;
 			}
 
@@ -884,7 +915,7 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 
 			SetXbowZoomLevel(zoomLevel);
 			SavePlayerSettings();  // Save the new zoom level to the file
-			UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Crossbow zoom level set to " CHAT_FOV "%d", zoomLevel));
+			UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Crossbow zoom level set to " CHAT_WHITE "%d", zoomLevel));
 		}
 	}
 
@@ -921,6 +952,38 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 		SavePlayerSettings();
 		return;
 	}
+
+	if (Q_stricmp(p, "!teams") == 0 && sv_teamsmenu.GetBool())
+	{
+		if (serverpluginhelpers)
+		{
+			KeyValues* kv = new KeyValues("menu");
+
+			kv->SetString("title", "Team Selection");
+			kv->SetInt("level", 1);
+			kv->SetColor("color", Color(255, 255, 255, 255));
+			kv->SetInt("time", 20);
+			kv->SetString("msg", "Choose a team or hit ESC to exit");
+
+			KeyValues* item1 = kv->FindKey("1", true);
+			item1->SetString("msg", "Spectate");
+			item1->SetString("command", "spectate; play buttons/combine_button1.wav");
+
+			KeyValues* item2 = kv->FindKey("2", true);
+			item2->SetString("msg", "Combine");
+			item2->SetString("command", "jointeam 2; play buttons/combine_button1.wav");
+
+			KeyValues* item3 = kv->FindKey("3", true);
+			item3->SetString("msg", "Rebels");
+			item3->SetString("command", "jointeam 3; play buttons/combine_button1.wav");
+
+			serverpluginhelpers->CreateMessage(this->edict(), DIALOG_MENU, kv, &g_EmptyPluginCallbacks);
+
+			kv->deleteThis();
+		}
+		return;
+	}
+
 	return;
 
 	HL2MPRules()->CheckChatForReadySignal(this, pReadyCheck);
@@ -1936,6 +1999,11 @@ void CHL2MP_Player::FirstThinkAfterSpawn()
 		return;
 
 	SetFirstTimeSpawned(true);
+
+	if (sv_showhelpmessages.GetBool())
+	{
+		UTIL_PrintToClient(this, CHAT_CONTEXT "Type " CHAT_LIGHTBLUE "!help " CHAT_CONTEXT "to view chat commands.");
+	}
 
 	if (HL2MPRules()->IsTeamplay() == true)
 	{

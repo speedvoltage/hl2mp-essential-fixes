@@ -51,3 +51,18 @@ ConVar sv_lockteams(
 	"sv_lockteams", 
 	"0", FCVAR_GAMEDLL | FCVAR_NOTIFY,
 	"If non-zero, locks players to their current teams. ONLY USE THIS IN MATCHES!");
+
+ConVar sv_teamsmenu(
+	"sv_teamsmenu", 
+	"1", FCVAR_GAMEDLL,
+	"If non-zero, players can change teams with a menu.");
+
+ConVar sv_showhelpmessages(
+	"sv_showhelpmessages",
+	"1",
+	FCVAR_GAMEDLL);
+
+ConVar mp_restartgame_notimelimitreset(
+	"mp_restartgame_notimelimitreset",
+	"0",
+	FCVAR_GAMEDLL);

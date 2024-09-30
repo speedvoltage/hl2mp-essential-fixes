@@ -37,6 +37,7 @@
 #include "voice_gamemgr.h"
 #include "hl2mp_player.h"
 #include "iserver.h"
+#include "hl2mp_cvars.h"
 
 #ifdef TF_DLL
 #include "tf_player.h"
@@ -256,6 +257,36 @@ char* CheckChatText(CBasePlayer* pPlayer, char* text)
 			}
 		}
 	}
+	else
+	{
+		UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Cannot toggle teamplay rules.");
+	}
+
+	if (FStrEq(p, "!help") && sv_showhelpmessages.GetBool())
+	{
+		UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Available commands:\n");
+
+		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!fov " CHAT_CONTEXT "- Change your FOV\n");
+
+		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!mzl " CHAT_CONTEXT "- Change your .357 zoom level\n");
+
+		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!czl " CHAT_CONTEXT "- Change your crossbow zoom level\n");
+
+		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!tp/!teamplay " CHAT_CONTEXT "- Toggle teamplay game rules\n");
+
+		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!ks " CHAT_CONTEXT "- Toggle kill sounds\n");
+
+		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!hs " CHAT_CONTEXT "- Toggle hit sounds\n");
+
+		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!e/!eq/!equalizer " CHAT_CONTEXT "- Toggle equalizer mode\n");
+
+		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!teams " CHAT_CONTEXT "- Opens a menu to select a team\n");
+
+		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!timeleft/timeleft " CHAT_CONTEXT "- Displays the remaining time in the map\n");
+
+		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!nextmap/nextmap " CHAT_CONTEXT "- Displays the next map in the queue\n");
+
+	}
 
 	if (sv_chat_trigger.GetBool())
 	{
@@ -451,7 +482,8 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 			FStrEq(p, "!czl") ||
 			FStrEq(p, "!ks") ||
 			FStrEq(p, "!hs") ||
-			FStrEq(p, "!teams"))
+			FStrEq(p, "!teams") ||
+			FStrEq(p, "!help"))
 			return;
 
 		if (Q_strncmp(p, "!fov", strlen("!fov")) == 0 ||
@@ -490,27 +522,27 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 			if (pPlayer)
 			{
 				if (pPlayer->GetTeamNumber() == 1 && teamonly)
-					Q_snprintf(text, sizeof(text), CHAT_SPEC "[Spectators] " CHAT_FOV "%s:\x01 ", pszPlayerName);
+					Q_snprintf(text, sizeof(text), CHAT_SPEC "[Spectators] " CHAT_WHITE "%s:\x01 ", pszPlayerName);
 				else if (pPlayer->GetTeamNumber() == 1)
-					Q_snprintf(text, sizeof(text), CHAT_FOV "*SPEC* %s:\x01 ", pszPlayerName);
+					Q_snprintf(text, sizeof(text), CHAT_WHITE "*SPEC* %s:\x01 ", pszPlayerName);
 
 				if (!g_pGameRules->IsTeamplay())
 				{
 					if (pPlayer->GetTeamNumber() == TEAM_UNASSIGNED && teamonly && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), CHAT_FOV "*DEAD* " CHAT_TEAM "[TEAM] \x01%s: ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), CHAT_WHITE "*DEAD* " CHAT_TEAM "[TEAM] \x01%s: ", pszPlayerName);
 					else if (pPlayer->GetTeamNumber() != 1 && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), CHAT_FOV "*DEAD* \x01%s: ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), CHAT_WHITE "*DEAD* \x01%s: ", pszPlayerName);
 				}
 				else
 				{
 					if (pPlayer->GetTeamNumber() == 2 && teamonly && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), CHAT_FOV "*DEAD* " CHAT_TEAM "[Combine] \x03%s:\x01 ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), CHAT_WHITE "*DEAD* " CHAT_TEAM "[Combine] \x03%s:\x01 ", pszPlayerName);
 					else if (pPlayer->GetTeamNumber() == 2 && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), CHAT_FOV "*DEAD* \x03%s:\x01 ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), CHAT_WHITE "*DEAD* \x03%s:\x01 ", pszPlayerName);
 					else if (pPlayer->GetTeamNumber() == 3 && teamonly && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), CHAT_FOV "*DEAD* " CHAT_TEAM "[Rebels] \x03%s:\x01 ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), CHAT_WHITE "*DEAD* " CHAT_TEAM "[Rebels] \x03%s:\x01 ", pszPlayerName);
 					else if (pPlayer->GetTeamNumber() == 3 && !pPlayer->IsAlive())
-						Q_snprintf(text, sizeof(text), CHAT_FOV "*DEAD* \x03%s:\x01 ", pszPlayerName);
+						Q_snprintf(text, sizeof(text), CHAT_WHITE "*DEAD* \x03%s:\x01 ", pszPlayerName);
 				}
 			}
 		}
