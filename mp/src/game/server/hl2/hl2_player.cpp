@@ -477,11 +477,11 @@ void CHL2_Player::HandleSpeedChanges(void)
 
 	// If a player ducks during the unduck animation, m_bDucking stays true when it shouldn't. 
 	// Attempt to rectify this wrong behavior.
-	if ((this->GetFlags() & FL_DUCKING) && (this->GetFlags() & FL_ANIMDUCKING))
+	if ((GetFlags() & FL_DUCKING) && (GetFlags() & FL_ANIMDUCKING))
 	{
 		m_Local.m_bDucking = false;
 	}
-	else if ((this->GetFlags() & FL_DUCKING) && !(this->GetFlags() & FL_ANIMDUCKING))
+	else if ((GetFlags() & FL_DUCKING) && !(GetFlags() & FL_ANIMDUCKING))
 	{
 		m_Local.m_bDucking = true;
 	}
@@ -980,24 +980,123 @@ bool CHL2_Player::HandleInteraction(int interactionType, void *data, CBaseCombat
 	return false;
 }
 
+ConVar sv_keybind_spam("sv_keybind_spam", "1", 0, "Enable or disable keybind spam protection.");
+ConVar sv_jump_spam_protection("sv_jump_spam_protection", "1", 0, "Enable or disable jump spam protection.");
+ConVar sv_use_spam_protection("sv_use_spam_protection", "1", 0, "Enable or disable use spam protection.");
+ConVar sv_jump_threshold("sv_jump_threshold", "50", 0, "Number of jumps allowed before the player is kicked.");
+ConVar sv_jump_threshold_reset("sv_jump_threshold_reset", "0.2", 0, "Time in seconds to reset jump counter after last jump.");
+ConVar sv_use_threshold("sv_use_threshold", "20", 0, "Number of uses allowed before the player is kicked.");
+ConVar sv_use_threshold_reset("sv_use_threshold_reset", "10", 0, "Time in seconds to reset use counter after last use.");
+
+void HandleWarning(int remaining, int threshold, CHL2_Player* pPlayer, const char* inputType)
+{
+	if (!pPlayer || !pPlayer->IsConnected())
+		return;
+
+	if (remaining <= 15 && remaining > 10)
+	{
+		if (strcmp(inputType, "USE") == 0)
+		{
+			UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Stop spamming +USE.");
+		}
+		else if (strcmp(inputType, "JUMP") == 0)
+		{
+			UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Stop spamming +JUMP.");
+		}
+	}
+	else if (remaining <= 10 && remaining > 5)
+	{
+		if (strcmp(inputType, "USE") == 0)
+		{
+			UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Stop spamming +USE, or you will be kicked.");
+		}
+		else if (strcmp(inputType, "JUMP") == 0)
+		{
+			UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Stop spamming +JUMP, or you will be kicked.");
+		}
+	}
+	else if (remaining <= 5 && remaining > 0)
+	{
+		if (strcmp(inputType, "USE") == 0)
+		{
+			UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "LAST WARNING! Stop spamming +USE, or you will be kicked.");
+		}
+		else if (strcmp(inputType, "JUMP") == 0)
+		{
+			UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "LAST WARNING! Stop spamming +JUMP, or you will be kicked.");
+		}
+	}
+}
+
 void CHL2_Player::PlayerRunCommand(CUserCmd *ucmd, IMoveHelper *moveHelper)
 {
 	CHL2MP_Player* pHL2MPPlayer = dynamic_cast<CHL2MP_Player*>(this);
 
 	if (pHL2MPPlayer)
 	{
-		// Check if the player is spawn protected and has pressed a movement key
+		float currentTime = gpGlobals->curtime;
+
+		static float lastJumpTime = 0.0f;
+		if (sv_keybind_spam.GetBool() && sv_jump_spam_protection.GetBool())
+		{
+			if (m_afButtonPressed & IN_JUMP)
+			{
+
+				if (currentTime - lastJumpTime > sv_jump_threshold_reset.GetFloat())
+				{
+					pHL2MPPlayer->ResetJumps();
+				}
+
+				pHL2MPPlayer->IncrementJumps();
+				lastJumpTime = currentTime;
+
+				int remainingJumps = sv_jump_threshold.GetInt() - pHL2MPPlayer->GetJumps();
+				HandleWarning(remainingJumps, sv_jump_threshold.GetInt(), pHL2MPPlayer, "JUMP");
+
+				if (pHL2MPPlayer->GetJumps() >= sv_jump_threshold.GetInt())
+				{
+					engine->ServerCommand(UTIL_VarArgs("kickid %d Spamming +JUMP\n", pHL2MPPlayer->GetUserID()));
+					return;
+				}
+			}
+		}
+
+		static float lastUseTime = 0.0f;
+		if (sv_keybind_spam.GetBool() && sv_use_spam_protection.GetBool())
+		{
+			if (m_afButtonPressed & IN_USE)
+			{
+				if (currentTime - lastUseTime > sv_use_threshold_reset.GetFloat())
+				{
+					pHL2MPPlayer->ResetUses();
+				}
+
+				pHL2MPPlayer->IncrementUses();
+				lastUseTime = currentTime;
+
+				int remainingUses = sv_use_threshold.GetInt() - pHL2MPPlayer->GetUses();
+				HandleWarning(remainingUses, sv_use_threshold.GetInt(), pHL2MPPlayer, "USE");
+
+				if (pHL2MPPlayer->GetUses() >= sv_use_threshold.GetInt())
+				{
+					engine->ServerCommand(UTIL_VarArgs("kickid %d Spamming +USE\n", pHL2MPPlayer->GetUserID()));
+					return;
+				}
+			}
+		}
+	}
+
+	if (pHL2MPPlayer)
+	{
 		if (pHL2MPPlayer->IsSpawnProtected() &&
 			(ucmd->forwardmove != 0 || ucmd->sidemove != 0 || ucmd->upmove != 0 ||
 				ucmd->buttons & IN_ATTACK || ucmd->buttons & IN_ATTACK2))
 		{
-			// Player pressed a movement key, disable spawn protection
 			pHL2MPPlayer->DisableSpawnProtection();
 		}
 
 		if (mp_afk.GetBool() && (ucmd->forwardmove != 0 || ucmd->sidemove != 0 || ucmd->upmove != 0))
 		{
-			// The player is moving, so reset their AFK timer
 			pHL2MPPlayer->ResetAfkTimer();
 		}
 	}

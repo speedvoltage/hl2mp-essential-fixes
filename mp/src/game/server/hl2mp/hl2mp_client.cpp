@@ -48,6 +48,8 @@ extern bool			g_fGameOver;
 
 bool g_bWasGamePausedOnJoin = false;
 
+// NOTE: Should we make it so that NOSTEAM servers are not allowed to use those binaries?
+#ifndef NO_STEAM
 #ifdef HL2MP_PLAYER_FILTER
 void ReadWhitelistFile()
 {
@@ -61,14 +63,11 @@ void ReadWhitelistFile()
 
 		while (filesystem->ReadLine(line, sizeof(line), file))
 		{
-			// Remove any trailing newline characters
 			line[strcspn(line, "\r\n")] = 0;
 
-			// Print each line (SteamID3) being read
 			Msg("%s\n", line);
 
-			// Add the SteamID3 string directly to the whitelist
-			m_Whitelist.AddToTail(line);  // Store the SteamID3 as a CUtlString
+			m_Whitelist.AddToTail(line);
 		}
 
 		filesystem->Close(file);
@@ -79,15 +78,38 @@ void ReadWhitelistFile()
 	}
 }
 #endif
+#endif
 
 #ifndef NO_STEAM
 void CHL2MP_Player::AuthenticationCheckThink()
 {
 	const char* steamID3 = engine->GetPlayerNetworkIDString(this->edict());
 
-	if (!steamID3 || V_stricmp(steamID3, "UNKNOWN") == 0)
+	if (!steamID3 || (V_stristr(steamID3, "PENDING") != nullptr))
 	{
 		engine->ServerCommand(UTIL_VarArgs("kickid %d Authentication failed. Ensure you are logged into Steam and try reconnecting\n", this->GetUserID()));
+		return;
+	}
+
+	if (GetUserID() < 1)
+	{
+		engine->ServerCommand(UTIL_VarArgs("kickid %d Invalid UserID\n", GetUserID()));
+		return;
+	}
+
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+		if (pPlayer && pPlayer != this && pPlayer->IsConnected() && !pPlayer->IsBot())
+		{
+			const char* existingSteamID3 = engine->GetPlayerNetworkIDString(pPlayer->edict());
+
+			if (existingSteamID3 && V_stricmp(existingSteamID3, steamID3) == 0)
+			{
+				engine->ServerCommand(UTIL_VarArgs("kickid %d Suspected SteamID hijacking\n", this->GetUserID()));
+				return;
+			}
+		}
 	}
 
 	SetContextThink(NULL, TICK_NEVER_THINK, "AuthenticationCheckThink");
@@ -118,7 +140,7 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 
 	if (!bWhitelisted)
 	{
-		engine->ServerCommand(UTIL_VarArgs("kickid %d Your SteamID is not whitelisted on this server.\n", pPlayer->GetUserID()));
+		engine->ServerCommand(UTIL_VarArgs("kickid %d Your SteamID is not whitelisted on this server\n", pPlayer->GetUserID()));
 		return;
 	}
 #endif

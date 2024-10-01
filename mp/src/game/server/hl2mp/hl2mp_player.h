@@ -180,6 +180,13 @@ public:
 
 	void AuthenticationCheckThink();
 
+	void ResetJumps() { m_iJumps = 0; }
+	void ResetUses() { m_iUses = 0; }
+	void IncrementJumps() { m_iJumps++; }
+	void IncrementUses() { m_iUses++; }
+	int GetJumps() const { return m_iJumps; }
+	int GetUses() const { return m_iUses; }
+
 private:
 
 	void LadderRespawnFix();
@@ -218,6 +225,9 @@ private:
 	bool m_bSpawnProtected;
 
 	int m_iAfkTime;
+
+	int m_iJumps;
+	int m_iUses;
 };
 
 inline CHL2MP_Player *ToHL2MPPlayer( CBaseEntity *pEntity )
