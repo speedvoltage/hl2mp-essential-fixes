@@ -94,3 +94,21 @@ ConVar mp_afk_warnings(
 	"mp_afk_warnings", 
 	"1", FCVAR_GAMEDLL,
 	"Warn players if they are AFK.");
+
+ConVar sv_teamkill_kick(
+	"sv_teamkill_kick", 
+	"1", 
+	FCVAR_GAMEDLL,
+	"Enable or disable kicking players who team kill too much.");
+
+ConVar sv_teamkill_kick_threshold(
+	"sv_teamkill_kick_threshold", 
+	"5", 
+	FCVAR_GAMEDLL,
+	"Number of team kills before a player is kicked.");
+
+ConVar sv_teamkill_kick_warning(
+	"sv_teamkill_kick_warning", 
+	"1", 
+	FCVAR_GAMEDLL,
+	"Warn players on each team kill about the consequences.");

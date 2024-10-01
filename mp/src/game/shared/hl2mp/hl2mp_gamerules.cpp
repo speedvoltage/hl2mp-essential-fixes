@@ -378,6 +378,10 @@ CHL2MPRules::CHL2MPRules()
 		g_Teams.AddToTail(pTeam);
 	}
 
+	m_TeamKillCount.SetLessFunc([](const int& lhs, const int& rhs) -> bool {
+		return lhs < rhs;
+		});
+
 	m_bTeamPlayEnabled = teamplay.GetBool();
 	m_flIntermissionEndTime = 0.0f;
 	m_flGameStartTime = 0;
@@ -2011,6 +2015,38 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 		else if (strcmp(killer_weapon_name, "satchel") == 0 || strcmp(killer_weapon_name, "tripmine") == 0)
 		{
 			killer_weapon_name = "slam";
+		}
+	}
+
+	if (pKiller && pKiller != pVictim && pVictim && pKiller->GetTeamNumber() == pVictim->GetTeamNumber())
+	{
+		CBasePlayer* pKiller = ToBasePlayer(info.GetAttacker());
+
+		int killerUserID = pKiller->GetUserID();
+
+		int index = m_TeamKillCount.Find(killerUserID);
+		if (index == m_TeamKillCount.InvalidIndex())
+		{
+			index = m_TeamKillCount.Insert(killerUserID, 1);
+		}
+		else
+		{
+			m_TeamKillCount[index]++;
+		}
+
+		int teamKillCount = m_TeamKillCount[index];
+
+		if (sv_teamkill_kick_warning.GetBool())
+		{
+			int threshold = sv_teamkill_kick_threshold.GetInt();
+			
+			UTIL_PrintToClient(pKiller, UTIL_VarArgs(CHAT_PAUSED "You will be kicked if you kill " CHAT_RED "%d " CHAT_PAUSED "more teammate%s.",
+				threshold - teamKillCount, (threshold - teamKillCount) <= 1 ? "" : "s"));
+		}
+
+		if (sv_teamkill_kick.GetBool() && teamKillCount >= sv_teamkill_kick_threshold.GetInt())
+		{
+			engine->ServerCommand(UTIL_VarArgs("kickid %d You have been kicked for excessive team killing\n", killerUserID));
 		}
 	}
 

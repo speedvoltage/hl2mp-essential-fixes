@@ -152,6 +152,7 @@ public:
 	void InitExcludedExtensions();
 #ifndef CLIENT_DLL
 	void RegisterDownloadableFiles(char* path, FileFindHandle_t findHandle, INetworkStringTable* pDownloadables);
+	CUtlMap<int, int> m_TeamKillCount;
 #endif
 	
 private:

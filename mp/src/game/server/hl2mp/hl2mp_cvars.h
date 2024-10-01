@@ -27,5 +27,8 @@ extern ConVar mp_spawnprotection_time;
 extern ConVar mp_afk;
 extern ConVar mp_afk_time;
 extern ConVar mp_afk_warnings;
+extern ConVar sv_teamkill_kick;
+extern ConVar sv_teamkill_kick_threshold;
+extern ConVar sv_teamkill_kick_warning;
 
 #endif //HL2MP_CVARS_H
