@@ -1420,7 +1420,13 @@ bool CHL2MP_Player::BumpWeapon( CBaseCombatWeapon *pWeapon )
 
 void CHL2MP_Player::ChangeTeam( int iTeam )
 {
-	LadderRespawnFix();		
+	LadderRespawnFix();	
+
+	CHL2MPRules* pRules = HL2MPRules();
+	if (pRules)
+	{
+		pRules->ResetKillStreaks(this);
+	}
 
 	// bool bKill = false;
 	bool bWasSpectator = false;

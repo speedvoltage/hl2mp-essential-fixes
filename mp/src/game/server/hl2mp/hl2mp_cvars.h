@@ -30,5 +30,6 @@ extern ConVar mp_afk_warnings;
 extern ConVar sv_teamkill_kick;
 extern ConVar sv_teamkill_kick_threshold;
 extern ConVar sv_teamkill_kick_warning;
+extern ConVar sv_domination_messages;
 
 #endif //HL2MP_CVARS_H

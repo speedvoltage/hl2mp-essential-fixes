@@ -152,7 +152,9 @@ public:
 	void InitExcludedExtensions();
 #ifndef CLIENT_DLL
 	void RegisterDownloadableFiles(char* path, FileFindHandle_t findHandle, INetworkStringTable* pDownloadables);
+	void ResetKillStreaks(CBasePlayer* pPlayer);
 	CUtlMap<int, int> m_TeamKillCount;
+	CUtlMap<int, CUtlMap<int, int>*> m_KillStreaks;
 #endif
 	
 private:

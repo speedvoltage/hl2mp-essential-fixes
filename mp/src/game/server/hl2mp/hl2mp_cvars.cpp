@@ -112,3 +112,9 @@ ConVar sv_teamkill_kick_warning(
 	"1", 
 	FCVAR_GAMEDLL,
 	"Warn players on each team kill about the consequences.");
+
+ConVar sv_domination_messages(
+	"sv_domination_messages",
+	"1",
+	FCVAR_GAMEDLL,
+	"Show domination messages to players.");

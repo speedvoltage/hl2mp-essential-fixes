@@ -382,6 +382,10 @@ CHL2MPRules::CHL2MPRules()
 		return lhs < rhs;
 		});
 
+	m_KillStreaks.SetLessFunc([](const int& lhs, const int& rhs) -> bool {
+		return lhs < rhs;
+		});
+
 	m_bTeamPlayEnabled = teamplay.GetBool();
 	m_flIntermissionEndTime = 0.0f;
 	m_flGameStartTime = 0;
@@ -2018,7 +2022,86 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 		}
 	}
 
-	if (pKiller && pKiller != pVictim && pVictim && pKiller->GetTeamNumber() == pVictim->GetTeamNumber())
+	if (pKiller && pVictim && ((pKiller->GetTeamNumber() != pVictim->GetTeamNumber()) || !IsTeamplay()))
+	{
+		CBasePlayer* pKiller = ToBasePlayer(info.GetAttacker());
+
+		int killerUserID = pKiller->GetUserID();
+		int victimUserID = pVictim->GetUserID();
+
+		int attackerIndex = m_KillStreaks.Find(killerUserID);
+		CUtlMap<int, int>* pVictimKillMap = nullptr;
+
+		if (attackerIndex == m_KillStreaks.InvalidIndex())
+		{
+			pVictimKillMap = new CUtlMap<int, int>();
+			pVictimKillMap->SetLessFunc([](const int& lhs, const int& rhs) -> bool {
+				return lhs < rhs;
+				});
+
+			attackerIndex = m_KillStreaks.Insert(killerUserID, pVictimKillMap);
+		}
+		else
+		{
+			pVictimKillMap = m_KillStreaks[attackerIndex];
+		}
+
+		int victimIndex = pVictimKillMap->Find(victimUserID);
+		if (victimIndex == pVictimKillMap->InvalidIndex())
+		{
+			victimIndex = pVictimKillMap->Insert(victimUserID, 0); 
+		}
+
+		(*pVictimKillMap)[victimIndex]++;
+
+		if ((*pVictimKillMap)[victimIndex] == 4 && sv_domination_messages.GetBool())
+		{
+			UTIL_PrintToAllClients(UTIL_VarArgs(CHAT_DEFAULT "%s " CHAT_CONTEXT"is dominating " CHAT_DEFAULT "%s\n", pKiller->GetPlayerName(), pVictim->GetPlayerName()));
+		}
+
+#ifdef _DEBUG
+		// --- DEBUG: Print current kill streaks for all players ---
+		Msg("=== Current Kill Streaks ===\n");
+		for (int attackerIndex = 0; attackerIndex < m_KillStreaks.MaxElement(); ++attackerIndex)
+		{
+			if (!m_KillStreaks.IsValidIndex(attackerIndex))
+				continue;
+
+			int attackerUserID = m_KillStreaks.Key(attackerIndex);
+			CUtlMap<int, int>* pVictimKillMap = m_KillStreaks[attackerIndex];
+
+			CBasePlayer* pAttackerPlayer = UTIL_PlayerByUserId(attackerUserID);
+			if (pAttackerPlayer)
+			{
+				Msg("Attacker: %s (UserID: %d)\n", pAttackerPlayer->GetPlayerName(), attackerUserID);
+
+				for (int victimIndex = 0; victimIndex < pVictimKillMap->MaxElement(); ++victimIndex)
+				{
+					if (!pVictimKillMap->IsValidIndex(victimIndex))
+						continue;
+
+					int victimUserID = pVictimKillMap->Key(victimIndex);
+					int killCount = (*pVictimKillMap)[victimIndex];
+
+					CBasePlayer* pVictimPlayer = UTIL_PlayerByUserId(victimUserID);
+					if (pVictimPlayer)
+					{
+						Msg("    Victim: %s (UserID: %d) - Kills: %d\n", pVictimPlayer->GetPlayerName(), victimUserID, killCount);
+					}
+				}
+			}
+		}
+		Msg("============================\n");
+#endif
+	}
+
+	if (pKiller == pVictim)
+	{
+		CBasePlayer* pKiller = ToBasePlayer(info.GetAttacker());
+		ResetKillStreaks(pKiller);
+	}
+
+	if (pKiller && pKiller != pVictim && pVictim && pKiller->GetTeamNumber() == pVictim->GetTeamNumber() && IsTeamplay())
 	{
 		CBasePlayer* pKiller = ToBasePlayer(info.GetAttacker());
 
@@ -2125,6 +2208,22 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 #endif
 
 }
+
+#ifndef CLIENT_DLL
+void CHL2MPRules::ResetKillStreaks(CBasePlayer* pPlayer)
+{
+	if (!pPlayer)
+		return;
+
+	int playerUserID = pPlayer->GetUserID();
+
+	int playerIndex = m_KillStreaks.Find(playerUserID);
+	if (playerIndex != m_KillStreaks.InvalidIndex())
+	{
+		m_KillStreaks.RemoveAt(playerIndex);
+	}
+}
+#endif
 
 void CHL2MPRules::ClientSettingsChanged(CBasePlayer* pPlayer)
 {
