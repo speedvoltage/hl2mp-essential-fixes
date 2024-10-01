@@ -46,6 +46,7 @@
 #include "gamestats.h"
 #include "filters.h"
 #include "tier0/icommandline.h"
+#include "hl2mp_player.h"
 
 #ifdef HL2_EPISODIC
 #include "npc_alyx_episodic.h"
@@ -981,6 +982,20 @@ bool CHL2_Player::HandleInteraction(int interactionType, void *data, CBaseCombat
 
 void CHL2_Player::PlayerRunCommand(CUserCmd *ucmd, IMoveHelper *moveHelper)
 {
+	CHL2MP_Player* pHL2MPPlayer = dynamic_cast<CHL2MP_Player*>(this);
+
+	if (pHL2MPPlayer)
+	{
+		// Check if the player is spawn protected and has pressed a movement key
+		if (pHL2MPPlayer->IsSpawnProtected() &&
+			(ucmd->forwardmove != 0 || ucmd->sidemove != 0 || ucmd->upmove != 0 ||
+				ucmd->buttons & IN_ATTACK || ucmd->buttons & IN_ATTACK2))
+		{
+			// Player pressed a movement key, disable spawn protection
+			pHL2MPPlayer->DisableSpawnProtection();
+		}
+	}
+
 	// Handle FL_FROZEN.
 	if ( m_afPhysicsFlags & PFLAG_ONBARNACLE )
 	{

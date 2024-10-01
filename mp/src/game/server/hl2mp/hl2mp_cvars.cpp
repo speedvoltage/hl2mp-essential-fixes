@@ -66,3 +66,14 @@ ConVar mp_restartgame_notimelimitreset(
 	"mp_restartgame_notimelimitreset",
 	"0",
 	FCVAR_GAMEDLL);
+
+ConVar mp_spawnprotection(
+	"mp_spawnprotection",
+	"0",
+	FCVAR_GAMEDLL | FCVAR_NOTIFY);
+
+ConVar mp_spawnprotection_time("mp_spawnprotection_time", 
+	"5",
+	FCVAR_GAMEDLL | FCVAR_NOTIFY, 
+	"How long should the spawn protection last if not moving", 
+	true, 3.0, true, 60.0);

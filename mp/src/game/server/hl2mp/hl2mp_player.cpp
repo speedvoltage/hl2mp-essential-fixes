@@ -390,6 +390,9 @@ void CHL2MP_Player::Spawn(void)
 
 	SetNextThink(gpGlobals->curtime + 0.1f);
 	SetThink(&CHL2MP_Player::FirstThinkAfterSpawn);
+
+	if (mp_spawnprotection.GetBool())
+		EnableSpawnProtection();
 	
 	if ( !IsObserver() )
 	{
@@ -1860,6 +1863,11 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 
 int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 {
+	if (m_bSpawnProtected)
+	{
+		return 0;  // Ignore the damage
+	}
+
 	//return here if the player is in the respawn grace period vs. slams.
 	if ( gpGlobals->curtime < m_flSlamProtectTime &&  (inputInfo.GetDamageType() == DMG_BLAST ) )
 		return 0;
@@ -2038,6 +2046,24 @@ void CHL2MP_Player::FirstThinkAfterSpawn()
 
 	// Remove this think context after it runs
 	SetThink(nullptr);
+}
+
+void CHL2MP_Player::EnableSpawnProtection()
+{
+	SetRenderMode(kRenderTransAlpha);
+	SetRenderColorA(125);
+
+	m_bSpawnProtected = true;
+
+	SetThink(&CHL2MP_Player::DisableSpawnProtection);
+	SetNextThink(gpGlobals->curtime + mp_spawnprotection_time.GetInt());
+}
+
+void CHL2MP_Player::DisableSpawnProtection()
+{
+	SetRenderColorA(255);
+
+	m_bSpawnProtected = false;
 }
 
 void CHL2MP_Player::InitialSpawn( void )

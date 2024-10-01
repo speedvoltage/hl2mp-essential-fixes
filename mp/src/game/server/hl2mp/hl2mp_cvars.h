@@ -22,5 +22,7 @@ extern ConVar sv_lockteams;
 extern ConVar sv_teamsmenu;
 extern ConVar sv_showhelpmessages;
 extern ConVar mp_restartgame_notimelimitreset;
+extern ConVar mp_spawnprotection;
+extern ConVar mp_spawnprotection_time;
 
 #endif //HL2MP_CVARS_H

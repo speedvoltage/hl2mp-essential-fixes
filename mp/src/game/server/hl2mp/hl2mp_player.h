@@ -170,6 +170,10 @@ public:
 		return g_bFirstSpawn;
 	}
 
+	void EnableSpawnProtection();
+	void DisableSpawnProtection();
+	bool IsSpawnProtected() const { return m_bSpawnProtected; }
+
 private:
 
 	void LadderRespawnFix();
@@ -204,6 +208,8 @@ private:
 	bool m_bIsLeader;
 
 	bool m_bReady;
+
+	bool m_bSpawnProtected;
 };
 
 inline CHL2MP_Player *ToHL2MPPlayer( CBaseEntity *pEntity )
