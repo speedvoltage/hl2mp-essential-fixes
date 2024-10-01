@@ -6309,6 +6309,9 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 		break;
 
 	case 101:
+		if (GetTeamNumber() == TEAM_SPECTATOR)
+			return;
+
 		gEvilImpulse101 = true;
 
 		EquipSuit();

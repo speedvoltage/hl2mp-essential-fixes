@@ -204,6 +204,7 @@ void CHL2MP_Player::Precache( void )
 	PrecacheScriptSound( "NPC_MetroPolice.Die" );
 	PrecacheScriptSound( "NPC_CombineS.Die" );
 	PrecacheScriptSound( "NPC_Citizen.die" );
+
 	if (sv_custom_sounds.GetBool())
 	{
 		PrecacheScriptSound("server_sounds_red_team");
@@ -245,46 +246,50 @@ void CHL2MP_Player::Precache( void )
 
 void CHL2MP_Player::GiveAllItems( void )
 {
-	EquipSuit();
+	if (GetTeamNumber() != TEAM_SPECTATOR)
+	{
+		EquipSuit();
 
-	CBasePlayer::GiveAmmo( 255,	"Pistol");
-	CBasePlayer::GiveAmmo( 255,	"AR2" );
-	CBasePlayer::GiveAmmo( 5,	"AR2AltFire" );
-	CBasePlayer::GiveAmmo( 255,	"SMG1");
-	CBasePlayer::GiveAmmo( 3,	"smg1_grenade");
-	CBasePlayer::GiveAmmo( 255,	"Buckshot");
-	CBasePlayer::GiveAmmo( 32,	"357" );
-	CBasePlayer::GiveAmmo( 3, "rpg_round" );
-	CBasePlayer::GiveAmmo(10, "XBowBolt");
+		CBasePlayer::GiveAmmo(255, "Pistol");
+		CBasePlayer::GiveAmmo(255, "AR2");
+		CBasePlayer::GiveAmmo(5, "AR2AltFire");
+		CBasePlayer::GiveAmmo(255, "SMG1");
+		CBasePlayer::GiveAmmo(3, "smg1_grenade");
+		CBasePlayer::GiveAmmo(255, "Buckshot");
+		CBasePlayer::GiveAmmo(32, "357");
+		CBasePlayer::GiveAmmo(3, "rpg_round");
+		CBasePlayer::GiveAmmo(10, "XBowBolt");
 
-	CBasePlayer::GiveAmmo( 5,	"grenade" );
-	CBasePlayer::GiveAmmo( 5,	"slam" );
+		CBasePlayer::GiveAmmo(5, "grenade");
+		CBasePlayer::GiveAmmo(5, "slam");
 
-	GiveNamedItem( "weapon_crowbar" );
-	GiveNamedItem( "weapon_stunstick" );
-	GiveNamedItem( "weapon_pistol" );
-	GiveNamedItem( "weapon_357" );
+		GiveNamedItem("weapon_crowbar");
+		GiveNamedItem("weapon_stunstick");
+		GiveNamedItem("weapon_pistol");
+		GiveNamedItem("weapon_357");
 
-	GiveNamedItem( "weapon_smg1" );
-	GiveNamedItem( "weapon_ar2" );
-	
-	GiveNamedItem( "weapon_shotgun" );
-	GiveNamedItem( "weapon_frag" );
-	
-	GiveNamedItem( "weapon_crossbow" );
-	
-	GiveNamedItem( "weapon_rpg" );
+		GiveNamedItem("weapon_smg1");
+		GiveNamedItem("weapon_ar2");
 
-	GiveNamedItem( "weapon_slam" );
+		GiveNamedItem("weapon_shotgun");
+		GiveNamedItem("weapon_frag");
 
-	GiveNamedItem( "weapon_physcannon" );
+		GiveNamedItem("weapon_crossbow");
+
+		GiveNamedItem("weapon_rpg");
+
+		GiveNamedItem("weapon_slam");
+
+		GiveNamedItem("weapon_physcannon");
+	}
 }
 
 void CHL2MP_Player::GiveDefaultItems( void )
 {
-	EquipSuit();
+	if (GetTeamNumber() != TEAM_SPECTATOR)
+		EquipSuit();
 
-	if (!mp_noweapons.GetBool())
+	if (!mp_noweapons.GetBool() && GetTeamNumber() != TEAM_SPECTATOR)
 	{
 		CBasePlayer::GiveAmmo(255, "Pistol");
 		CBasePlayer::GiveAmmo(45, "SMG1");
@@ -1595,7 +1600,7 @@ void CHL2MP_Player::CheatImpulseCommands( int iImpulse )
 	{
 		case 101:
 			{
-				if( sv_cheats->GetBool() )
+				if( sv_cheats->GetBool() && GetTeamNumber() != TEAM_SPECTATOR )
 				{
 					GiveAllItems();
 				}

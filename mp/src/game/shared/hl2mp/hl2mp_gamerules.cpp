@@ -735,33 +735,6 @@ void CHL2MPRules::Think(void)
 	}
 
 	/*
-		UPDATE TEAMPLAY RULES
-	*/
-	if (teamplay.GetBool() && !IsTeamplay() || !teamplay.GetBool() && IsTeamplay())
-	{
-		// loop through all players
-		for (int i = 1; i <= gpGlobals->maxClients; i++)
-		{
-			CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-
-			if (pPlayer && pPlayer->IsConnected() && pPlayer->GetTeamNumber() != TEAM_SPECTATOR && !pPlayer->IsHLTV())
-			{
-				if (teamplay.GetInt() == 0 && g_pGameRules->IsTeamplay() == 1)
-				{
-					pPlayer->ChangeTeam(0);
-				}
-				else
-				{
-					sv_timeleft_color_override.SetValue(1);
-					pPlayer->ChangeTeam(random->RandomInt(2, 3));
-				}
-			}
-		}
-		UpdateGameRules();
-		RestartGame();
-	}
-
-	/*
 		NEW HUD TARGET ID	
 	*/
 	for (int i = 1; i <= gpGlobals->maxClients; i++)
@@ -1232,7 +1205,7 @@ void CHL2MPRules::Think(void)
 
 				UTIL_HudMessage(UTIL_GetLocalPlayer(), textParams, stime);
 
-				if (!IsTeamplay())
+				if (!IsTeamplay() && sv_timeleft_teamscore.GetBool())
 				{
 					// Get the unassigned team
 					CTeam* pTeamUnassigned = g_Teams[TEAM_UNASSIGNED];

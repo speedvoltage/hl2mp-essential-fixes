@@ -60,6 +60,7 @@ extern ConVar sv_equalizer;
 ConVar sv_equalizer_allow_toggle("sv_equalizer_allow_toggle", "0", FCVAR_NOTIFY, "If non-zero, players can toggle equalizer mode with a chat command");
 ConVar sv_spec_can_read_teamchat("sv_spec_can_read_teamchat", "0", FCVAR_REPLICATED | FCVAR_ARCHIVE | FCVAR_NOTIFY, "Allow spectators to read team chat from other teams.");
 ConVar sv_silence_chatcmds("sv_silence_chatcmds", "1", 0, "If non-zero, using chat commands will not display the command in chat");
+ConVar sv_chat_trigger("sv_chat_triggers", "1", FCVAR_NOTIFY);
 
 ConVar* sv_cheats = NULL;
 
@@ -109,95 +110,7 @@ void ClientKill(edict_t* pEdict, const Vector& vecForce, bool bExplode = false)
 	pPlayer->CommitSuicide(vecForce, bExplode);
 }
 
-ConVar sv_chat_trigger("sv_chat_triggers", "1", FCVAR_NOTIFY);
-ConVar mp_allow_teamplay_changes("mp_allow_teamplay_changes", "0", FCVAR_NOTIFY);
 
-CON_COMMAND(tp, "Switch teamplay status on the fly.")
-{
-	CBasePlayer* pPlayer = ToBasePlayer(UTIL_GetCommandClient());
-
-	if (!pPlayer)
-		return;
-
-	if (mp_allow_teamplay_changes.GetBool())
-	{
-		// if !pPlayer -> don't do anything
-		if (pPlayer && pPlayer->GetTeamNumber() == TEAM_SPECTATOR || pPlayer->IsHLTV())
-		{
-			ClientPrint(pPlayer, HUD_PRINTTALK, "Spectators cannot toggle teamplay.\n");
-			return;
-		}
-
-		if (HL2MPRules()->IsTeamplay() == false)
-		{
-			teamplay.SetValue(1);
-			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 enabled\x01.\n");
-		}
-
-		else
-		{
-			teamplay.SetValue(0);
-
-			// loop through all players
-			for (int i = 1; i <= gpGlobals->maxClients; i++)
-			{
-				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-
-				if (pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
-				{
-					if (pPlayer->IsHLTV()) // Don't let SourceTV join the game.
-						return;
-
-					pPlayer->ChangeTeam(0);
-				}
-			}
-			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 disabled\x01.\n");
-		}
-	}
-}
-
-CON_COMMAND(toggle_teamplay, "Switch teamplay status on the fly.")
-{
-	CBasePlayer* pPlayer = ToBasePlayer(UTIL_GetCommandClient());
-
-	if (!pPlayer)
-		return;
-
-	if (mp_allow_teamplay_changes.GetBool())
-	{
-		if (pPlayer && pPlayer->GetTeamNumber() == TEAM_SPECTATOR || pPlayer->IsHLTV())
-		{
-			ClientPrint(pPlayer, HUD_PRINTTALK, "Spectators cannot toggle teamplay.\n");
-			return;
-		}
-
-		if (HL2MPRules()->IsTeamplay() == false)
-		{
-			teamplay.SetValue(1);
-			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 enabled\x01.\n");
-		}
-
-		else
-		{
-			teamplay.SetValue(0);
-
-			// loop through all players
-			for (int i = 1; i <= gpGlobals->maxClients; i++)
-			{
-				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-
-				if (pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
-				{
-					if (pPlayer->IsHLTV()) // Don't let SourceTV join the game.
-						return;
-
-					pPlayer->ChangeTeam(0);
-				}
-			}
-			UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 disabled\x01.\n");
-		}
-	}
-}
 
 char* CheckChatText(CBasePlayer* pPlayer, char* text)
 {
@@ -223,45 +136,6 @@ char* CheckChatText(CBasePlayer* pPlayer, char* text)
 
 	GameRules()->CheckChatText(pPlayer, p);
 
-	if (mp_allow_teamplay_changes.GetBool())
-	{
-		if (FStrEq(p, "!tp") || FStrEq(p, "!teamplay"))
-		{
-			if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR || pPlayer->IsHLTV())
-			{
-				ClientPrint(pPlayer, HUD_PRINTTALK, "Spectators cannot toggle teamplay.\n");
-			}
-			else
-			{
-				if (HL2MPRules()->IsTeamplay() == false)
-				{
-					teamplay.SetValue(1);
-					UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 enabled\x01.\n");
-				}
-				else
-				{
-					teamplay.SetValue(0);
-
-					// loop through all players
-					for (int i = 1; i <= gpGlobals->maxClients; i++)
-					{
-						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-
-						if (pPlayer && !pPlayer->IsHLTV() && pPlayer->GetTeamNumber() != TEAM_SPECTATOR) // Don't let SourceTV join the game.
-						{
-							pPlayer->ChangeTeam(0);
-						}
-					}
-					UTIL_ClientPrintAll(HUD_PRINTTALK, "\x05Teamplay \x01has been\x05 disabled\x01.\n");
-				}
-			}
-		}
-	}
-	else
-	{
-		UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Cannot toggle teamplay rules.");
-	}
-
 	if (FStrEq(p, "!help") && sv_showhelpmessages.GetBool())
 	{
 		UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Available commands:\n");
@@ -271,8 +145,6 @@ char* CheckChatText(CBasePlayer* pPlayer, char* text)
 		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!mzl " CHAT_CONTEXT "- Change your .357 zoom level\n");
 
 		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!czl " CHAT_CONTEXT "- Change your crossbow zoom level\n");
-
-		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!tp/!teamplay " CHAT_CONTEXT "- Toggle teamplay game rules\n");
 
 		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!ks " CHAT_CONTEXT "- Toggle kill sounds\n");
 
