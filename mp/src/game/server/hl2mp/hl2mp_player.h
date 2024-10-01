@@ -178,6 +178,8 @@ public:
 	void IncrementAfkTimer() { m_iAfkTime++; }
 	int GetAfkTimer() const { return m_iAfkTime; }
 
+	void AuthenticationCheckThink();
+
 private:
 
 	void LadderRespawnFix();

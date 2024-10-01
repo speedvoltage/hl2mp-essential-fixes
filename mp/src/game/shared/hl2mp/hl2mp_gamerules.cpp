@@ -47,6 +47,10 @@ int g_iPreviousLeaderTeam = TEAM_UNASSIGNED;
 
 extern void respawn(CBaseEntity* pEdict, bool fCopyCorpse);
 
+#ifdef HL2MP_PLAYER_FILTER
+extern void ReadWhitelistFile();
+#endif
+
 extern bool FindInList(const char** pStrings, const char* pToFind);
 
 ConVar sv_hl2mp_weapon_respawn_time("sv_hl2mp_weapon_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
@@ -234,6 +238,21 @@ char* sTeamNames[] =
 };
 
 #ifndef CLIENT_DLL
+
+#ifdef HL2MP_PLAYER_FILTER
+void CC_RefreshWhitelist(const CCommand& args)
+{
+	if (UTIL_GetCommandClientIndex() > 0)
+		return;
+
+	Msg("Refreshing whitelist...\n");
+	ReadWhitelistFile();
+}
+#endif
+
+// Create the ConCommand
+ConCommand refresh_whitelist("refresh_whitelist", CC_RefreshWhitelist, "Refreshes the player whitelist.", FCVAR_NONE);
+
 void sv_equalizer_changed(IConVar* pConVar, const char* pOldString, float flOldValue)
 {
 	if (!((ConVar*)pConVar)->GetBool())  // If equalizer is disabled
@@ -352,6 +371,8 @@ CHL2MPRules::CHL2MPRules()
 #ifndef CLIENT_DLL
 	if (m_bFirstInitialization)
 	{
+		ReadWhitelistFile();
+
 		if (sv_custom_sounds.GetBool())
 		{
 			// Get the downloadables string table

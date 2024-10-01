@@ -33,6 +33,10 @@
 
 void Host_Say( edict_t *pEdict, bool teamonly );
 
+#ifdef HL2MP_PLAYER_FILTER
+CUtlVector<CUtlString> m_Whitelist;
+#endif
+
 ConVar sv_motd_unload_on_dismissal( "sv_motd_unload_on_dismissal", "0", 0, "If enabled, the MOTD contents will be unloaded when the player closes the MOTD." );
 ConVar sv_show_motd_on_connect("sv_show_motd_on_connect", "0", 0, "If enabled, shows the MOTD to the player when fully put into the server.");
 ConVar sv_show_client_put_in_server_msg("sv_show_client_put_in_server_msg", "1", 0, "Prints to all client that a connecting player is fully put in the server.");
@@ -44,8 +48,82 @@ extern bool			g_fGameOver;
 
 bool g_bWasGamePausedOnJoin = false;
 
+#ifdef HL2MP_PLAYER_FILTER
+void ReadWhitelistFile()
+{
+	m_Whitelist.RemoveAll();  // Clear existing data
+
+	FileHandle_t file = filesystem->Open("cfg/player_whitelist.txt", "r", "GAME");
+	if (file)
+	{
+		char line[128];
+		Msg("Whitelisted players:\n");  // Print the start of whitelist contents
+
+		while (filesystem->ReadLine(line, sizeof(line), file))
+		{
+			// Remove any trailing newline characters
+			line[strcspn(line, "\r\n")] = 0;
+
+			// Print each line (SteamID3) being read
+			Msg("%s\n", line);
+
+			// Add the SteamID3 string directly to the whitelist
+			m_Whitelist.AddToTail(line);  // Store the SteamID3 as a CUtlString
+		}
+
+		filesystem->Close(file);
+	}
+	else
+	{
+		Msg("Error: Could not open player_whitelist.txt\n");
+	}
+}
+#endif
+
+#ifndef NO_STEAM
+void CHL2MP_Player::AuthenticationCheckThink()
+{
+	const char* steamID3 = engine->GetPlayerNetworkIDString(this->edict());
+
+	if (!steamID3 || V_stricmp(steamID3, "UNKNOWN") == 0)
+	{
+		engine->ServerCommand(UTIL_VarArgs("kickid %d Authentication failed. Ensure you are logged into Steam and try reconnecting\n", this->GetUserID()));
+	}
+
+	SetContextThink(NULL, TICK_NEVER_THINK, "AuthenticationCheckThink");
+}
+#endif
+
 void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 {
+#ifndef NO_STEAM
+	const char* steamID3 = engine->GetPlayerNetworkIDString(pPlayer->edict());
+
+	pPlayer->SetContextThink(
+		static_cast<void (CBaseEntity::*)()>(&CHL2MP_Player::AuthenticationCheckThink),
+		gpGlobals->curtime + 60.0f,
+		"AuthenticationCheckThink"
+	);
+
+#ifdef HL2MP_PLAYER_FILTER
+	bool bWhitelisted = false;
+	for (int i = 0; i < m_Whitelist.Count(); ++i)
+	{
+		if (V_stricmp(m_Whitelist[i].Get(), steamID3) == 0)
+		{
+			bWhitelisted = true;
+			break;
+		}
+	}
+
+	if (!bWhitelisted)
+	{
+		engine->ServerCommand(UTIL_VarArgs("kickid %d Your SteamID is not whitelisted on this server.\n", pPlayer->GetUserID()));
+		return;
+	}
+#endif
+#endif
+
 	pPlayer->InitialSpawn();
 
 	if (sv_join_spec_on_connect.GetBool())
