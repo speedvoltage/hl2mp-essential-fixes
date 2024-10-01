@@ -522,6 +522,46 @@ void CHL2MPRules::Think(void)
 
 	iConnected = NULL;
 
+	if (gpGlobals->curtime > m_tmNextPeriodicThink)
+	{
+		// Loop through all players
+		for (int i = 1; i <= gpGlobals->maxClients; i++)
+		{
+			CHL2MP_Player* pHL2MPPlayer = dynamic_cast<CHL2MP_Player*>(UTIL_PlayerByIndex(i));
+
+			// Ensure the player is valid and not a spectator
+			if (pHL2MPPlayer && !pHL2MPPlayer->IsBot() && pHL2MPPlayer->GetTeamNumber() != TEAM_SPECTATOR && mp_afk.GetBool())
+			{
+				// The player is not moving, so increment their AFK timer
+				pHL2MPPlayer->IncrementAfkTimer();
+				// Msg("AFK time: %d\n", pHL2MPPlayer->GetAfkTimer());
+
+				// Handle warnings if enabled
+				if (mp_afk_warnings.GetBool())
+				{
+					if (pHL2MPPlayer->GetAfkTimer() == mp_afk_time.GetInt() - 15)
+					{
+						UTIL_PrintToClient(pHL2MPPlayer, CHAT_CONTEXT "You will be kicked for being AFK in " CHAT_LIGHTBLUE "15 " "seconds.");
+					}
+					else if (pHL2MPPlayer->GetAfkTimer() == mp_afk_time.GetInt() - 5)
+					{
+						UTIL_PrintToClient(pHL2MPPlayer, CHAT_CONTEXT "You will be kicked for being AFK in " CHAT_LIGHTBLUE "5 " "seconds.");
+					}
+				}
+
+				// Check if they've exceeded the AFK time limit
+				if (pHL2MPPlayer->GetAfkTimer() >= mp_afk_time.GetInt())
+				{
+					// Kick the player for being AFK
+					engine->ServerCommand(UTIL_VarArgs("kickid %d You have been kicked for being AFK\n", pHL2MPPlayer->GetUserID()));
+				}
+			}
+
+			if (pHL2MPPlayer && !pHL2MPPlayer->IsBot() && !mp_afk.GetBool())
+				pHL2MPPlayer->ResetAfkTimer();
+		}
+	}
+
 	// For match servers
 	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{

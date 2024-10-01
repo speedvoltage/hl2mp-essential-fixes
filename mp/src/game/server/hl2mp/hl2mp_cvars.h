@@ -24,5 +24,8 @@ extern ConVar sv_showhelpmessages;
 extern ConVar mp_restartgame_notimelimitreset;
 extern ConVar mp_spawnprotection;
 extern ConVar mp_spawnprotection_time;
+extern ConVar mp_afk;
+extern ConVar mp_afk_time;
+extern ConVar mp_afk_warnings;
 
 #endif //HL2MP_CVARS_H

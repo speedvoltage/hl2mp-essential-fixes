@@ -47,6 +47,7 @@
 #include "filters.h"
 #include "tier0/icommandline.h"
 #include "hl2mp_player.h"
+#include "hl2mp_cvars.h"
 
 #ifdef HL2_EPISODIC
 #include "npc_alyx_episodic.h"
@@ -979,7 +980,6 @@ bool CHL2_Player::HandleInteraction(int interactionType, void *data, CBaseCombat
 	return false;
 }
 
-
 void CHL2_Player::PlayerRunCommand(CUserCmd *ucmd, IMoveHelper *moveHelper)
 {
 	CHL2MP_Player* pHL2MPPlayer = dynamic_cast<CHL2MP_Player*>(this);
@@ -993,6 +993,12 @@ void CHL2_Player::PlayerRunCommand(CUserCmd *ucmd, IMoveHelper *moveHelper)
 		{
 			// Player pressed a movement key, disable spawn protection
 			pHL2MPPlayer->DisableSpawnProtection();
+		}
+
+		if (mp_afk.GetBool() && (ucmd->forwardmove != 0 || ucmd->sidemove != 0 || ucmd->upmove != 0))
+		{
+			// The player is moving, so reset their AFK timer
+			pHL2MPPlayer->ResetAfkTimer();
 		}
 	}
 

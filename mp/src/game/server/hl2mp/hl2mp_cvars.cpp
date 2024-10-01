@@ -77,3 +77,20 @@ ConVar mp_spawnprotection_time("mp_spawnprotection_time",
 	FCVAR_GAMEDLL | FCVAR_NOTIFY, 
 	"How long should the spawn protection last if not moving", 
 	true, 3.0, true, 60.0);
+
+ConVar mp_afk("mp_afk", 
+	"0", 
+	FCVAR_GAMEDLL,
+	"Enable or disable the AFK system.");
+
+ConVar mp_afk_time(
+	"mp_afk_time", 
+	"30", 
+	FCVAR_GAMEDLL,
+	"Time in seconds after which AFK players will be kicked.",
+	true, 30.0f, false, 60.0f);
+
+ConVar mp_afk_warnings(
+	"mp_afk_warnings", 
+	"1", FCVAR_GAMEDLL,
+	"Warn players if they are AFK.");

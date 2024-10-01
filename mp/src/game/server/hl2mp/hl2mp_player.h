@@ -174,6 +174,10 @@ public:
 	void DisableSpawnProtection();
 	bool IsSpawnProtected() const { return m_bSpawnProtected; }
 
+	void ResetAfkTimer() { m_iAfkTime = 0; }
+	void IncrementAfkTimer() { m_iAfkTime++; }
+	int GetAfkTimer() const { return m_iAfkTime; }
+
 private:
 
 	void LadderRespawnFix();
@@ -210,6 +214,8 @@ private:
 	bool m_bReady;
 
 	bool m_bSpawnProtected;
+
+	int m_iAfkTime;
 };
 
 inline CHL2MP_Player *ToHL2MPPlayer( CBaseEntity *pEntity )
