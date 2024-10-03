@@ -615,4 +615,9 @@ void CWeaponShotgun::ItemHolsterFrame(void)
 
 	m_bDelayedFire1 = false;
 	m_bDelayedFire2 = false;
+
+	// Only works in custom HL2MP mods unfortunately
+	// since the client doesn't receive this information
+	// in Half-Life 2: Deathmatch
+	m_bInReload = false;
 }
