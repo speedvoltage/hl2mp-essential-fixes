@@ -48,6 +48,7 @@
 #include "tier0/icommandline.h"
 #include "hl2mp_player.h"
 #include "hl2mp_cvars.h"
+#include "util.h"
 
 #ifdef HL2_EPISODIC
 #include "npc_alyx_episodic.h"
@@ -1032,7 +1033,7 @@ void CHL2_Player::PlayerRunCommand(CUserCmd *ucmd, IMoveHelper *moveHelper)
 {
 	CHL2MP_Player* pHL2MPPlayer = dynamic_cast<CHL2MP_Player*>(this);
 
-	if (pHL2MPPlayer)
+	if (pHL2MPPlayer && pHL2MPPlayer->IsAlive())
 	{
 		float currentTime = gpGlobals->curtime;
 
@@ -1152,7 +1153,7 @@ void CHL2_Player::PlayerRunCommand(CUserCmd *ucmd, IMoveHelper *moveHelper)
 
 	//Msg("Player time: [ACTIVE: %f]\t[IDLE: %f]\n", m_flMoveTime, m_flIdleTime );
 
-	BaseClass::PlayerRunCommand( ucmd, moveHelper );
+	BaseClass::PlayerRunCommand(ucmd, moveHelper);
 }
 
 //-----------------------------------------------------------------------------
