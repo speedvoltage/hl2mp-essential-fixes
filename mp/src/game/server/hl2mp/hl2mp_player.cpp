@@ -679,6 +679,9 @@ void CHL2MP_Player::SetReady(bool bReady)
 
 bool CHL2MP_Player::SavePlayerSettings()
 {
+	if (IsBot())
+		return false;
+
 	const char* steamID3 = engine->GetPlayerNetworkIDString(edict());  // Fetch SteamID3
 	uint64 steamID64 = ConvertSteamID3ToSteamID64(steamID3);  // Convert to SteamID64
 
@@ -721,6 +724,9 @@ bool CHL2MP_Player::SavePlayerSettings()
 
 bool CHL2MP_Player::LoadPlayerSettings()
 {
+	if (IsBot())
+		return false;
+
 	const char* steamID3 = engine->GetPlayerNetworkIDString(edict());  // Fetch SteamID3
 	uint64 steamID64 = ConvertSteamID3ToSteamID64(steamID3);  // Convert to SteamID64
 
@@ -731,9 +737,42 @@ bool CHL2MP_Player::LoadPlayerSettings()
 
 	if (!kv->LoadFromFile(filesystem, filename, "MOD"))
 	{
-		Warning("Couldn't load settings from file %s\n", filename);
+		Warning("Couldn't load settings from file %s, creating a new one with default values...\n", filename);
+
+		// Set default values
+		m_iFOV = 90;
+		m_iFOVServer = 90;
+		Set357ZoomLevel(20);  // Default .357 zoom level
+		SetXbowZoomLevel(20);  // Default crossbow zoom level
+		SetHitSoundsEnabled(true);  // Enable hit sounds by default
+		SetKillSoundsEnabled(true);  // Enable kill sounds by default
+
+		// Create the player settings KeyValues entry
+		KeyValues* playerSettings = new KeyValues(UTIL_VarArgs("%llu", steamID64));
+		playerSettings->SetInt("FOV", m_iFOV);
+		playerSettings->SetInt("FOVServer", m_iFOVServer);
+		playerSettings->SetInt(".357 Zoom Level", Get357ZoomLevel());
+		playerSettings->SetInt("Xbow Zoom Level", GetXbowZoomLevel());
+		playerSettings->SetBool("HitSoundsEnabled", AreHitSoundsEnabled());
+		playerSettings->SetBool("KillSoundsEnabled", AreKillSoundsEnabled());
+
+		// Add player settings to the main KeyValues
+		kv->AddSubKey(playerSettings);
+
+		// Save the new settings to the file
+		if (kv->SaveToFile(filesystem, filename, "MOD"))
+		{
+			Msg("Default settings for player %s have been saved to %s\n", steamID3, filename);
+		}
+		else
+		{
+			Warning("Failed to save default settings to file %s\n", filename);
+			kv->deleteThis();
+			return false;
+		}
+
 		kv->deleteThis();
-		return false;
+		return true;
 	}
 
 	KeyValues* playerSettings = kv->FindKey(UTIL_VarArgs("%llu", steamID64));
@@ -2045,7 +2084,7 @@ void CHL2MP_Player::FirstThinkAfterSpawn()
 
 			if (pPlayer)
 			{
-				pPlayer->RemoveEFlags(FL_FROZEN);
+				pPlayer->RemoveFlag(FL_FROZEN);
 			}
 		}
 	}
@@ -2061,8 +2100,7 @@ void CHL2MP_Player::EnableSpawnProtection()
 
 	m_bSpawnProtected = true;
 
-	SetThink(&CHL2MP_Player::DisableSpawnProtection);
-	SetNextThink(gpGlobals->curtime + mp_spawnprotection_time.GetInt());
+	SetContextThink(&CHL2MP_Player::DisableSpawnProtection, gpGlobals->curtime + mp_spawnprotection_time.GetFloat(), "DisableSpawnProtectionContext");
 }
 
 void CHL2MP_Player::DisableSpawnProtection()
@@ -2070,13 +2108,16 @@ void CHL2MP_Player::DisableSpawnProtection()
 	SetRenderColorA(255);
 
 	m_bSpawnProtected = false;
+
+	SetContextThink(NULL, 0, "DisableSpawnProtectionContext");
 }
 
 void CHL2MP_Player::InitialSpawn( void )
 {
 	BaseClass::InitialSpawn();
 
-	LoadPlayerSettings();
+	if (!IsBot())
+		LoadPlayerSettings();
 
 	if (engine->IsPaused())
 	{
@@ -2089,7 +2130,7 @@ void CHL2MP_Player::InitialSpawn( void )
 
 			if (pPlayer)
 			{
-				pPlayer->AddEFlags(FL_FROZEN);
+				pPlayer->AddFlag(FL_FROZEN);
 			}
 		}
 	}
