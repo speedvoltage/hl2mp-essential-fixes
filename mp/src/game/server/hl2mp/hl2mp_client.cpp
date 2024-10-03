@@ -83,6 +83,9 @@ void ReadWhitelistFile()
 #ifndef NO_STEAM
 void CHL2MP_Player::AuthenticationCheckThink()
 {
+	if (!IsConnected())
+		return;
+
 	const char* steamID3 = engine->GetPlayerNetworkIDString(this->edict());
 
 	if (!steamID3 || (V_stristr(steamID3, "PENDING") != nullptr))
@@ -95,21 +98,6 @@ void CHL2MP_Player::AuthenticationCheckThink()
 	{
 		engine->ServerCommand(UTIL_VarArgs("kickid %d Invalid UserID\n", GetUserID()));
 		return;
-	}
-
-	for (int i = 1; i <= gpGlobals->maxClients; i++)
-	{
-		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-		if (pPlayer && pPlayer != this && pPlayer->IsConnected() && !pPlayer->IsBot())
-		{
-			const char* existingSteamID3 = engine->GetPlayerNetworkIDString(pPlayer->edict());
-
-			if (existingSteamID3 && V_stricmp(existingSteamID3, steamID3) == 0)
-			{
-				engine->ServerCommand(UTIL_VarArgs("kickid %d Suspected SteamID hijacking\n", this->GetUserID()));
-				return;
-			}
-		}
 	}
 
 	SetContextThink(NULL, TICK_NEVER_THINK, "AuthenticationCheckThink");
