@@ -9,6 +9,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Check permissions on creatededicatedprojects
+        run: ls -l mp/src/creatededicatedprojects
       - name: Create bin folder
         run: mkdir -p mp/game/mod_hl2mp/bin
       - name: Run VPC
