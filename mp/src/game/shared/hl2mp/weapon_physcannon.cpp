@@ -65,7 +65,8 @@ ConVar physcannon_cone( "physcannon_cone", "0.97", FCVAR_REPLICATED | FCVAR_CHEA
 ConVar physcannon_ball_cone( "physcannon_ball_cone", "0.997", FCVAR_REPLICATED | FCVAR_CHEAT );
 ConVar player_throwforce( "player_throwforce", "1000", FCVAR_REPLICATED | FCVAR_CHEAT );
 ConVar mp_held_fragnade_punt("mp_held_fragnade_punt", "0", FCVAR_REPLICATED, "If non-zero, held grenade frags in another player's physcannon will not be puntable");
-ConVar sv_physcannon_default_pollrate("sv_physcannon_default_pollrate", "0", FCVAR_REPLICATED, "If non-zero, it will use the default poll rate of 0.1 second");
+ConVar sv_physcannon_default_pollrate("sv_physcannon_default_pollrate", "1", FCVAR_REPLICATED, "If non-zero, it will use the default poll rate of 0.1 second");
+ConVar physcannon_secondaryrefire_instantaneous("physcannon_secondaryrefire_instantaneous", "0", FCVAR_REPLICATED, "If non-zero, the secondary attack can be used instantly again");
 
 #ifndef CLIENT_DLL
 extern ConVar hl2_normspeed;
@@ -2783,7 +2784,10 @@ void CWeaponPhysCannon::LaunchObject( const Vector &vecDir, float flForce )
 			ApplyVelocityBasedForce( pObject, vecDir );
 
 			// Don't allow the gun to regrab a thrown object!!
-			m_flNextSecondaryAttack = m_flNextPrimaryAttack = gpGlobals->curtime + 0.5;
+			if (physcannon_secondaryrefire_instantaneous.GetBool())
+				m_flNextSecondaryAttack = m_flNextPrimaryAttack = gpGlobals->curtime + 0.05;
+			else
+				m_flNextSecondaryAttack = m_flNextPrimaryAttack = gpGlobals->curtime + 0.5;
 			
 			Vector	center = pObject->WorldSpaceCenter();
 
