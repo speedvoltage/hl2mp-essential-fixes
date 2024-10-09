@@ -24,6 +24,12 @@ extern ConVar sk_auto_reload_time;
 extern ConVar sk_plr_num_shotgun_pellets;
 extern ConVar sk_plr_num_shotgun_pellets_alt;
 
+ConVar sv_shotgun_pump("sv_shotgun_pump", 
+	"1", 
+	0, 
+	"Defines the shotgun pump when deploying the shotgun. \
+	1: Default, 2: No pump, 3: Always pump");
+
 class CWeaponShotgun : public CBaseHL2MPCombatWeapon
 {
 public:
@@ -615,6 +621,21 @@ void CWeaponShotgun::ItemHolsterFrame(void)
 
 	m_bDelayedFire1 = false;
 	m_bDelayedFire2 = false;
+
+	int iNeedPump = sv_shotgun_pump.GetInt();
+
+	switch (iNeedPump)
+	{
+	default:
+		// Do nothing, retain the current state of m_bNeedPump
+		break;
+	case 2:
+		m_bNeedPump = false;
+		break;
+	case 3:
+		m_bNeedPump = true;
+		break;
+	}
 
 	// Only works in custom HL2MP mods unfortunately
 	// since the client doesn't receive this information
