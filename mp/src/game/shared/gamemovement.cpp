@@ -50,7 +50,7 @@ ConVar player_limit_jump_speed("player_limit_jump_speed", "1", FCVAR_REPLICATED)
 #endif
 
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
-ConVar sv_allow_bunnyhop("sv_auto_bhop", "0", FCVAR_NOTIFY);
+ConVar sv_allow_bunnyhop("sv_autobhop", "0", FCVAR_NOTIFY);
 #endif
 
 // option_duck_method is a carrier convar. Its sole purpose is to serve an easy-to-flip
