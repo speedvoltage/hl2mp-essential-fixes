@@ -802,6 +802,10 @@ void CFuncTank::Spawn( void )
 			if ( pProp )
 			{
 				pProp->m_bUseHitboxesForRenderBox = true;
+#ifndef HL2MP
+				// should be client-sided
+				pProp->SetClientSideAnimation(true);
+#endif
 			}
 		}
 	}
