@@ -702,6 +702,7 @@ public:
 	virtual void	ItemPostFrame( void );
 	virtual void	ItemBusyFrame( void );
 	virtual bool	SendWeaponAnim( int iActivity );
+	void DisableWeaponZoom();
 
 #ifndef CLIENT_DLL
 	virtual void Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator );
@@ -1021,6 +1022,18 @@ bool CWeaponCrossbow::Holster( CBaseCombatWeapon *pSwitchingTo )
 	return BaseClass::Holster( pSwitchingTo );
 }
 
+#ifndef CLIENT_DLL
+void CWeaponCrossbow::DisableWeaponZoom()
+{
+	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+
+	if (pPlayer)
+	{
+		pPlayer->SetWeaponZoomActive(false);
+	}
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -1047,7 +1060,8 @@ void CWeaponCrossbow::ToggleZoom(void)
 			pPlayer->SetCustomFOV(this, pPlayer->GetStoredCustomFOV());
 			pPlayer->SetDefaultFOV(pPlayer->GetCustomFOV());
 			m_bInZoom = false;
-			pPlayer->SetWeaponZoomActive(false);
+			// pPlayer->SetWeaponZoomActive(false);
+			SetContextThink(&CWeaponCrossbow::DisableWeaponZoom, gpGlobals->curtime + 0.2f, "DisableZoomContext");
 		}
 	}
 	else

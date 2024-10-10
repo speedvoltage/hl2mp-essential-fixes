@@ -122,7 +122,7 @@ public:
 	void CleanUpMap();
 	void CheckRestartGame();
 	void RestartGame();
-	
+
 #ifndef CLIENT_DLL
 	virtual Vector VecItemRespawnSpot( CItem *pItem );
 	virtual QAngle VecItemRespawnAngles( CItem *pItem );

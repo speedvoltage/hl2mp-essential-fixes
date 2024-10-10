@@ -10,6 +10,7 @@
 #include "gameeventdefs.h"
 #include <KeyValues.h>
 #include "ammodef.h"
+// #include <time.h>
 
 #ifdef CLIENT_DLL
 #include "c_hl2mp_player.h"
@@ -91,6 +92,7 @@ ConVar sv_overtime_time("sv_overtime_time", "1", 0, "The amount of time to add i
 ConVar sv_hudtargetid_channel("sv_hudtargetid_channel", "2", 0, "Text channel (0-5). Use this if text channels conflict in-game", true, 0.0, true, 5.0);
 
 ConVar mp_noblock("mp_noblock", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "If non-zero, disable collisions between players");
+
 
 extern ConVar mp_chattime;
 extern ConVar mp_autoteambalance;
@@ -552,12 +554,76 @@ bool IsValidPositiveInteger(const char* str)
 	return true;
 }
 
+#ifdef HL2MP_PLAYER_FILTER
+CUtlVector<CUtlString> m_Whitelist;
+#endif
+
+#ifndef NO_STEAM
+#ifdef HL2MP_PLAYER_FILTER
+void ReadWhitelistFile()
+{
+	m_Whitelist.RemoveAll();  // Clear existing data
+
+	FileHandle_t file = filesystem->Open("cfg/player_whitelist.txt", "r", "GAME");
+	if (file)
+	{
+		char line[128];
+		Msg("Whitelisted players:\n");  // Print the start of whitelist contents
+
+		while (filesystem->ReadLine(line, sizeof(line), file))
+		{
+			line[strcspn(line, "\r\n")] = 0;
+
+			Msg("%s\n", line);
+
+			m_Whitelist.AddToTail(line);
+		}
+
+		filesystem->Close(file);
+	}
+	else
+	{
+		Msg("Error: Could not open player_whitelist.txt\n");
+	}
+}
+#endif
+#endif
+
 void CHL2MPRules::Think(void)
 {
 
 #ifndef CLIENT_DLL
 
 	CGameRules::Think();
+
+#ifdef HL2MP_PLAYER_FILTER
+
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+		if (pPlayer && pPlayer->IsConnected())
+		{
+			const char* steamID3 = engine->GetPlayerNetworkIDString(pPlayer->edict());
+
+			bool bWhitelisted = false;
+			for (int i = 0; i < m_Whitelist.Count(); ++i)
+			{
+				if (V_stricmp(m_Whitelist[i].Get(), steamID3) == 0)
+				{
+					bWhitelisted = true;
+					break;
+				}
+			}
+
+			if (!bWhitelisted)
+			{
+				engine->ServerCommand(UTIL_VarArgs("kickid %d Your SteamID is not whitelisted on this server\n", pPlayer->GetUserID()));
+				return;
+			}
+		}
+	}
+#endif
 
 	iConnected = NULL;
 
@@ -2118,6 +2184,12 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 		{
 			killer_weapon_name = "slam";
 		}
+	}
+
+	if (pVictim)
+	{
+		if (pVictim->FlashlightIsOn())
+			pVictim->FlashlightTurnOff();
 	}
 
 	if (pKiller && pVictim && ((pKiller->GetTeamNumber() != pVictim->GetTeamNumber()) || !IsTeamplay()))

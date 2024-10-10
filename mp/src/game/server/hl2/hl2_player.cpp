@@ -97,6 +97,8 @@ ConVar player_squad_transient_commands( "player_squad_transient_commands", "1", 
 ConVar player_squad_double_tap_time( "player_squad_double_tap_time", "0.25" );
 
 ConVar sv_infinite_aux_power("sv_infinite_aux_power", "0", FCVAR_NOTIFY);
+ConVar sv_infinite_sprint("sv_infinite_sprint", "0", FCVAR_NOTIFY);
+ConVar sv_infinite_oxygen("sv_infinite_oxygen", "0", FCVAR_NOTIFY);
 
 ConVar autoaim_unlock_target( "autoaim_unlock_target", "0.8666" );
 
@@ -334,12 +336,15 @@ CHL2_Player::CHL2_Player()
 ///////////////////////
 #ifdef HL2MP
 #define STR_SPRINT_DRAIN_RATE "25"		// 100 units in 8 seconds
+#define STR_FLASHLIGHT_DRAIN_RATE "1.111"
 #else
 #define STR_SPRINT_DRAIN_RATE "12.5"	// 100 units in 4 seconds
 #endif
 
 void callback_sv_sprint(IConVar *var, const char *pOldValue, float flOldValue);
+void callback_sv_flashlight(IConVar* var, const char* pOldValue, float flOldValue);
 ConVar sv_sprint_drain_rate("sv_sprint_drain_rate", STR_SPRINT_DRAIN_RATE, FCVAR_ARCHIVE, "Drain rate of sprint, in energy units per second.", true, 0, false, 0, &callback_sv_sprint);
+ConVar sv_flashlight_drain_rate("sv_flashlight_drain_rate", STR_FLASHLIGHT_DRAIN_RATE, FCVAR_ARCHIVE, "Drain rate of flashlight, in energy units per second.", true, 0, false, 0, &callback_sv_flashlight);
 ///////////////////////
 
 //
@@ -354,6 +359,9 @@ CSuitPowerDevice SuitDeviceSprint(bits_SUIT_DEVICE_SPRINT, sv_sprint_drain_rate.
 #endif*/
 
 CSuitPowerDevice SuitDeviceSprint(bits_SUIT_DEVICE_SPRINT, sv_sprint_drain_rate.GetFloat());
+#ifdef HL2MP
+	CSuitPowerDevice SuitDeviceFlashlight(bits_SUIT_DEVICE_FLASHLIGHT, sv_flashlight_drain_rate.GetFloat());
+#endif
 
 void callback_sv_sprint(IConVar *var, const char *pOldValue, float flOldValue)
 {
@@ -363,6 +371,11 @@ void callback_sv_sprint(IConVar *var, const char *pOldValue, float flOldValue)
 
 #ifdef HL2_EPISODIC
 	CSuitPowerDevice SuitDeviceFlashlight( bits_SUIT_DEVICE_FLASHLIGHT, 1.111 );	// 100 units in 90 second
+#elif defined HL2MP
+void callback_sv_flashlight(IConVar* var, const char* pOldValue, float flOldValue)
+{
+	SuitDeviceFlashlight = CSuitPowerDevice(bits_SUIT_DEVICE_FLASHLIGHT, sv_flashlight_drain_rate.GetFloat());
+}
 #else
 	CSuitPowerDevice SuitDeviceFlashlight( bits_SUIT_DEVICE_FLASHLIGHT, 2.222 );	// 100 units in 45 second
 #endif
@@ -984,7 +997,7 @@ bool CHL2_Player::HandleInteraction(int interactionType, void *data, CBaseCombat
 ConVar sv_keybind_spam("sv_keybind_spam", "1", 0, "Enable or disable keybind spam protection.");
 ConVar sv_jump_spam_protection("sv_jump_spam_protection", "1", 0, "Enable or disable jump spam protection.");
 ConVar sv_use_spam_protection("sv_use_spam_protection", "1", 0, "Enable or disable use spam protection.");
-ConVar sv_jump_threshold("sv_jump_threshold", "50", 0, "Number of jumps allowed before the player is kicked.");
+ConVar sv_jump_threshold("sv_jump_threshold", "100", 0, "Number of jumps allowed before the player is kicked.");
 ConVar sv_jump_threshold_reset("sv_jump_threshold_reset", "0.2", 0, "Time in seconds to reset jump counter after last jump.");
 ConVar sv_use_threshold("sv_use_threshold", "20", 0, "Number of uses allowed before the player is kicked.");
 ConVar sv_use_threshold_reset("sv_use_threshold_reset", "10", 0, "Time in seconds to reset use counter after last use.");
@@ -1371,12 +1384,20 @@ void CHL2_Player::StartZooming( void )
 	}
 }
 
+#ifndef CLIENT_DLL
+void CHL2_Player::DisableSuitZoom()
+{
+	SetSuitZoomActive(false);
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
 void CHL2_Player::StopZooming( void )
 {
-	SetSuitZoomActive(false);
+	// SetSuitZoomActive(false);
+	SetContextThink(&CHL2_Player::DisableSuitZoom, gpGlobals->curtime + 0.2f, "DisableZoomContext");
 
 	int iFOV = GetZoomOwnerDesiredFOV( m_hZoomOwner );
 
@@ -1840,6 +1861,10 @@ void CHL2_Player::SuitPower_Update( void )
 			}
 		}
 
+		// if the oxygen cheat is on, also keep charging
+		if (SuitPower_IsDeviceActive(SuitDeviceBreather) && sv_infinite_oxygen.GetBool())
+			SuitPower_Charge(SUITPOWER_CHARGE_RATE * gpGlobals->frametime);
+
 		if( SuitPower_IsDeviceActive(SuitDeviceFlashlight) )
 		{
 			float factor;
@@ -1901,6 +1926,12 @@ bool CHL2_Player::SuitPower_Drain( float flPower )
 {
 	// Suitpower cheat on?
 	if ( sv_infinite_aux_power.GetBool() )
+		return true;
+
+	if (sv_infinite_sprint.GetBool() && IsSprinting())
+		return true;
+
+	if (sv_infinite_oxygen.GetBool() && GetWaterLevel() == 3)
 		return true;
 
 	m_HL2Local.m_flSuitPower -= flPower;
@@ -2074,10 +2105,9 @@ void CHL2_Player::FlashlightTurnOn( void )
 		if( !SuitPower_AddDevice( SuitDeviceFlashlight ) )
 			return;
 	}
-#ifdef HL2_DLL
+
 	if( !IsSuitEquipped() )
 		return;
-#endif
 
 	if (IsAlive())
 	{

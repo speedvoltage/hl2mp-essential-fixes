@@ -39,6 +39,10 @@ extern IServerPluginHelpers* serverpluginhelpers;
 
 #define HL2MP_COMMAND_MAX_RATE 0.3
 
+#ifdef HL2MP
+extern CSuitPowerDevice SuitDeviceFlashlight;
+#endif
+
 void DropPrimedFragGrenade( CHL2MP_Player *pPlayer, CBaseCombatWeapon *pGrenade );
 
 LINK_ENTITY_TO_CLASS( player, CHL2MP_Player );
@@ -393,6 +397,8 @@ void CHL2MP_Player::Spawn(void)
 
 	if (mp_spawnprotection.GetBool())
 		EnableSpawnProtection();
+
+	SuitPower_RemoveDevice(SuitDeviceFlashlight);
 	
 	if ( !IsObserver() )
 	{
@@ -972,11 +978,11 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 		SetHitSoundsEnabled(newHitSoundState);
 		if (newHitSoundState)
 		{
-			ClientPrint(this, HUD_PRINTTALK, "Hit sounds enabled.\n");
+			UTIL_PrintToClient(this, CHAT_CONTEXT "Hit sounds " CHAT_WHITE "enabled");
 		}
 		else
 		{
-			ClientPrint(this, HUD_PRINTTALK, "Hit sounds disabled.\n");
+			UTIL_PrintToClient(this, CHAT_CONTEXT "Hit sounds " CHAT_WHITE "disabled");
 		}
 		SavePlayerSettings();
 		return;
@@ -989,11 +995,11 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 		SetKillSoundsEnabled(newKillSoundState);
 		if (newKillSoundState)
 		{
-			ClientPrint(this, HUD_PRINTTALK, "Kill sounds enabled.\n");
+			UTIL_PrintToClient(this, CHAT_CONTEXT "Kill sounds " CHAT_WHITE "enabled");
 		}
 		else
 		{
-			ClientPrint(this, HUD_PRINTTALK, "Kill sounds disabled.\n");
+			UTIL_PrintToClient(this, CHAT_CONTEXT "Kill sounds " CHAT_WHITE "disabled");
 		}
 
 		SavePlayerSettings();
@@ -1790,6 +1796,8 @@ void CHL2MP_Player::FlashlightTurnOn( void )
 	{
 		AddEffects( EF_DIMLIGHT );
 		EmitSound( "HL2Player.FlashlightOn" );
+		if (!sv_infinite_flashlight.GetBool())
+			SuitPower_AddDevice(SuitDeviceFlashlight);
 	}
 }
 
@@ -1803,6 +1811,7 @@ void CHL2MP_Player::FlashlightTurnOff( void )
 	if( IsAlive() )
 	{
 		EmitSound( "HL2Player.FlashlightOff" );
+		SuitPower_RemoveDevice(SuitDeviceFlashlight);
 	}
 }
 

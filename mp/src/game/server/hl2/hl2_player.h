@@ -287,6 +287,8 @@ public:
 	inline void EnableCappedPhysicsDamage();
 	inline void DisableCappedPhysicsDamage();
 
+	void DisableSuitZoom();
+
 	// HUD HINTS
 	void DisplayLadderHudHint();
 

@@ -44,6 +44,7 @@ public:
 	bool Holster(CBaseCombatWeapon* pSwitchingTo);
 	void CheckZoomToggle(void);
 	void ToggleZoom(void);
+	void DisableWeaponZoom();
 	DECLARE_NETWORKCLASS();
 	DECLARE_PREDICTABLE();
 
@@ -146,13 +147,6 @@ void CWeapon357::PrimaryAttack(void)
 	// Fire the bullets, and force the first shot to be perfectly accuracy
 	pPlayer->FireBullets(info);
 
-	//Disorient the player
-	QAngle angles = pPlayer->GetLocalAngles();
-
-	angles.x += random->RandomInt(-1, 1);
-	angles.y += random->RandomInt(-1, 1);
-	angles.z = 0;
-
 	pPlayer->ViewPunch(QAngle(-8, random->RandomFloat(-2, 2), 0));
 
 	if (!m_iClip1 && pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
@@ -186,6 +180,18 @@ void CWeapon357::ItemPostFrame(void)
 	BaseClass::ItemPostFrame();
 }
 
+#ifndef CLIENT_DLL
+void CWeapon357::DisableWeaponZoom()
+{
+	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+
+	if (pPlayer)
+	{
+		pPlayer->SetWeaponZoomActive(false);
+	}
+}
+#endif
+
 void CWeapon357::ToggleZoom(void)
 {
 	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
@@ -210,7 +216,8 @@ void CWeapon357::ToggleZoom(void)
 			pPlayer->SetCustomFOV(this, pPlayer->GetStoredCustomFOV());
 			pPlayer->SetDefaultFOV(pPlayer->GetCustomFOV());
 			m_bInZoom = false;
-			pPlayer->SetWeaponZoomActive(false);
+			// pPlayer->SetWeaponZoomActive(false);
+			SetContextThink(&CWeapon357::DisableWeaponZoom, gpGlobals->curtime + 0.2f, "DisableZoomContext");
 		}
 	}
 	else

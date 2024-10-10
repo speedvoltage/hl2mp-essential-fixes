@@ -38,6 +38,7 @@
 #include "hl2mp_player.h"
 #include "iserver.h"
 #include "hl2mp_cvars.h"
+#include "viewport_panel_names.h"
 
 #ifdef TF_DLL
 #include "tf_player.h"
@@ -57,6 +58,7 @@ extern CBaseEntity* FindPickerEntity(CBasePlayer* pPlayer);
 extern bool IsInCommentaryMode(void);
 
 extern ConVar sv_equalizer;
+extern ConVar sv_motd_unload_on_dismissal;
 ConVar sv_equalizer_allow_toggle("sv_equalizer_allow_toggle", "0", FCVAR_NOTIFY, "If non-zero, players can toggle equalizer mode with a chat command");
 ConVar sv_spec_can_read_teamchat("sv_spec_can_read_teamchat", "0", FCVAR_REPLICATED | FCVAR_ARCHIVE | FCVAR_NOTIFY, "Allow spectators to read team chat from other teams.");
 ConVar sv_silence_chatcmds("sv_silence_chatcmds", "1", 0, "If non-zero, using chat commands will not display the command in chat");
@@ -110,8 +112,6 @@ void ClientKill(edict_t* pEdict, const Vector& vecForce, bool bExplode = false)
 	pPlayer->CommitSuicide(vecForce, bExplode);
 }
 
-
-
 char* CheckChatText(CBasePlayer* pPlayer, char* text)
 {
 	char* p = text;
@@ -162,6 +162,22 @@ char* CheckChatText(CBasePlayer* pPlayer, char* text)
 
 	if (sv_chat_trigger.GetBool())
 	{
+		if (FStrEq(p, "!motd"))
+		{
+			const ConVar* hostname = cvar->FindVar("hostname");
+			const char* title = (hostname) ? hostname->GetString() : "MESSAGE OF THE DAY";
+
+			KeyValues* data = new KeyValues("data");
+			data->SetString("title", title);		// info panel title
+			data->SetString("type", "1");			// show userdata from stringtable entry
+			data->SetString("msg", "motd");		// use this stringtable entry
+			data->SetBool("unload", sv_motd_unload_on_dismissal.GetBool());
+
+			pPlayer->ShowViewPortPanel(PANEL_INFO, true, data);
+
+			data->deleteThis();
+		}
+
 		if (FStrEq(p, "timeleft") || FStrEq(p, "!timeleft"))
 		{
 			int iTimeRemaining = (int)HL2MPRules()->GetMapRemainingTime();
@@ -313,11 +329,10 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 		pPlayer = ((CBasePlayer*)CBaseEntity::Instance(pEdict));
 		Assert(pPlayer);
 
-		// make sure the text has valid content
 		p = CheckChatText(pPlayer, p);
 	}
 
-	if (!p)
+	if (!p || strspn(p, " \t") == strlen(p))
 		return;
 
 	if (pEdict)

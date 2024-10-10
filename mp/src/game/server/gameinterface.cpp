@@ -2748,6 +2748,7 @@ EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameClients, IServerGameClients, INTERF
 //			the player was not allowed to connect.
 // Output : Returns TRUE if player is allowed to join, FALSE if connection is denied.
 //-----------------------------------------------------------------------------
+static ConVar sv_allow_sharedgame_connection("sv_allow_sharedgame_connection", "0", 0, "If non-zero, allows this game to be shared with other users when using Steam Family.");
 bool CServerGameClients::ClientConnect( edict_t *pEdict, const char *pszName, const char *pszAddress, char *reject, int maxrejectlen )
 {	
 	if ( !g_pGameRules )
@@ -2755,7 +2756,104 @@ bool CServerGameClients::ClientConnect( edict_t *pEdict, const char *pszName, co
 
 	if (sv_show_client_connect_msg.GetBool())
 		UTIL_PrintToAllClients(CHAT_DEFAULT "%s1 " CHAT_CONTEXT "has joined the game.", pszName[0] != 0 ? pszName : "<unconnected>");
-	
+
+#ifndef NO_STEAM
+
+	// This is completely untested. I do not have a second account to test this with. 
+	// Let me know if this is not working as intended. 
+	// Intended usage is to allow server operators to prevent connections 
+	// for accounts who do not own a purchased copy of HL2DM.
+
+	if (!sv_allow_sharedgame_connection.GetBool())
+	{
+		if (!pEdict)
+			return false;
+
+		const char* steamID3 = engine->GetPlayerNetworkIDString(pEdict);
+
+		if (!steamID3 || !steamID3[0])
+		{
+			V_snprintf(reject, maxrejectlen, "Invalid Steam ID.");
+			return false;
+		}
+
+		uint32 accountID = 0;  // Account ID from the SteamID3 format
+		int universe = 0;      // Universe (e.g., 1 for public)
+
+		int fields = sscanf(steamID3, "[U:%d:%u]", &universe, &accountID);
+
+		if (fields != 2)
+		{
+			V_snprintf(reject, maxrejectlen, "Failed to parse Steam ID.");
+			return false;
+		}
+
+		// Msg("SteamID3 format: [U:%d:%d]\n", universe, accountID);
+
+		// Now create a CSteamID object without the instance (just accountID, universe, and account type)
+		CSteamID steamID(accountID, (EUniverse)universe, k_EAccountTypeIndividual);
+
+		if (!steamID.IsValid())
+		{
+			V_snprintf(reject, maxrejectlen, "Invalid Steam ID.");
+			return false;
+		}
+
+		auto steamClient = SteamClient();
+
+		if (steamClient)
+		{
+			HSteamUser hSteamUser = SteamGameServer_GetHSteamUser();
+			HSteamPipe hSteamPipe = SteamGameServer_GetHSteamPipe();
+
+			auto steamGameServer = steamClient->GetISteamGameServer(hSteamUser, hSteamPipe, STEAMGAMESERVER_INTERFACE_VERSION);		
+
+			if (steamGameServer)
+			{
+				EUserHasLicenseForAppResult hasLicense = steamGameServer->UserHasLicenseForApp(steamID, 320);
+
+				switch (hasLicense)
+				{
+				case k_EUserHasLicenseResultHasLicense:
+					Msg("User has a valid license for this game (AppID 320).\n");
+					break;
+				case k_EUserHasLicenseResultDoesNotHaveLicense:
+					Msg("User does not have a valid license for this game.\n");
+					break;
+				case k_EUserHasLicenseResultNoAuth:
+					Msg("User is not authorized to check the license (NoAuth).\n");
+					break;
+				default:
+					Msg("Unknown result from UserHasLicenseForApp.\n");
+					break;
+				}
+
+				if (hasLicense == k_EUserHasLicenseResultDoesNotHaveLicense)
+				{
+					V_snprintf(reject, maxrejectlen, "You must buy this game to join this server");
+					return false;
+				}
+				else if (hasLicense != k_EUserHasLicenseResultHasLicense)
+				{
+					V_snprintf(reject, maxrejectlen, "Couldn't verify ownernship of this game. Recoonect");
+					return false;
+				}
+			}
+		// If this fails for any reason, just allow the connection by default,
+		// we don't want to reject every connection since it can be safely assumed 
+		// that most players should have a valid license to play HL2DM anyway
+			else
+			{
+				Msg("Failed to get ISteamGameServer interface.\n");
+			}
+		}
+		else
+		{
+			Msg("Failed to get SteamClient interface.\n");
+		}
+	}
+#endif
+
 	return g_pGameRules->ClientConnected( pEdict, pszName, pszAddress, reject, maxrejectlen );
 }
 

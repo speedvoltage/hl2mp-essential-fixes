@@ -118,3 +118,10 @@ ConVar sv_domination_messages(
 	"1",
 	FCVAR_GAMEDLL,
 	"Show domination messages to players.");
+
+ConVar sv_infinite_flashlight(
+	"sv_infinite_flashlight",
+	"1",
+	FCVAR_GAMEDLL | FCVAR_NOTIFY,
+	"If non-zero, uses infinite aux power for flashlight, else use HL2 mechanics"
+);
