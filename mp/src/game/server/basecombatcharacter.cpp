@@ -2181,18 +2181,17 @@ void CBaseCombatCharacter::Weapon_Equip( CBaseCombatWeapon *pWeapon )
 bool CBaseCombatCharacter::Weapon_EquipAmmoOnly( CBaseCombatWeapon *pWeapon )
 {
 	// Check for duplicates
-	for (int i=0;i<MAX_WEAPONS;i++) 
+	for (int i = 0; i < MAX_WEAPONS; i++)
 	{
-		if ( m_hMyWeapons[i].Get() && FClassnameIs(m_hMyWeapons[i], pWeapon->GetClassname()) )
+		if (m_hMyWeapons[i].Get() && FClassnameIs(m_hMyWeapons[i], pWeapon->GetClassname()))
 		{
-			// Just give the ammo from the clip
-			int	primaryGiven = (pWeapon->UsesClipsForAmmo1()) ? pWeapon->m_iClip1 : pWeapon->GetPrimaryAmmoCount();
-			int secondaryGiven	= (pWeapon->UsesClipsForAmmo2()) ? pWeapon->m_iClip2 : pWeapon->GetSecondaryAmmoCount();
+			int primaryGiven = (pWeapon->UsesClipsForAmmo1()) ? pWeapon->m_iClip1 : pWeapon->GetPrimaryAmmoCount();
+			int secondaryGiven = (pWeapon->UsesClipsForAmmo2()) ? pWeapon->m_iClip2 : pWeapon->GetSecondaryAmmoCount();
 
 			int takenPrimary = GiveAmmo(primaryGiven, pWeapon->m_iPrimaryAmmoType);
 			int takenSecondary = GiveAmmo(secondaryGiven, pWeapon->m_iSecondaryAmmoType);
 
-			if( pWeapon->UsesClipsForAmmo1() )
+			if (pWeapon->UsesClipsForAmmo1())
 			{
 				pWeapon->m_iClip1 -= takenPrimary;
 			}
@@ -2201,7 +2200,7 @@ bool CBaseCombatCharacter::Weapon_EquipAmmoOnly( CBaseCombatWeapon *pWeapon )
 				pWeapon->SetPrimaryAmmoCount(pWeapon->GetPrimaryAmmoCount() - takenPrimary);
 			}
 
-			if( pWeapon->UsesClipsForAmmo2() )
+			if (pWeapon->UsesClipsForAmmo2())
 			{
 				pWeapon->m_iClip2 -= takenSecondary;
 			}
@@ -2209,12 +2208,12 @@ bool CBaseCombatCharacter::Weapon_EquipAmmoOnly( CBaseCombatWeapon *pWeapon )
 			{
 				pWeapon->SetSecondaryAmmoCount(pWeapon->GetSecondaryAmmoCount() - takenSecondary);
 			}
-			
-			//Only succeed if we've taken ammo from the weapon
+
+			// Only succeed if we've taken ammo from the weapon
 			if (takenPrimary > 0 || takenSecondary > 0)
+			{
 				return true;
-				
-			return false;
+			}
 		}
 	}
 

@@ -32,5 +32,6 @@ extern ConVar sv_teamkill_kick_threshold;
 extern ConVar sv_teamkill_kick_warning;
 extern ConVar sv_domination_messages;
 extern ConVar sv_infinite_flashlight;
+extern ConVar mp_spawnweapons;
 
 #endif //HL2MP_CVARS_H

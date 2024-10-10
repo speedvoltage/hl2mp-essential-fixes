@@ -123,7 +123,6 @@ IMPLEMENT_ACTTABLE(CWeaponShotgun);
 
 #endif
 
-
 //-----------------------------------------------------------------------------
 // Purpose: Override so only reload one shell at a time
 // Input  :

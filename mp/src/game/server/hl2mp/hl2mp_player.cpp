@@ -23,7 +23,6 @@
 #include "gamestats.h"
 #include "hl2mp_cvars.h"
 #include "iserver.h"
-
 #include "engine/IEngineSound.h"
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 
@@ -288,10 +287,76 @@ void CHL2MP_Player::GiveAllItems( void )
 	}
 }
 
+KeyValues* LoadWeaponConfig(const char* fileName)
+{
+	KeyValues* pConfig = new KeyValues("Spawn");
+
+	char filePath[MAX_PATH];
+	Q_snprintf(filePath, sizeof(filePath), "cfg/%s", fileName);
+
+	// Try to load the file
+	if (!pConfig->LoadFromFile(filesystem, filePath, "GAME"))
+	{
+		Msg("Failed to load weapon config file: %s\n", filePath);
+		pConfig->deleteThis();
+		return nullptr;
+	}
+
+	return pConfig;
+}
+
+
 void CHL2MP_Player::GiveDefaultItems( void )
 {
 	if (GetTeamNumber() != TEAM_SPECTATOR)
 		EquipSuit();
+
+	if (mp_spawnweapons.GetBool())
+	{
+		KeyValues* pSpawnConfig = LoadWeaponConfig("weapon_spawns.txt");
+
+		if (pSpawnConfig)
+		{
+			KeyValues* pWeaponSection = pSpawnConfig->FindKey("Weapons");
+			KeyValues* pAmmoSection = pSpawnConfig->FindKey("Ammo");
+
+			if (pWeaponSection && pAmmoSection)
+			{
+				for (KeyValues* sub = pWeaponSection->GetFirstSubKey(); sub; sub = sub->GetNextKey())
+				{
+					const char* weaponName = sub->GetName();
+					int shouldSpawn = atoi(sub->GetString());
+
+					if (shouldSpawn > 0)
+					{
+						GiveNamedItem(UTIL_VarArgs("weapon_%s", weaponName));
+
+						int ammoCount = atoi(pAmmoSection->GetString(weaponName, "0")); // Default to 0 if not found
+
+						if (ammoCount > 0)
+						{
+							if (FStrEq(weaponName, "Pistol"))
+								CBasePlayer::GiveAmmo(ammoCount, "Pistol");
+							else if (FStrEq(weaponName, "357"))
+								CBasePlayer::GiveAmmo(ammoCount, "357");
+							else if (FStrEq(weaponName, "SMG1"))
+								CBasePlayer::GiveAmmo(ammoCount, "SMG1");
+							else if (FStrEq(weaponName, "AR2"))
+								CBasePlayer::GiveAmmo(ammoCount, "AR2");
+							else if (FStrEq(weaponName, "Shotgun"))
+								CBasePlayer::GiveAmmo(ammoCount, "Buckshot");
+							else if (FStrEq(weaponName, "Crossbow"))
+								CBasePlayer::GiveAmmo(ammoCount, "XBowBolt");
+							else if (FStrEq(weaponName, "Frag"))
+								CBasePlayer::GiveAmmo(ammoCount, "grenade");
+						}
+					}
+				}
+			}
+
+			pSpawnConfig->deleteThis();
+		}
+	}
 
 	if (!mp_noweapons.GetBool() && GetTeamNumber() != TEAM_SPECTATOR)
 	{
@@ -1830,6 +1895,13 @@ void CHL2MP_Player::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecT
 				return;
 			}
 		}
+	}
+
+	if (pWeapon && pWeapon->Clip1() <= 0 && !FClassnameIs(pWeapon, "weapon_rpg"))
+	{
+		// Msg("Weapon was out of ammo, removed\n");
+		UTIL_Remove(pWeapon);
+		return;
 	}
 
 	BaseClass::Weapon_Drop( pWeapon, pvecTarget, pVelocity );

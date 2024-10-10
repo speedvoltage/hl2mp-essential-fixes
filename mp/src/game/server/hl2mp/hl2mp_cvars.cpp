@@ -23,10 +23,16 @@ ConVar mp_ready_signal(
 	"Text that each player must speak for the match to begin");
 
 ConVar mp_noweapons(
-	"mp_noweapons",
+	"mp_skipdefaults",
 	"0",
 	FCVAR_GAMEDLL | FCVAR_NOTIFY,
 	"If non-zero, game will not give player default weapons and ammo");
+
+ConVar mp_spawnweapons(
+	"mp_spawnweapons",
+	"0",
+	FCVAR_GAMEDLL,
+	"If non-zero, spawn player with weapons set in weapon_spawns.txt");
 
 // Enable suit notifications in multiplayer
 ConVar mp_suitvoice(
