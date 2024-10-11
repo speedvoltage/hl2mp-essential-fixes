@@ -95,7 +95,7 @@ int g_nInsideDispatchUpdateTransmitState = 0;
 // When this is false, throw an assert in debug when GetAbsAnything is called. Used when hierachy is incomplete/invalid.
 bool CBaseEntity::s_bAbsQueriesValid = true;
 
-
+ConVar sv_allow_client_ent_fire("sv_allow_client_ent_fire", "0", FCVAR_CHEAT | FCVAR_NOTIFY, "Allow non-host clients to use ent_fire.");
 ConVar sv_netvisdist( "sv_netvisdist", "10000", FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY, "Test networking visibility distance" );
 
 // This table encodes edict data.
@@ -5379,14 +5379,14 @@ public:
 			if ( engine->IsDedicatedServer() )
 			{
 				// We allow people with disabled autokick to do it, because they already have rcon.
-				if ( pPlayer->IsAutoKickDisabled() == false )
+				if ((sv_allow_client_ent_fire.GetBool() == 0) && (pPlayer->IsAutoKickDisabled() == false))
 					return;
 			}
 			else if ( gpGlobals->maxClients > 1 )
 			{
 				// On listen servers with more than 1 player, only allow the host to issue ent_fires.
 				CBasePlayer *pHostPlayer = UTIL_GetListenServerHost();
-				if ( pPlayer != pHostPlayer )
+				if ((sv_allow_client_ent_fire.GetBool() == 0) && (pPlayer != pHostPlayer))
 					return;
 			}
 
