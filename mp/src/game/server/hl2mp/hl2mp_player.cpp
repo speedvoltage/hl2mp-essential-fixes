@@ -2037,26 +2037,29 @@ void CHL2MP_Player::DeathSound( const CTakeDamageInfo &info )
 	EmitSound( filter, entindex(), ep );
 }
 
-CBaseEntity* CHL2MP_Player::EntSelectSpawnPoint( void )
-{
-	CBaseEntity *pSpot = NULL;
-	CBaseEntity *pLastSpawnPoint = g_pLastSpawn;
-	const char *pSpawnpointName = "info_player_deathmatch";
+ConVar sv_spawnpoint_lineofsight("sv_spawnpoint_lineofsight", "1", FCVAR_REPLICATED, "Check if spawn point has line of sight to another player");
+ConVar sv_spawnradius("sv_spawnradius", "256", FCVAR_REPLICATED, "Radius around spawn point to avoid spawning near other players");
 
-	if ( HL2MPRules()->IsTeamplay() == true )
+CBaseEntity* CHL2MP_Player::EntSelectSpawnPoint(void)
+{
+	CBaseEntity* pSpot = NULL;
+	CBaseEntity* pLastSpawnPoint = g_pLastSpawn;
+	const char* pSpawnpointName = "info_player_deathmatch";
+
+	if (HL2MPRules()->IsTeamplay() == true)
 	{
-		if ( GetTeamNumber() == TEAM_COMBINE )
+		if (GetTeamNumber() == TEAM_COMBINE)
 		{
 			pSpawnpointName = "info_player_combine";
 			pLastSpawnPoint = g_pLastCombineSpawn;
 		}
-		else if ( GetTeamNumber() == TEAM_REBELS )
+		else if (GetTeamNumber() == TEAM_REBELS)
 		{
 			pSpawnpointName = "info_player_rebel";
 			pLastSpawnPoint = g_pLastRebelSpawn;
 		}
 
-		if ( gEntList.FindEntityByClassname( NULL, pSpawnpointName ) == NULL )
+		if (gEntList.FindEntityByClassname(NULL, pSpawnpointName) == NULL)
 		{
 			pSpawnpointName = "info_player_deathmatch";
 			pLastSpawnPoint = g_pLastSpawn;
@@ -2065,49 +2068,95 @@ CBaseEntity* CHL2MP_Player::EntSelectSpawnPoint( void )
 
 	pSpot = pLastSpawnPoint;
 	// Randomize the start spot
-	for ( int i = random->RandomInt(1,5); i > 0; i-- )
-		pSpot = gEntList.FindEntityByClassname( pSpot, pSpawnpointName );
-	if ( !pSpot )  // skip over the null point
-		pSpot = gEntList.FindEntityByClassname( pSpot, pSpawnpointName );
+	for (int i = random->RandomInt(1, 5); i > 0; i--)
+		pSpot = gEntList.FindEntityByClassname(pSpot, pSpawnpointName);
+	if (!pSpot)  // skip over the null point
+		pSpot = gEntList.FindEntityByClassname(pSpot, pSpawnpointName);
 
-	CBaseEntity *pFirstSpot = pSpot;
+	CBaseEntity* pFirstSpot = pSpot;
 
-	do 
+	// What we're going to do is randomize the spawn points as Valve intended, 
+	// but we're also going to attempt to limit spawnkilling by not spawning 
+	// a player near an alive player if that spawn point has a direct line of sight 
+	// or is within radius. This is done to prevent farming easy frag points. 
+	// If both logic fail, then revert back to the default spawning logic 
+	// (i.e. selecting a random spawn point)
+	do
 	{
-		if ( pSpot )
+		if (pSpot)
 		{
-			// check if pSpot is valid
-			if ( g_pGameRules->IsSpawnPointValid( pSpot, this ) )
-			{
-				if ( pSpot->GetLocalOrigin() == vec3_origin )
-				{
-					pSpot = gEntList.FindEntityByClassname( pSpot, pSpawnpointName );
-					continue;
-				}
+			bool bValidSpot = true;
 
-				// if so, go to pSpot
-				goto ReturnSpot;
+			// Check line of sight if enabled
+			if (sv_spawnpoint_lineofsight.GetBool())
+			{
+				CBasePlayer* pPlayer = NULL;
+				while ((pPlayer = UTIL_PlayerByIndex(pPlayer ? pPlayer->entindex() + 1 : 1)) != NULL)
+				{
+					if (pPlayer == this)
+						continue;
+
+					trace_t tr;
+					UTIL_TraceLine(pSpot->GetAbsOrigin(), pPlayer->GetAbsOrigin(), MASK_SOLID_BRUSHONLY, pSpot, COLLISION_GROUP_NONE, &tr);
+
+					if (tr.fraction == 1.0) // Direct line of sight
+					{
+						// Msg("Direct line of sight, spawning elsewhere\n");
+						bValidSpot = false;
+						break;
+					}
+				}
+			}
+
+			// Check player radius if enabled
+			if (bValidSpot && sv_spawnradius.GetFloat() > 0)
+			{
+				CBasePlayer* pPlayer = NULL;
+				float flRadiusSquared = sv_spawnradius.GetFloat() * sv_spawnradius.GetFloat();
+
+				while ((pPlayer = UTIL_PlayerByIndex(pPlayer ? pPlayer->entindex() + 1 : 1)) != NULL)
+				{
+					if (pPlayer == this)
+						continue;
+
+					if ((pPlayer->GetAbsOrigin() - pSpot->GetAbsOrigin()).LengthSqr() < flRadiusSquared)
+					{
+						// Msg("Within radius, spawning elsewhere\n");
+						bValidSpot = false;
+						break;
+					}
+				}
+			}
+
+			// If both checks passed, spawn here
+			if (bValidSpot && g_pGameRules->IsSpawnPointValid(pSpot, this))
+			{
+				if (pSpot->GetLocalOrigin() != vec3_origin)
+				{
+					goto ReturnSpot;
+				}
 			}
 		}
-		// increment pSpot
-		pSpot = gEntList.FindEntityByClassname( pSpot, pSpawnpointName );
-	} while ( pSpot != pFirstSpot ); // loop if we're not back to the start
 
-	// we haven't found a place to spawn yet,  so kill any guy at the first spawn point and spawn there
-	if ( pSpot && ( TEAM_SPECTATOR != GetPlayerInfo()->GetTeamIndex() ) )
+		// Move to next spawn point
+		pSpot = gEntList.FindEntityByClassname(pSpot, pSpawnpointName);
+	} while (pSpot != pFirstSpot); // loop if we're not back to the start
+
+	// Fall back to Valve's default if all spawn points failed checks
+	if (pSpot && (TEAM_SPECTATOR != GetPlayerInfo()->GetTeamIndex()))
 	{
 		goto ReturnSpot;
 	}
 
 ReturnSpot:
 
-	if ( HL2MPRules()->IsTeamplay() == true )
+	if (HL2MPRules()->IsTeamplay() == true)
 	{
-		if ( GetTeamNumber() == TEAM_COMBINE )
+		if (GetTeamNumber() == TEAM_COMBINE)
 		{
 			g_pLastCombineSpawn = pSpot;
 		}
-		else if ( GetTeamNumber() == TEAM_REBELS ) 
+		else if (GetTeamNumber() == TEAM_REBELS)
 		{
 			g_pLastRebelSpawn = pSpot;
 		}
@@ -2115,6 +2164,8 @@ ReturnSpot:
 
 	if (!pSpot)
 	{
+		// use the player start entity 
+		// if nothing else is found (prevents crashes)
 		pSpot = gEntList.FindEntityByClassname(pSpot, "info_player_start");
 
 		if (pSpot)
