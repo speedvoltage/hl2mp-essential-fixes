@@ -2101,57 +2101,39 @@ void CHL2MP_Player::DelayedLeaderCheck()
 void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 {
 #ifndef CLIENT_DLL
-	// Work out what killed the player, and send a message to all clients about it
-	const char* killer_weapon_name = "world";		// by default, the player is killed by the world
+	const char* killer_weapon_name = "world"; // Default: killed by the world
 	int killer_ID = 0;
 
-	// Find the killer & the scorer
 	CBaseEntity* pInflictor = info.GetInflictor();
 	CBaseEntity* pKiller = info.GetAttacker();
 	CBasePlayer* pScorer = GetDeathScorer(pKiller, pInflictor);
-	CBasePlayer* pVictimPlayer = dynamic_cast<CBasePlayer*>(pVictim);
-
 	CHL2MP_Player* pAttackerPlayer = dynamic_cast<CHL2MP_Player*>(pScorer);
-	CHL2MP_Player* pVictimHL2MP = dynamic_cast<CHL2MP_Player*>(pVictimPlayer);
+	CHL2MP_Player* pVictimHL2MP = dynamic_cast<CHL2MP_Player*>(pVictim);
 
-	// Custom kill type?
 	if (info.GetDamageCustom())
 	{
 		killer_weapon_name = GetDamageCustomString(info);
-		if (pScorer)
-		{
-			killer_ID = pScorer->GetUserID();
-		}
+		killer_ID = pScorer ? pScorer->GetUserID() : 0;
 	}
-	else
+	else if (pScorer)
 	{
-		// Is the killer a client?
-		if (pScorer)
+		killer_ID = pScorer->GetUserID();
+		if (pInflictor)
 		{
-			killer_ID = pScorer->GetUserID();
-
-			if (pInflictor)
+			if (pInflictor == pScorer && pScorer->GetActiveWeapon())
 			{
-				if (pInflictor == pScorer)
-				{
-					// If the inflictor is the killer,  then it must be their current weapon doing the damage
-					if (pScorer->GetActiveWeapon())
-					{
-						killer_weapon_name = pScorer->GetActiveWeapon()->GetClassname();
-					}
-				}
-				else
-				{
-					killer_weapon_name = pInflictor->GetClassname();  // it's just that easy
-				}
+				killer_weapon_name = pScorer->GetActiveWeapon()->GetClassname();
+			}
+			else
+			{
+				killer_weapon_name = pInflictor->GetClassname();
 			}
 		}
 		else
 		{
-			killer_weapon_name = pInflictor->GetClassname();
+			killer_weapon_name = pInflictor ? pInflictor->GetClassname() : "world";
 		}
 
-		// strip the NPC_* or weapon_* from the inflictor's classname
 		if (strncmp(killer_weapon_name, "weapon_", 7) == 0)
 		{
 			killer_weapon_name += 7;
@@ -2164,14 +2146,11 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 		{
 			killer_weapon_name += 5;
 		}
-		else if (strstr(killer_weapon_name, "physics"))
+		else if (strstr(killer_weapon_name, "physics") || strstr(killer_weapon_name, "physbox"))
 		{
 			killer_weapon_name = "physics";
 		}
-		if (strstr(killer_weapon_name, "physbox"))
-		{
-			killer_weapon_name = "physics";
-		}
+
 		if (strcmp(killer_weapon_name, "prop_combine_ball") == 0)
 		{
 			killer_weapon_name = "combine_ball";
@@ -2186,136 +2165,109 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 		}
 	}
 
-	if (pVictim)
+	if (pVictim && pVictim->FlashlightIsOn())
 	{
-		if (pVictim->FlashlightIsOn())
-			pVictim->FlashlightTurnOff();
+		pVictim->FlashlightTurnOff();
 	}
 
-	if (pKiller && pVictim && ((pKiller->GetTeamNumber() != pVictim->GetTeamNumber()) || !IsTeamplay()))
+	if (pKiller == pVictim || pScorer == pVictim ||
+		(pScorer == NULL && (pKiller == NULL || !dynamic_cast<CBasePlayer*>(pKiller))))
 	{
-		CBasePlayer* pKiller = ToBasePlayer(info.GetAttacker());
-
-		int killerUserID = pKiller->GetUserID();
-		int victimUserID = pVictim->GetUserID();
-
-		int attackerIndex = m_KillStreaks.Find(killerUserID);
-		CUtlMap<int, int>* pVictimKillMap = nullptr;
-
-		if (attackerIndex == m_KillStreaks.InvalidIndex())
+		CBasePlayer* pKillerPlayer = ToBasePlayer(info.GetAttacker());
+		if (!pKillerPlayer)
 		{
-			pVictimKillMap = new CUtlMap<int, int>();
-			pVictimKillMap->SetLessFunc([](const int& lhs, const int& rhs) -> bool {
-				return lhs < rhs;
-				});
-
-			attackerIndex = m_KillStreaks.Insert(killerUserID, pVictimKillMap);
-		}
-		else
-		{
-			pVictimKillMap = m_KillStreaks[attackerIndex];
+			pKillerPlayer = pVictim;
 		}
 
-		int victimIndex = pVictimKillMap->Find(victimUserID);
-		if (victimIndex == pVictimKillMap->InvalidIndex())
+		ResetKillStreaks(pKillerPlayer);
+		Msg("Killstreak reset for player %s\n", pKillerPlayer->GetPlayerName());
+	}
+	else
+	{
+		if (pAttackerPlayer && pVictimHL2MP)
 		{
-			victimIndex = pVictimKillMap->Insert(victimUserID, 0); 
-		}
+			int killerUserID = pAttackerPlayer->GetUserID();
+			int victimUserID = pVictimHL2MP->GetUserID();
 
-		(*pVictimKillMap)[victimIndex]++;
+			int attackerIndex = m_KillStreaks.Find(killerUserID);
+			CUtlMap<int, int>* pVictimKillMap = nullptr;
 
-		if ((*pVictimKillMap)[victimIndex] == 4 && sv_domination_messages.GetBool())
-		{
-			UTIL_PrintToAllClients(UTIL_VarArgs(CHAT_DEFAULT "%s " CHAT_CONTEXT"is dominating " CHAT_DEFAULT "%s\n", pKiller->GetPlayerName(), pVictim->GetPlayerName()));
-		}
-
-#ifdef _DEBUG
-		// --- DEBUG: Print current kill streaks for all players ---
-		Msg("=== Current Kill Streaks ===\n");
-		for (int attackerIndex = 0; attackerIndex < m_KillStreaks.MaxElement(); ++attackerIndex)
-		{
-			if (!m_KillStreaks.IsValidIndex(attackerIndex))
-				continue;
-
-			int attackerUserID = m_KillStreaks.Key(attackerIndex);
-			CUtlMap<int, int>* pVictimKillMap = m_KillStreaks[attackerIndex];
-
-			CBasePlayer* pAttackerPlayer = UTIL_PlayerByUserId(attackerUserID);
-			if (pAttackerPlayer)
+			if (attackerIndex == m_KillStreaks.InvalidIndex())
 			{
-				Msg("Attacker: %s (UserID: %d)\n", pAttackerPlayer->GetPlayerName(), attackerUserID);
+				pVictimKillMap = new CUtlMap<int, int>();
+				pVictimKillMap->SetLessFunc([](const int& lhs, const int& rhs) -> bool { return lhs < rhs; });
+				attackerIndex = m_KillStreaks.Insert(killerUserID, pVictimKillMap);
+			}
+			else
+			{
+				pVictimKillMap = m_KillStreaks[attackerIndex];
+			}
 
-				for (int victimIndex = 0; victimIndex < pVictimKillMap->MaxElement(); ++victimIndex)
-				{
-					if (!pVictimKillMap->IsValidIndex(victimIndex))
-						continue;
+			int victimIndex = pVictimKillMap->Find(victimUserID);
+			if (victimIndex == pVictimKillMap->InvalidIndex())
+			{
+				victimIndex = pVictimKillMap->Insert(victimUserID, 0);
+			}
 
-					int victimUserID = pVictimKillMap->Key(victimIndex);
-					int killCount = (*pVictimKillMap)[victimIndex];
+			(*pVictimKillMap)[victimIndex]++;
 
-					CBasePlayer* pVictimPlayer = UTIL_PlayerByUserId(victimUserID);
-					if (pVictimPlayer)
-					{
-						Msg("    Victim: %s (UserID: %d) - Kills: %d\n", pVictimPlayer->GetPlayerName(), victimUserID, killCount);
-					}
-				}
+			if ((*pVictimKillMap)[victimIndex] == 4 && sv_domination_messages.GetBool())
+			{
+				UTIL_PrintToAllClients(UTIL_VarArgs(CHAT_DEFAULT "%s " CHAT_CONTEXT "is dominating " CHAT_DEFAULT "%s\n",
+					pAttackerPlayer->GetPlayerName(), pVictimHL2MP->GetPlayerName()));
 			}
 		}
-		Msg("============================\n");
-#endif
 	}
 
-	if (pKiller == pVictim)
+	if (pVictim)
 	{
-		CBasePlayer* pKiller = ToBasePlayer(info.GetAttacker());
-		ResetKillStreaks(pKiller);
+		ResetKillStreaks(pVictim);
+		Msg("Killstreak reset for %s\n", pVictim->GetPlayerName());
 	}
 
 	if (pKiller && pKiller != pVictim && pVictim && pKiller->GetTeamNumber() == pVictim->GetTeamNumber() && IsTeamplay())
 	{
-		CBasePlayer* pKiller = ToBasePlayer(info.GetAttacker());
-
-		int killerUserID = pKiller->GetUserID();
-
-		int index = m_TeamKillCount.Find(killerUserID);
-		if (index == m_TeamKillCount.InvalidIndex())
+		CBasePlayer* pKillerPlayer = ToBasePlayer(info.GetAttacker());
+		if (pKillerPlayer)
 		{
-			index = m_TeamKillCount.Insert(killerUserID, 1);
-		}
-		else
-		{
-			m_TeamKillCount[index]++;
-		}
+			int killerUserID = pKillerPlayer->GetUserID();
+			int index = m_TeamKillCount.Find(killerUserID);
 
-		int teamKillCount = m_TeamKillCount[index];
+			if (index == m_TeamKillCount.InvalidIndex())
+			{
+				index = m_TeamKillCount.Insert(killerUserID, 1);
+			}
+			else
+			{
+				m_TeamKillCount[index]++;
+			}
 
-		if (sv_teamkill_kick_warning.GetBool())
-		{
+			int teamKillCount = m_TeamKillCount[index];
 			int threshold = sv_teamkill_kick_threshold.GetInt();
-			
-			UTIL_PrintToClient(pKiller, UTIL_VarArgs(CHAT_PAUSED "You will be kicked if you kill " CHAT_RED "%d " CHAT_PAUSED "more teammate%s.",
-				threshold - teamKillCount, (threshold - teamKillCount) <= 1 ? "" : "s"));
-		}
 
-		if (sv_teamkill_kick.GetBool() && teamKillCount >= sv_teamkill_kick_threshold.GetInt())
-		{
-			engine->ServerCommand(UTIL_VarArgs("kickid %d You have been kicked for excessive team killing\n", killerUserID));
+			if (sv_teamkill_kick_warning.GetBool())
+			{
+				UTIL_PrintToClient(pKillerPlayer, UTIL_VarArgs(CHAT_PAUSED "You will be kicked if you kill " CHAT_RED "%d " CHAT_PAUSED "more teammate%s.",
+					threshold - teamKillCount, (threshold - teamKillCount) <= 1 ? "" : "s"));
+			}
+
+			if (sv_teamkill_kick.GetBool() && teamKillCount >= threshold)
+			{
+				engine->ServerCommand(UTIL_VarArgs("kickid %d You have been kicked for excessive team killing\n", killerUserID));
+			}
 		}
 	}
 
-	// Check if the attacker is valid and not the same as the victim
 	if (pAttackerPlayer && pAttackerPlayer != pVictimHL2MP)
 	{
-		if (HL2MPRules()->IsTeamplay() && pAttackerPlayer->GetTeamNumber() == pVictimHL2MP->GetTeamNumber())
+		if (IsTeamplay() && pAttackerPlayer->GetTeamNumber() == pVictimHL2MP->GetTeamNumber())
 		{
-			CTeam* pKillerTeam = pAttackerPlayer->GetTeam();
-			if (pKillerTeam)
+			if (CTeam* pKillerTeam = pAttackerPlayer->GetTeam())
 			{
 				pKillerTeam->AddScore(-2);
 			}
 		}
 
-		// Play sounds based on hitgroup (headshot or body)
 		if (pAttackerPlayer->AreKillSoundsEnabled() && sv_custom_sounds.GetBool())
 		{
 			CRecipientFilter filter;
@@ -2328,46 +2280,31 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 			}
 			else
 			{
-				// Use trace logic to determine the final hitgroup
 				trace_t trace;
 				Vector vecStart = info.GetDamagePosition();
 				Vector vecEnd = pVictim->GetAbsOrigin();
-
-				// Trace line for precise hit detection
 				UTIL_TraceLine(vecStart, vecEnd, MASK_SHOT, pAttackerPlayer, COLLISION_GROUP_NONE, &trace);
-				int hitgroup = trace.hitgroup;
 
-				// Fall back to trace hull if necessary
-				if (hitgroup == 0)
+				if (trace.hitgroup == 0)
 				{
 					Vector mins(-1.5f, -1.5f, -1.5f);
 					Vector maxs(1.5f, 1.5f, 1.5f);
 					UTIL_TraceHull(vecStart, vecEnd, mins, maxs, MASK_SHOT, pAttackerPlayer, COLLISION_GROUP_NONE, &trace);
-					hitgroup = trace.hitgroup;
 				}
 
-				if (hitgroup == HITGROUP_HEAD)
-				{
-					// Play headshot sound
-					CBaseEntity::EmitSound(filter, pAttackerPlayer->entindex(), "headshot_kill_snd");
-				}
-				else
-				{
-					// Play regular frag sound
-					CBaseEntity::EmitSound(filter, pAttackerPlayer->entindex(), "frag_snd");
-				}
+				const char* sound = (trace.hitgroup == HITGROUP_HEAD) ? "headshot_kill_snd" : "frag_snd";
+				CBaseEntity::EmitSound(filter, pAttackerPlayer->entindex(), sound);
 			}
 		}
 	}
 
 	if (pAttackerPlayer)
 	{
-		// Delay the leader check by 1 second to ensure frags are updated
 		pAttackerPlayer->SetContextThink(&CHL2MP_Player::DelayedLeaderCheck, gpGlobals->curtime + 0.2f, "DelayedLeaderCheck");
 	}
 
-	IGameEvent* event = gameeventmanager->CreateEvent("player_death");
-	if (event)
+	// Fire death event for all clients
+	if (IGameEvent* event = gameeventmanager->CreateEvent("player_death"))
 	{
 		event->SetInt("userid", pVictim->GetUserID());
 		event->SetInt("attacker", killer_ID);
@@ -2376,7 +2313,6 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 		gameeventmanager->FireEvent(event);
 	}
 #endif
-
 }
 
 #ifndef CLIENT_DLL
