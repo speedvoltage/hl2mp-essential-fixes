@@ -6967,11 +6967,13 @@ void CBasePlayer::UpdateClientData( void )
 			{
 				variant_t value;
 				g_EventQueue.AddEvent( "game_player_manager", "OnPlayerJoin", value, 0, this, this );
+				FireTargets( "game_playerjoin", this, this, USE_TOGGLE, 0 );
 			}
 		}
 
 		variant_t value;
 		g_EventQueue.AddEvent( "game_player_manager", "OnPlayerSpawn", value, 0, this, this );
+		FireTargets( "game_playerspawn", this, this, USE_TOGGLE, 0 );
 	}
 
 	// HACKHACK -- send the message to display the game title
