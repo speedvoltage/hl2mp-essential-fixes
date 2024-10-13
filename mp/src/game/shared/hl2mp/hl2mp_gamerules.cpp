@@ -244,7 +244,7 @@ char* sTeamNames[] =
 #ifdef HL2MP_PLAYER_FILTER
 void CC_RefreshWhitelist(const CCommand& args)
 {
-	if (UTIL_GetCommandClientIndex() > 0)
+	if ( !UTIL_IsCommandIssuedByServerAdmin() )
 		return;
 
 	Msg("Refreshing whitelist...\n");
