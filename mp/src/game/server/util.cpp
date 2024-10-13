@@ -3120,11 +3120,14 @@ static ConCommand voxeltree_view( "voxeltree_view", CC_VoxelTreeView, "View enti
 
 void CC_VoxelTreePlayerView( void )
 {
-	Msg( "VoxelTreePlayerView\n" );
+	if (engine->IsDedicatedServer())
+	{
+		Msg("VoxelTreePlayerView\n");
 
-	CBasePlayer *pPlayer = static_cast<CBasePlayer*>( UTIL_GetLocalPlayer() );
-	Vector vecStart = pPlayer->GetAbsOrigin();
-	partition->RenderObjectsInPlayerLeafs( vecStart - VEC_HULL_MIN_SCALED( pPlayer ), vecStart + VEC_HULL_MAX_SCALED( pPlayer ), 3.0f  );
+		CBasePlayer* pPlayer = static_cast<CBasePlayer*>(UTIL_GetLocalPlayer());
+		Vector vecStart = pPlayer->GetAbsOrigin();
+		partition->RenderObjectsInPlayerLeafs(vecStart - VEC_HULL_MIN_SCALED(pPlayer), vecStart + VEC_HULL_MAX_SCALED(pPlayer), 3.0f);
+	}
 }
 
 static ConCommand voxeltree_playerview( "voxeltree_playerview", CC_VoxelTreePlayerView, "View entities in the voxel-tree at the player position.", FCVAR_CHEAT );
