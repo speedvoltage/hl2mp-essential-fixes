@@ -1597,6 +1597,35 @@ public:
 typedef CTraceFilterSimpleList CBulletsTraceFilter;
 #endif
 
+#ifndef CLIENT_DLL
+static CUtlVector<CHandle<CBaseEntity>> createdLaserEntities; // prevent going over 2048 edicts
+ConVar sv_show_tracers("sv_showbullet_tracers", "0", FCVAR_CHEAT | FCVAR_NOTIFY, "Tracers");
+static int tracerCount = 0;
+
+void RemoveOldLaserEntities()
+{
+	for (int i = createdLaserEntities.Count() - 1; i >= 0; --i)
+	{
+		if (!createdLaserEntities[i].IsValid())
+		{
+			createdLaserEntities.Remove(i);
+		}
+	}
+
+	// Remove entities if we're close to the edict limit
+	while (!createdLaserEntities.IsEmpty() && gEntList.NumberOfEntities() >= 2045)
+	{
+		// Remove the oldest entity in the list
+		CBaseEntity* pEntity = createdLaserEntities[0];
+		if (pEntity)
+		{
+			UTIL_Remove(pEntity);
+		}
+		createdLaserEntities.Remove(0);  // Remove the first element
+	}
+}
+#endif
+
 void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 {
 	static int	tracerCount;
@@ -1756,6 +1785,97 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 				// Default behavior for non-shotgun weapons
 				AI_TraceLine(info.m_vecSrc, vecEnd, MASK_SHOT, &traceFilter, &tr);
 			}
+#ifndef CLIENT_DLL
+			if (sv_show_tracers.GetBool())
+			{
+				// Check current edict count and remove old entities if we're close to the limit
+				RemoveOldLaserEntities();
+
+				if (gEntList.NumberOfEntities() >= 2048)
+				{
+					Warning("Cannot create laser tracer; entity limit reached.\n");
+					return;
+				}
+
+				char startTargetName[32];
+				char endTargetName[32];
+				char laserName[32];
+				V_snprintf(startTargetName, sizeof(startTargetName), "laser_start_target_%d", tracerCount);
+				V_snprintf(endTargetName, sizeof(endTargetName), "laser_end_target_%d", tracerCount);
+				V_snprintf(laserName, sizeof(laserName), "laser_tracer_%d", tracerCount);
+
+				tracerCount++;
+
+				CBaseEntity* pStartTarget = CreateEntityByName("info_target");
+				if (pStartTarget)
+				{
+					pStartTarget->SetAbsOrigin(info.m_vecSrc);
+					pStartTarget->KeyValue("targetname", startTargetName);
+					DispatchSpawn(pStartTarget);
+					pStartTarget->Activate();
+					DevMsg("Laser start target created at position: %f %f %f\n", info.m_vecSrc.x, info.m_vecSrc.y, info.m_vecSrc.z);
+
+					createdLaserEntities.AddToTail(pStartTarget);
+				}
+				else
+				{
+					DevWarning("Failed to create laser start target.\n");
+				}
+
+				CBaseEntity* pEndTarget = CreateEntityByName("info_target");
+				if (pEndTarget)
+				{
+					pEndTarget->SetAbsOrigin(tr.endpos);
+					pEndTarget->KeyValue("targetname", endTargetName);
+					DispatchSpawn(pEndTarget);
+					pEndTarget->Activate();
+					DevMsg("Laser end target created at position: %f %f %f\n", tr.endpos.x, tr.endpos.y, tr.endpos.z);
+
+					createdLaserEntities.AddToTail(pEndTarget);
+				}
+				else
+				{
+					DevWarning("Failed to create laser end target.\n");
+				}
+
+				CBaseEntity* pLaser = CreateEntityByName("env_laser");
+				if (pLaser)
+				{
+					pLaser->KeyValue("rendercolor", "0 0 255");            // Blue color for the laser
+					pLaser->KeyValue("width", "1");                        // Width of the laser
+					pLaser->KeyValue("EndWidth", "5");                     // End width of the laser
+					pLaser->KeyValue("damage", "0");                       // No damage from the laser
+					pLaser->KeyValue("LaserTarget", endTargetName);        // Target the end point
+					pLaser->SetAbsOrigin(info.m_vecSrc);                   // Position the start point of the laser (which is us)
+					pLaser->KeyValue("targetname", startTargetName);
+					pLaser->KeyValue("renderamt", "255");                  // Full opacity
+					pLaser->KeyValue("texture", "sprites/laserbeam.vmt");
+					pLaser->KeyValue("TextureScroll", "0");
+					pLaser->KeyValue("spawnflags", "1");                   // Start on
+
+					DispatchSpawn(pLaser);
+					pLaser->Activate();
+
+					variant_t emptyVariant;
+					pLaser->FireNamedOutput("TurnOn", emptyVariant, pLaser, pLaser, 0.0f);
+
+					pLaser->FireNamedOutput("TurnOff", emptyVariant, pLaser, pLaser, 15.0f);
+
+					DevMsg("Laser tracer created between start and end targets.\n");
+
+					// remove all the edict info to prevent pile up
+					pLaser->SetContextThink(&CBaseEntity::SUB_Remove, gpGlobals->curtime + 15.5f, "LaserCleanupContext");
+					pStartTarget->SetContextThink(&CBaseEntity::SUB_Remove, gpGlobals->curtime + 15.5f, "LaserCleanupContext");
+					pEndTarget->SetContextThink(&CBaseEntity::SUB_Remove, gpGlobals->curtime + 15.5f, "LaserCleanupContext");
+
+					createdLaserEntities.AddToTail(pLaser);
+				}
+				else
+				{
+					DevWarning("Failed to create env_laser.\n");
+				}
+			}
+#endif
 		}
 #ifndef CLIENT_DLL
 		else
