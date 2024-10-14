@@ -48,7 +48,7 @@ int g_iPreviousLeaderTeam = TEAM_UNASSIGNED;
 
 extern void respawn(CBaseEntity* pEdict, bool fCopyCorpse);
 
-#ifdef HL2MP_PLAYER_FILTER
+#if 0
 extern void ReadWhitelistFile();
 #endif
 
@@ -241,7 +241,7 @@ char* sTeamNames[] =
 
 #ifndef CLIENT_DLL
 
-#ifdef HL2MP_PLAYER_FILTER
+#if 0
 void CC_RefreshWhitelist(const CCommand& args)
 {
 	if ( !UTIL_IsCommandIssuedByServerAdmin() )
@@ -250,10 +250,11 @@ void CC_RefreshWhitelist(const CCommand& args)
 	Msg("Refreshing whitelist...\n");
 	ReadWhitelistFile();
 }
-#endif
+
 
 // Create the ConCommand
 ConCommand refresh_whitelist("refresh_whitelist", CC_RefreshWhitelist, "Refreshes the player whitelist.", FCVAR_NONE);
+#endif
 
 void sv_equalizer_changed(IConVar* pConVar, const char* pOldString, float flOldValue)
 {
@@ -373,8 +374,9 @@ CHL2MPRules::CHL2MPRules()
 #ifndef CLIENT_DLL
 	if (m_bFirstInitialization)
 	{
+#if 0
 		ReadWhitelistFile();
-
+#endif
 		if (sv_custom_sounds.GetBool())
 		{
 			// Get the downloadables string table
@@ -1521,12 +1523,12 @@ bool IsValidPositiveInteger(const char* str)
 	return true;
 }
 
-#ifdef HL2MP_PLAYER_FILTER
+#if 0
 CUtlVector<CUtlString> m_Whitelist;
 #endif
 
 #ifndef NO_STEAM
-#ifdef HL2MP_PLAYER_FILTER
+#if 0
 void ReadWhitelistFile()
 {
 	m_Whitelist.RemoveAll();  // Clear existing data
@@ -1563,7 +1565,7 @@ void CHL2MPRules::Think(void)
 
 	CGameRules::Think();
 
-#ifdef HL2MP_PLAYER_FILTER
+#if 0
 
 	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
@@ -1705,10 +1707,6 @@ void CHL2MPRules::Think(void)
 						{
 							CBaseMultiplayerPlayer* pCurrentPlayer = unassignedPlayers[i];
 							int playerRank = i + 1; // Rank starts from 1, not 0
-
-							hudtextparms_t playerTextParams = textParams;
-							playerTextParams.y = sv_timeleft_y.GetFloat() + 0.03f; // Position below the time
-							playerTextParams.channel = 1;
 
 							// Format the message
 							char playerStatText[128];
