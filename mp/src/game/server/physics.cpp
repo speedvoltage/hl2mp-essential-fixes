@@ -1247,6 +1247,7 @@ void IterateActivePhysicsEntities( EntityCallbackFunction func )
 {
 	int activeCount = physenv->GetActiveObjectCount();
 	IPhysicsObject **pActiveList = NULL;
+
 	if ( activeCount )
 	{
 		pActiveList = (IPhysicsObject **)stackalloc( sizeof(IPhysicsObject *)*activeCount );
@@ -1713,6 +1714,7 @@ void PhysFrame( float deltaTime )
 
 	int activeCount = physenv->GetActiveObjectCount();
 	IPhysicsObject **pActiveList = NULL;
+
 	if ( activeCount )
 	{
 		pActiveList = (IPhysicsObject **)stackalloc( sizeof(IPhysicsObject *)*activeCount );

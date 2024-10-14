@@ -131,3 +131,9 @@ ConVar sv_infinite_flashlight(
 	FCVAR_GAMEDLL | FCVAR_NOTIFY,
 	"If non-zero, uses infinite aux power for flashlight, else use HL2 mechanics"
 );
+
+ConVar sv_propflying(
+	"sv_propflying",
+	"1",
+	FCVAR_NOTIFY,
+	"If non-zero, restores the pre-OB prop flying bug");

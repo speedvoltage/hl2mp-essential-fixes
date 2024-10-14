@@ -42,6 +42,7 @@
 #include "gamestats.h"
 #include "vehicle_base.h"
 #include "usermessages.h"
+#include "hl2mp_cvars.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -555,8 +556,23 @@ void CBreakableProp::CheckRemoveRagdolls()
 // Input  : index - 
 //			*pEvent - 
 //-----------------------------------------------------------------------------
+
 void CPhysicsProp::HandleAnyCollisionInteractions( int index, gamevcollisionevent_t *pEvent )
 {
+	if ( sv_propflying.GetBool() )
+	{
+		CBasePlayer* pPlayer = dynamic_cast< CBasePlayer* >( pEvent->pEntities[ !index ] );
+		if ( pPlayer && !pPlayer->IsBot() && pPlayer == m_pLastHolder )
+		{
+			if ( pPlayer->GetAbsOrigin().z < GetAbsOrigin().z + 10.0f )
+			{
+				Vector velocity = pPlayer->GetAbsVelocity();
+				velocity.z += 400.0f;
+				pPlayer->SetAbsVelocity( velocity );
+			}
+		}
+	}
+
 	// If we're supposed to impale, and we've hit an NPC, impale it
 	if ( HasInteraction( PROPINTER_PHYSGUN_FIRST_IMPALE ) )
 	{
@@ -2757,6 +2773,8 @@ void CPhysicsProp::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t r
 {
 	BaseClass::OnPhysGunPickup( pPhysGunUser, reason );
 
+	m_pLastHolder = pPhysGunUser;
+
 	IPhysicsObject *pPhysicsObject = VPhysicsGetObject();
 	if ( pPhysicsObject && !pPhysicsObject->IsMoveable() )
 	{
@@ -2805,6 +2823,8 @@ void CPhysicsProp::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t r
 void CPhysicsProp::OnPhysGunDrop( CBasePlayer *pPhysGunUser, PhysGunDrop_t Reason )
 {
 	BaseClass::OnPhysGunDrop( pPhysGunUser, Reason );
+
+	m_pLastHolder = pPhysGunUser;
 
 	if ( Reason == LAUNCHED_BY_CANNON )
 	{

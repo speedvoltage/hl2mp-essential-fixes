@@ -1577,7 +1577,27 @@ int CBaseEntity::VPhysicsTakeDamage( const CTakeDamageInfo &info )
 		if ( gameFlags & FVPHYSICS_PLAYER_HELD )
 		{
 			// if the player is holding the object, use it's real mass (player holding reduced the mass)
-			CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
+			CBasePlayer *pPlayer = NULL;
+
+			if ( gpGlobals->maxClients == 1 )
+			{
+				pPlayer = UTIL_GetLocalPlayer();
+			}
+			else
+			{
+				// See which MP player is holding the physics object and then use that player to get the real mass of the object.
+				// This is ugly but better than having linkage between an object and its "holding" player.
+				for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+				{
+					CBasePlayer *tempPlayer = UTIL_PlayerByIndex( i );
+					if ( tempPlayer && (tempPlayer->GetHeldObject() == this ) )
+					{
+						pPlayer = tempPlayer;
+						break;
+					}
+				}
+			}
+
 			if ( pPlayer )
 			{
 				float mass = pPlayer->GetHeldObjectMass( VPhysicsGetObject() );
@@ -5083,7 +5103,12 @@ void CC_Ent_Remove( const CCommand& args )
 	// Found one?
 	if ( pEntity )
 	{
-		Msg( "Removed %s(%s)\n", STRING(pEntity->m_iClassname), pEntity->GetDebugName() );
+		if ( engine->IsDedicatedServer() )
+			Msg( "Removed %s(%s)\n", STRING(pEntity->m_iClassname), pEntity->GetDebugName() );
+
+		CBasePlayer* player = UTIL_GetCommandClient();
+		if ( pPlayer )
+			ClientPrint( player, HUD_PRINTCONSOLE, UTIL_VarArgs( "Removed %s(%s)\n", STRING( pEntity->m_iClassname ), pEntity->GetDebugName() ) );
 		UTIL_Remove( pEntity );
 	}
 }
@@ -5106,7 +5131,13 @@ void CC_Ent_RemoveAll( const CCommand& args )
 	// If no name was given remove based on the picked
 	if ( args.ArgC() < 2 )
 	{
-		Msg( "Removes all entities of the specified type\n\tArguments:   	{entity_name} / {class_name}\n" );
+		if ( engine->IsDedicatedServer() )
+			if ( UTIL_IsCommandIssuedByServerAdmin() )
+				Msg( "Removes all entities of the specified type\n\tArguments:   	{entity_name} / {class_name}\n" );
+			else if ( pPlayer )
+			{
+				ClientPrint( pPlayer, HUD_PRINTCONSOLE, "Removes all entities of the specified type\n\tArguments:   	{entity_name} / {class_name}\n" );
+			}
 	}
 	else 
 	{
@@ -5126,11 +5157,19 @@ void CC_Ent_RemoveAll( const CCommand& args )
 
 		if ( iCount )
 		{
-			Msg( "Removed %d %s's\n", iCount, args[1] );
+			if ( engine->IsDedicatedServer() )
+				if ( UTIL_IsCommandIssuedByServerAdmin() )
+					Msg( "Removed %d %s's\n", iCount, args[1] );
+				else if ( pPlayer )
+					ClientPrint( pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs( "Removed %d %s's\n", iCount, args[1] ) );	
 		}
 		else
 		{
-			Msg( "No %s found.\n", args[1] );
+			if ( engine->IsDedicatedServer() )
+				if ( UTIL_IsCommandIssuedByServerAdmin() )
+					Msg( "No %s found.\n", args[ 1 ] );
+				else if ( pPlayer )
+					ClientPrint( pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs( "No %s found.\n", args[ 1 ] ) );
 		}
 	}
 }
@@ -5143,6 +5182,9 @@ void CC_Ent_SetName( const CCommand& args )
 
 	if ( args.ArgC() < 1 )
 	{
+		if ( UTIL_IsCommandIssuedByServerAdmin() )
+			Msg( "This command can only be used in-game\n" );
+
 		CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() );
 		if (!pPlayer)
 			return;
@@ -5175,6 +5217,15 @@ void CC_Ent_SetName( const CCommand& args )
 		// Found one?
 		if ( pEntity )
 		{
+			CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() );
+			if ( engine->IsDedicatedServer() )
+				if ( UTIL_IsCommandIssuedByServerAdmin() )
+					Msg( "Set the name of %s to %s\n", STRING(pEntity->m_iClassname), args[1] );
+				else if ( pPlayer )
+				{
+					ClientPrint( pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs( "Set the name of %s to %s\n", STRING( pEntity->m_iClassname ), args[ 1 ] ) );
+				}
+
 			Msg( "Set the name of %s to %s\n", STRING(pEntity->m_iClassname), args[1] );
 			pEntity->SetName( AllocPooledString( args[1] ) );
 		}
@@ -5185,16 +5236,29 @@ static ConCommand ent_setname("ent_setname", CC_Ent_SetName, "Sets the targetnam
 //------------------------------------------------------------------------------
 void CC_Find_Ent( const CCommand& args )
 {
+	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() );
+
 	if ( args.ArgC() < 2 )
 	{
-		Msg( "Total entities: %d (%d edicts)\n", gEntList.NumberOfEntities(), gEntList.NumberOfEdicts() );
-		Msg( "Format: find_ent <substring>\n" );
+		if ( UTIL_IsCommandIssuedByServerAdmin() )
+		{
+			Msg( "Total entities: %d (%d edicts)\n", gEntList.NumberOfEntities(), gEntList.NumberOfEdicts() );
+			Msg( "Format: find_ent <substring>\n" );
+		}
+		else if ( pPlayer )
+		{
+			ClientPrint( pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs( "Total entities: %d (%d edicts)\n", gEntList.NumberOfEntities(), gEntList.NumberOfEdicts() ) );
+			ClientPrint( pPlayer, HUD_PRINTCONSOLE, "Format: find_ent <substring>" );
+		}
 		return;
 	}
 
 	int iCount = 0;
  	const char *pszSubString = args[1];
-	Msg("Searching for entities with class/target name containing substring: '%s'\n", pszSubString );
+	if ( UTIL_IsCommandIssuedByServerAdmin() )
+		Msg( "Searching for entities with class/target name containing substring: '%s'\n", pszSubString );
+	else if ( pPlayer )
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs( "Searching for entities with class/target name containing substring: '%s'", pszSubString ) );
 
 	CBaseEntity *ent = NULL;
 	while ( (ent = gEntList.NextEnt(ent)) != NULL )
@@ -5222,20 +5286,31 @@ void CC_Find_Ent( const CCommand& args )
 		if ( bMatches )
 		{
  			iCount++;
-			Msg("   '%s' : '%s' (entindex %d) \n", ent->GetClassname(), ent->GetEntityName().ToCStr(), ent->entindex() );
+			if ( UTIL_IsCommandIssuedByServerAdmin() )
+				Msg( "   '%s' : '%s' (entindex %d) \n", ent->GetClassname(), ent->GetEntityName().ToCStr(), ent->entindex() );
+			else if ( pPlayer )
+				ClientPrint( pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs( "   '%s' : '%s' (entindex %d) \n", ent->GetClassname(), ent->GetEntityName().ToCStr(), ent->entindex() ) );
 		}
 	}
 
-	Msg("Found %d matches.\n", iCount);
+	if ( UTIL_IsCommandIssuedByServerAdmin() )
+		Msg( "Found %d matches.\n", iCount );
+	else if ( pPlayer )
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs( "Found %d matches.\n", iCount ) );
 }
 static ConCommand find_ent("find_ent", CC_Find_Ent, "Find and list all entities with classnames or targetnames that contain the specified substring.\nFormat: find_ent <substring>\n", FCVAR_CHEAT);
 
 //------------------------------------------------------------------------------
 void CC_Find_Ent_Index( const CCommand& args )
 {
+	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() );
+
 	if ( args.ArgC() < 2 )
 	{
-		Msg( "Format: find_ent_index <index>\n" );
+		if ( UTIL_IsCommandIssuedByServerAdmin() )
+			Msg( "Format: find_ent_index <index>\n" );
+		else if ( pPlayer )
+			ClientPrint( pPlayer, HUD_PRINTCONSOLE, "Format: find_ent_index <index>");
 		return;
 	}
 
@@ -5243,11 +5318,18 @@ void CC_Find_Ent_Index( const CCommand& args )
 	CBaseEntity	*pEnt = UTIL_EntityByIndex( iIndex );
 	if ( pEnt )
 	{
-		Msg("   '%s' : '%s' (entindex %d) \n", pEnt->GetClassname(), pEnt->GetEntityName().ToCStr(), iIndex );
+		if ( UTIL_IsCommandIssuedByServerAdmin() )
+			Msg( "   '%s' : '%s' (entindex %d) \n", pEnt->GetClassname(), pEnt->GetEntityName().ToCStr(), iIndex );
+		else if ( pPlayer )
+			ClientPrint( pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs( "   '%s' : '%s' (entindex %d) \n", pEnt->GetClassname(), pEnt->GetEntityName().ToCStr(), iIndex ) );
 	}
 	else
 	{
-		Msg("Found no entity at %d.\n", iIndex);
+		if ( UTIL_IsCommandIssuedByServerAdmin() )
+			Msg( "Found no entity at %d.\n", iIndex );
+		else if ( pPlayer )
+			ClientPrint( pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs( "Found no entity at %d.\n", iIndex ) );
+		
 	}
 }
 static ConCommand find_ent_index("find_ent_index", CC_Find_Ent_Index, "Display data for entity matching specified index.\nFormat: find_ent_index <index>\n", FCVAR_CHEAT);
@@ -5501,8 +5583,12 @@ private:
 
 		// Find the target entity by name
 		CBaseEntity *target = gEntList.FindEntityByName( NULL, targetEntity );
-		if ( target == NULL )
-			return 0;
+		if (target == NULL)
+		{
+			target = UTIL_EntityByIndex(atoi(targetEntity));
+			if(target == NULL)
+				return 0;
+		}
 
 		CUtlRBTree< CUtlString > symbols( 0, 0, UtlStringLessFunc );
 

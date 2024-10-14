@@ -2169,7 +2169,7 @@ ReturnSpot:
 	{
 		// use the player start entity 
 		// if nothing else is found (prevents crashes)
-		pSpot = gEntList.FindEntityByClassname(pSpot, "info_player_start");
+		pSpot = gEntList.FindEntityByClassnameRandom(pSpot, "info_player_start");
 
 		if (pSpot)
 			goto ReturnSpot;

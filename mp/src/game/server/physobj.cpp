@@ -24,6 +24,7 @@
 #include "collisionutils.h"
 #include "decals.h"
 #include "bone_setup.h"
+#include "hl2mp_cvars.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -739,6 +740,7 @@ void CPhysBox::VPhysicsUpdate( IPhysicsObject *pPhysics )
 //-----------------------------------------------------------------------------
 void CPhysBox::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t reason )
 {
+	m_pLastHolder = pPhysGunUser;
 	if ( reason == PUNTED_BY_CANNON )
 	{
 		m_OnPhysGunPunt.FireOutput( pPhysGunUser, this );
@@ -772,6 +774,7 @@ void CPhysBox::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t reaso
 void CPhysBox::OnPhysGunDrop( CBasePlayer *pPhysGunUser, PhysGunDrop_t Reason )
 {
 	BaseClass::OnPhysGunDrop( pPhysGunUser, Reason );
+	m_pLastHolder = pPhysGunUser;
 
 	m_hCarryingPlayer = NULL;
 	m_OnPhysGunDrop.FireOutput( pPhysGunUser, this );
@@ -783,6 +786,20 @@ void CPhysBox::OnPhysGunDrop( CBasePlayer *pPhysGunUser, PhysGunDrop_t Reason )
 void CPhysBox::VPhysicsCollision( int index, gamevcollisionevent_t *pEvent )
 {
 	BaseClass::VPhysicsCollision( index, pEvent );
+
+	if ( sv_propflying.GetBool() )
+	{
+		CBasePlayer* pPlayer = dynamic_cast< CBasePlayer* >( pEvent->pEntities[ !index ] );
+		if ( pPlayer && !pPlayer->IsBot() && pPlayer == m_pLastHolder )
+		{
+			if ( pPlayer->GetAbsOrigin().z < GetAbsOrigin().z + 10.0f )
+			{
+				Vector velocity = pPlayer->GetAbsVelocity();
+				velocity.z += 400.0f;
+				pPlayer->SetAbsVelocity( velocity );
+			}
+		}
+	}
 
 	IPhysicsObject *pPhysObj = pEvent->pObjects[!index];
 

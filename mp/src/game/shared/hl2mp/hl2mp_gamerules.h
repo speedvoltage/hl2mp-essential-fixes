@@ -124,6 +124,8 @@ public:
 	void RestartGame();
 
 #ifndef CLIENT_DLL
+	virtual void			InitDefaultAIRelationships(void);
+	virtual const char* AIClassText(int classType);
 	virtual Vector VecItemRespawnSpot( CItem *pItem );
 	virtual QAngle VecItemRespawnAngles( CItem *pItem );
 	virtual float	FlItemRespawnTime( CItem *pItem );
@@ -135,6 +137,7 @@ public:
 	void	ManageObjectRelocation( void );
 	void CheckChatForReadySignal(CHL2MP_Player* pPlayer, const char* chatmsg);
 	const char *GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer );
+	virtual bool FAllowNPCs(void) { return true; };
 
 #endif
 	virtual void ClientDisconnected( edict_t *pClient );
