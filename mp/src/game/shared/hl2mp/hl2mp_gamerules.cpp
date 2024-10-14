@@ -1674,16 +1674,6 @@ void CHL2MPRules::Think(void)
 					else
 						Q_snprintf(stime, sizeof(stime), "%d:%2.2d", iMinutes, iSeconds);
 
-
-				for (int i = 1; i <= gpGlobals->maxClients; i++)
-				{
-					CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-					if (pPlayer && pPlayer->IsConnected() && !pPlayer->IsBot())
-					{
-						UTIL_HudMessage(pPlayer, textParams, stime);
-					}
-				}
-
 				if (!IsTeamplay() && sv_timeleft_teamscore.GetBool())
 				{
 					// Get the unassigned team
@@ -1722,10 +1712,29 @@ void CHL2MPRules::Think(void)
 
 							// Format the message
 							char playerStatText[128];
-							Q_snprintf(playerStatText, sizeof(playerStatText), "%d/%d | %d Frag%s", playerRank, unassignedPlayers.Count(), pCurrentPlayer->FragCount(), pCurrentPlayer->FragCount() < 2 ? "" : "s");
+							Q_snprintf(playerStatText, sizeof(playerStatText), "%s\n%d/%d | %d Frag%s", stime, playerRank, unassignedPlayers.Count(), pCurrentPlayer->FragCount(), pCurrentPlayer->FragCount() < 2 ? "" : "s");
 
 							// Display the message to the player
-							UTIL_HudMessage(pCurrentPlayer, playerTextParams, playerStatText);
+							UTIL_HudMessage(pCurrentPlayer, textParams, playerStatText);
+						}
+					}
+					for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+					{
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
+						if ( pPlayer && pPlayer->IsConnected() && !pPlayer->IsBot() && pPlayer->GetTeamNumber() == TEAM_SPECTATOR )
+						{
+							UTIL_HudMessage( pPlayer, textParams, stime );
+						}
+					}
+				}
+				else
+				{
+					for (int i = 1; i <= gpGlobals->maxClients; i++)
+					{
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+						if (pPlayer && pPlayer->IsConnected() && !pPlayer->IsBot())
+						{
+							UTIL_HudMessage(pPlayer, textParams, stime);
 						}
 					}
 				}

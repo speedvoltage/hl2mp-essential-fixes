@@ -124,10 +124,6 @@ public:
 #define	MAX_AMMO_TYPES	32		// ???
 #define MAX_AMMO_SLOTS  32		// not really slots
 
-#ifndef HL2MP_PLAYER_FILTER
-#define HL2MP_PLAYER_FILTER
-#endif
-
 #ifndef COLOR
 #define COLOR(x)				"\x07"#x
 #endif
