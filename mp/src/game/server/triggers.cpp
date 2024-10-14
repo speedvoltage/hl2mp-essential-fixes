@@ -1680,18 +1680,21 @@ int CTriggerCatapult::DrawDebugTextOverlays()
 	return text_offset;
 }
 
+
 // ##################################################################################
 //	>> TriggerUserInput
 // ##################################################################################
 class CTriggerUserInput : public CBaseTrigger
 {
 public:
-	DECLARE_CLASS(CTriggerUserInput, CBaseTrigger);
+	DECLARE_CLASS( CTriggerUserInput, CBaseTrigger );
 	DECLARE_DATADESC();
 
 	CTriggerUserInput();
 	void Spawn() override;
-	void Touch(CBaseEntity* pOther);
+	void StartTouch( CBaseEntity* pOther ) override;
+	void EndTouch( CBaseEntity* pOther ) override;
+	void MonitorKeyInput();  // Think function
 
 private:
 	enum Key
@@ -1704,33 +1707,37 @@ private:
 		KEY_DUCK,
 		KEY_ATTACK,
 		KEY_ATTACK2,
-		KEY_RELOAD
+		KEY_RELOAD,
+		KEY_SPRINT
 	};
 	int m_ButtonRep;
 	Key m_eKey;
 	COutputEvent m_OnKeyPressed;
 	COutputEvent m_OnKeyHeld;
 	COutputEvent m_OnKeyReleased;
+
+	CBasePlayer* m_pActivePlayer;  // Track the player inside the trigger
 };
 
-LINK_ENTITY_TO_CLASS(trigger_userinput, CTriggerUserInput);
+LINK_ENTITY_TO_CLASS( trigger_userinput, CTriggerUserInput );
 
-BEGIN_DATADESC(CTriggerUserInput)
-DEFINE_KEYFIELD(m_eKey, FIELD_INTEGER, "lookedkey"),
-DEFINE_OUTPUT(m_OnKeyPressed, "OnKeyPressed"),
-DEFINE_OUTPUT(m_OnKeyHeld, "OnKeyHeld"),
-DEFINE_OUTPUT(m_OnKeyReleased, "OnKeyReleased"),
+BEGIN_DATADESC( CTriggerUserInput )
+DEFINE_KEYFIELD( m_eKey, FIELD_INTEGER, "lookedkey" ),
+DEFINE_OUTPUT( m_OnKeyPressed, "OnKeyPressed" ),
+DEFINE_OUTPUT( m_OnKeyHeld, "OnKeyHeld" ),
+DEFINE_OUTPUT( m_OnKeyReleased, "OnKeyReleased" ),
 END_DATADESC();
 
 CTriggerUserInput::CTriggerUserInput()
 {
 	m_eKey = KEY_FORWARD;
 	m_ButtonRep = IN_FORWARD;
+	m_pActivePlayer = nullptr;
 }
 
 void CTriggerUserInput::Spawn()
 {
-	switch (m_eKey)
+	switch ( m_eKey )
 	{
 	case KEY_FORWARD:
 		m_ButtonRep = IN_FORWARD;
@@ -1759,37 +1766,68 @@ void CTriggerUserInput::Spawn()
 	case KEY_RELOAD:
 		m_ButtonRep = IN_RELOAD;
 		break;
+	case KEY_SPRINT:
+		m_ButtonRep = IN_SPEED;
+		break;
 	default:
-		DevWarning("Passed unhandled key press");
+		DevWarning( "Unhandled key press detected" );
 		m_ButtonRep = 0;
 		break;
 	}
 
 	BaseClass::Spawn();
+	InitTrigger();
 }
 
-void CTriggerUserInput::Touch(CBaseEntity* pOther)
+void CTriggerUserInput::StartTouch( CBaseEntity* pOther )
 {
-	if (PassesTriggerFilters(pOther))
+	auto pPlayer = dynamic_cast< CBasePlayer* >( pOther );
+	if ( pPlayer && PassesTriggerFilters( pOther ) )
 	{
-		const auto pPlayer = static_cast<CBasePlayer*>(pOther);
-		if (pPlayer)
+		m_pActivePlayer = pPlayer;
+		SetThink( &CTriggerUserInput::MonitorKeyInput );
+		SetNextThink( gpGlobals->curtime + 0.1f );
+	}
+
+	else if ( pPlayer && !PassesTriggerFilters( pOther ) )
+	{
+		DevMsg( "Player detected but not passing trigger filters\n" );
+	}
+}
+
+void CTriggerUserInput::EndTouch( CBaseEntity* pOther )
+{
+	if ( pOther == m_pActivePlayer )
+	{
+		m_pActivePlayer = nullptr;
+		SetThink( nullptr );  // Stop monitoring key input
+	}
+}
+
+void CTriggerUserInput::MonitorKeyInput()
+{
+	if ( m_pActivePlayer )
+	{
+		if ( m_pActivePlayer->m_afButtonPressed & m_ButtonRep )
 		{
-			if (pPlayer->m_afButtonPressed & m_ButtonRep)
-			{
-				m_OnKeyPressed.FireOutput(pPlayer, this);
-			}
-
-			if (pPlayer->m_nButtons & m_ButtonRep)
-			{
-				m_OnKeyHeld.FireOutput(pPlayer, this);
-			}
-
-			if (pPlayer->m_afButtonReleased & m_ButtonRep)
-			{
-				m_OnKeyReleased.FireOutput(pPlayer, this);
-			}
+			DevMsg( "Key pressed\n" );
+			m_OnKeyPressed.FireOutput( m_pActivePlayer, this );
 		}
+
+		if ( m_pActivePlayer->m_nButtons & m_ButtonRep )
+		{
+			DevMsg( "Key held\n" );
+			m_OnKeyHeld.FireOutput( m_pActivePlayer, this );
+		}
+
+		if ( m_pActivePlayer->m_afButtonReleased & m_ButtonRep )
+		{
+			DevMsg( "Key released\n" );
+			m_OnKeyReleased.FireOutput( m_pActivePlayer, this );
+		}
+
+		// Continue monitoring
+		SetNextThink( gpGlobals->curtime + 0.1f );
 	}
 }
 
