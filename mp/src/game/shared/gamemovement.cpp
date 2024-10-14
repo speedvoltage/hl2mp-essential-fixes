@@ -1636,6 +1636,9 @@ void CGameMovement::Friction(void)
 	// apply ground friction
 	if (player->GetGroundEntity() != NULL)  // On an entity that is the ground
 	{
+#ifndef CLIENT_DLL
+		player->SetAirControlSuppression( 0.0f );
+#endif
 		friction = sv_friction.GetFloat() * player->m_surfaceFriction;
 
 		// Bleed off some speed, but if we have less than the bleed
@@ -1780,7 +1783,12 @@ void CGameMovement::AirMove(void)
 
 	VectorCopy(wishvel, wishdir);   // Determine maginitude of speed of move
 	wishspeed = VectorNormalize(wishdir);
-
+#ifndef CLIENT_DLL
+	if (player->IsAirControlSuppressed())
+	{
+		wishspeed *= 0.0f;
+	}
+#endif
 	//
 	// clamp to server defined max speed
 	//
