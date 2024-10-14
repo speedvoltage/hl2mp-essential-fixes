@@ -2217,7 +2217,10 @@ CWeaponPhysCannon::FindObjectResult_t CWeaponPhysCannon::FindObject( void )
 	Vector	pullDir = start - pEntity->WorldSpaceCenter();
 	VectorNormalize( pullDir );
 	//INCREASED PHYSCANNON POLLING
-	pullDir *= physcannon_pullforce.GetFloat()*TICK_INTERVAL*10.0f;
+	if ( !sv_physcannon_default_pollrate.GetBool() )
+		pullDir *= physcannon_pullforce.GetFloat() * TICK_INTERVAL * 10.0f;
+	else
+		pullDir *= physcannon_pullforce.GetFloat();
 	
 	float mass = PhysGetEntityMass( pEntity );
 	if ( mass < 50.0f )
