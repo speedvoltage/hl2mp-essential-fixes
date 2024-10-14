@@ -799,6 +799,25 @@ void CBasePlayer::SnapEyeAngles( const QAngle &viewAngles )
 	pl.fixangle = FIXANGLE_ABSOLUTE;
 }
 
+bool CBasePlayer::IsAirControlSuppressed() const
+{
+	// Check if air control suppression is active and the current time is within the suppression window
+	if (m_bAirControlSuppressed && gpGlobals->curtime >= m_flAirControlSuppressionTime)
+	{
+		// Reset the flag when suppression time is over
+		const_cast<CBasePlayer*>(this)->m_bAirControlSuppressed = false;
+	}
+	return m_bAirControlSuppressed;
+}
+
+void CBasePlayer::SetAirControlSuppression(float flDuration)
+{
+	if (flDuration > 0.0f)
+	{
+		m_flAirControlSuppressionTime = gpGlobals->curtime + flDuration;
+		m_bAirControlSuppressed = true;
+	}
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -6009,6 +6028,11 @@ CBaseEntity *FindPickerEntityClass( CBasePlayer *pPlayer, char *classname )
 CBaseEntity *FindPickerEntity( CBasePlayer *pPlayer )
 {
 	MDLCACHE_CRITICAL_SECTION();
+
+	if (!pPlayer)
+	{
+		return NULL;
+	}
 
 	// First try to trace a hull to an entity
 	CBaseEntity *pEntity = FindEntityForward( pPlayer, true );

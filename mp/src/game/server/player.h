@@ -749,25 +749,29 @@ public:
 	float	GetFOVDistanceAdjustFactorForNetworking();
 
 	int Get357ZoomLevel() const { return m_i357ZoomLevel; }
-	void Set357ZoomLevel(int level) { m_i357ZoomLevel = level; }
+	void Set357ZoomLevel( int level ) { m_i357ZoomLevel = level; }
 
 	int GetXbowZoomLevel() const { return m_iXbowZoomLevel; }
-	void SetXbowZoomLevel(int level) { m_iXbowZoomLevel = level; }
+	void SetXbowZoomLevel( int level ) { m_iXbowZoomLevel = level; }
 
 	bool IsSuitZoomActive() const { return m_bIsSuitZoomActive; }
-	void SetSuitZoomActive(bool state) { m_bIsSuitZoomActive = state; }
+	void SetSuitZoomActive( bool state ) { m_bIsSuitZoomActive = state; }
 
 	bool IsWeaponZoomActive() const { return m_bWeaponZoomActive; }
-	void SetWeaponZoomActive(bool state) { m_bWeaponZoomActive = state; }
+	void SetWeaponZoomActive( bool state ) { m_bWeaponZoomActive = state; }
 
 	float GetLadderCooldownTime() const { return m_flLadderCooldownTime; }
-	void SetLadderCooldownTime(float cooldownTime) { m_flLadderCooldownTime = cooldownTime; }
+	void SetLadderCooldownTime( float cooldownTime ) { m_flLadderCooldownTime = cooldownTime; }
 
 	bool AreHitSoundsEnabled() const { return m_bHitSoundsEnabled; }
-	void SetHitSoundsEnabled(bool enabled) { m_bHitSoundsEnabled = enabled; }
+	void SetHitSoundsEnabled( bool enabled ) { m_bHitSoundsEnabled = enabled; }
 
 	bool AreKillSoundsEnabled() const { return m_bKillSoundsEnabled; }
-	void SetKillSoundsEnabled(bool enabled) { m_bKillSoundsEnabled = enabled; }
+	void SetKillSoundsEnabled( bool enabled ) { m_bKillSoundsEnabled = enabled; }
+
+	// trigger_catapult air control
+	void SetAirControlSuppression( float flDuration );
+	bool IsAirControlSuppressed() const;
 
 	int		GetImpulse( void ) const { return m_nImpulse; }
 
@@ -853,6 +857,10 @@ private:
 	bool m_bWeaponZoomActive;
 	bool m_bHitSoundsEnabled;  // Hit sound toggle
 	bool m_bKillSoundsEnabled; // Kill sound toggle
+
+	// trigger_catapult air control
+	float m_flAirControlSuppressionTime;  // How long air control is suppressed
+	bool m_bAirControlSuppressed;         // Is air control currently suppressed?
 
 public:
 	
