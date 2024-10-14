@@ -1558,57 +1558,91 @@ void ReadWhitelistFile()
 #endif
 #endif
 
-void CHL2MPRules::Think(void)
+void CHL2MPRules::Think( void )
 {
 
 #ifndef CLIENT_DLL
 
 	CGameRules::Think();
 
+	// Clean up the think function to save some space
 #if 0
+	HandlePlayerWhitelisting();
+#endif
+	HandleTimeleft();
+	HandleAFK();
+	HandleExploit();
+	HandlePlayerNetworkCheck();
+	RemoveAllPlayersEquipment();
+	HandleEqualizer();
+	HandleNoBlock();
+	HandleNewTargetID();
+	HandleTeamAutobalance();
+	HandleGameOver();
 
-	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	if ( gpGlobals->curtime > m_flBalanceTeamsTime )
 	{
-		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+		m_flBalanceTeamsTime = gpGlobals->curtime + 60.0;
+	}
 
-		if (pPlayer && pPlayer->IsConnected())
+	if ( gpGlobals->curtime > m_tmNextPeriodicThink )
+	{
+		CheckRestartGame();
+		m_tmNextPeriodicThink = gpGlobals->curtime + 1.0;
+	}
+
+	if ( m_flRestartGameTime > 0.0f && m_flRestartGameTime <= gpGlobals->curtime )
+	{
+		RestartGame();
+	}
+
+	ManageObjectRelocation();
+
+#endif
+}
+
+#ifndef CLIENT_DLL
+#if 0
+void CHL2MPRules::HandlePlayerWhitelisting()
+{
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
+
+		if ( pPlayer && pPlayer->IsConnected() )
 		{
-			const char* steamID3 = engine->GetPlayerNetworkIDString(pPlayer->edict());
+			const char* steamID3 = engine->GetPlayerNetworkIDString( pPlayer->edict() );
 
 			bool bWhitelisted = false;
-			for (int i = 0; i < m_Whitelist.Count(); ++i)
+			for ( int i = 0; i < m_Whitelist.Count(); ++i )
 			{
-				if (V_stricmp(m_Whitelist[i].Get(), steamID3) == 0)
+				if ( V_stricmp( m_Whitelist[ i ].Get(), steamID3 ) == 0 )
 				{
 					bWhitelisted = true;
 					break;
 				}
 			}
 
-			if (!bWhitelisted)
+			if ( !bWhitelisted )
 			{
-				engine->ServerCommand(UTIL_VarArgs("kickid %d Your SteamID is not whitelisted on this server\n", pPlayer->GetUserID()));
+				engine->ServerCommand( UTIL_VarArgs( "kickid %d Your SteamID is not whitelisted on this server\n", pPlayer->GetUserID() ) );
 				return;
 			}
 		}
 	}
+}
 #endif
-
-	iConnected = NULL;
-
-	/*
-		TIMELEFT
-	*/
-
-	if (GetMapRemainingTime() > 0)
+void CHL2MPRules::HandleTimeleft()
+{
+	if ( GetMapRemainingTime() > 0 )
 	{
-		if (sv_timeleft_enable.GetBool())
+		if ( sv_timeleft_enable.GetBool() )
 		{
-			if (gpGlobals->curtime > m_tmNextPeriodicThink)
+			if ( gpGlobals->curtime > m_tmNextPeriodicThink )
 			{
 				hudtextparms_t textParams;
 				textParams.channel = sv_timeleft_channel.GetInt();
-				if (!sv_timeleft_color_override.GetBool())
+				if ( !sv_timeleft_color_override.GetBool() )
 				{
 					textParams.r1 = sv_timeleft_r.GetInt();
 					textParams.g1 = sv_timeleft_g.GetInt();
@@ -1623,97 +1657,97 @@ void CHL2MPRules::Think(void)
 				textParams.holdTime = 1.10;
 				textParams.fxTime = 0;
 
-				if (!sv_timeleft_teamscore.GetBool() || teamplay.GetInt() < 1)
-					sv_timeleft_color_override.SetValue(0);
+				if ( !sv_timeleft_teamscore.GetBool() || teamplay.GetInt() < 1 )
+					sv_timeleft_color_override.SetValue( 0 );
 
-				int iTimeRemaining = (int)HL2MPRules()->GetMapRemainingTime();
+				int iTimeRemaining = ( int ) HL2MPRules()->GetMapRemainingTime();
 
 				int iDays, iHours, iMinutes, iSeconds;
-				iMinutes = (iTimeRemaining / 60) % 60;
+				iMinutes = ( iTimeRemaining / 60 ) % 60;
 				iSeconds = iTimeRemaining % 60;
-				iHours = (iTimeRemaining / 3600) % 24;
+				iHours = ( iTimeRemaining / 3600 ) % 24;
 				// Yes, this is ridiculous
-				iDays = (iTimeRemaining / 86400);
+				iDays = ( iTimeRemaining / 86400 );
 
-				char stime[64];
+				char stime[ 64 ];
 
-				if (IsTeamplay() && sv_timeleft_teamscore.GetBool())
+				if ( IsTeamplay() && sv_timeleft_teamscore.GetBool() )
 				{
-					CTeam* pCombine = g_Teams[TEAM_COMBINE];
-					CTeam* pRebels = g_Teams[TEAM_REBELS];
+					CTeam* pCombine = g_Teams[ TEAM_COMBINE ];
+					CTeam* pRebels = g_Teams[ TEAM_REBELS ];
 
-					if ((pCombine->GetScore() > pRebels->GetScore()) && sv_timeleft_color_override.GetBool())
+					if ( ( pCombine->GetScore() > pRebels->GetScore() ) && sv_timeleft_color_override.GetBool() )
 					{
 						textParams.r1 = 159;
 						textParams.g1 = 202;
 						textParams.b1 = 242;
 					}
-					else if ((pRebels->GetScore() > pCombine->GetScore()) && sv_timeleft_color_override.GetBool())
+					else if ( ( pRebels->GetScore() > pCombine->GetScore() ) && sv_timeleft_color_override.GetBool() )
 					{
 						textParams.r1 = 255;
 						textParams.g1 = 50;
 						textParams.b1 = 50;
 					}
-					else if ((pRebels->GetScore() == pCombine->GetScore()) && sv_timeleft_color_override.GetBool())
+					else if ( ( pRebels->GetScore() == pCombine->GetScore() ) && sv_timeleft_color_override.GetBool() )
 					{
 						textParams.r1 = 255;
 						textParams.g1 = 255;
 						textParams.b1 = 255;
 					}
 
-					if (iTimeRemaining >= 86400)
-						Q_snprintf(stime, sizeof(stime), "%d %2.2d:%2.2d:%2.2d:%2.2d %d ", pCombine->GetScore(), iDays, iHours, iMinutes, iSeconds, pRebels->GetScore());
-					else if (iTimeRemaining >= 3600)
-						Q_snprintf(stime, sizeof(stime), "%d %2.2d:%2.2d:%2.2d %d ", pRebels->GetScore(), iHours, iMinutes, iSeconds, pRebels->GetScore());
+					if ( iTimeRemaining >= 86400 )
+						Q_snprintf( stime, sizeof( stime ), "%d %2.2d:%2.2d:%2.2d:%2.2d %d ", pCombine->GetScore(), iDays, iHours, iMinutes, iSeconds, pRebels->GetScore() );
+					else if ( iTimeRemaining >= 3600 )
+						Q_snprintf( stime, sizeof( stime ), "%d %2.2d:%2.2d:%2.2d %d ", pRebels->GetScore(), iHours, iMinutes, iSeconds, pRebels->GetScore() );
 					else
-						Q_snprintf(stime, sizeof(stime), "%d %d:%2.2d %d", pCombine->GetScore(), iMinutes, iSeconds, pRebels->GetScore());
+						Q_snprintf( stime, sizeof( stime ), "%d %d:%2.2d %d", pCombine->GetScore(), iMinutes, iSeconds, pRebels->GetScore() );
 				}
 				else
-					if (iTimeRemaining >= 86400)
-						Q_snprintf(stime, sizeof(stime), "%2.2d:%2.2d:%2.2d:%2.2d", iDays, iHours, iMinutes, iSeconds);
-					else if (iTimeRemaining >= 3600)
-						Q_snprintf(stime, sizeof(stime), "%2.2d:%2.2d:%2.2d", iHours, iMinutes, iSeconds);
+					if ( iTimeRemaining >= 86400 )
+						Q_snprintf( stime, sizeof( stime ), "%2.2d:%2.2d:%2.2d:%2.2d", iDays, iHours, iMinutes, iSeconds );
+					else if ( iTimeRemaining >= 3600 )
+						Q_snprintf( stime, sizeof( stime ), "%2.2d:%2.2d:%2.2d", iHours, iMinutes, iSeconds );
 					else
-						Q_snprintf(stime, sizeof(stime), "%d:%2.2d", iMinutes, iSeconds);
+						Q_snprintf( stime, sizeof( stime ), "%d:%2.2d", iMinutes, iSeconds );
 
-				if (!IsTeamplay() && sv_timeleft_teamscore.GetBool())
+				if ( !IsTeamplay() && sv_timeleft_teamscore.GetBool() )
 				{
 					// Get the unassigned team
-					CTeam* pTeamUnassigned = g_Teams[TEAM_UNASSIGNED];
+					CTeam* pTeamUnassigned = g_Teams[ TEAM_UNASSIGNED ];
 
-					if (pTeamUnassigned)
+					if ( pTeamUnassigned )
 					{
 						// Collect all players in the unassigned team
 						CUtlVector<CBaseMultiplayerPlayer*> unassignedPlayers;
-						for (int i = 1; i <= gpGlobals->maxClients; i++) // Iterate through all players
+						for ( int i = 1; i <= gpGlobals->maxClients; i++ ) // Iterate through all players
 						{
-							CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-							CBaseMultiplayerPlayer* pMultiplayerPlayer = ToBaseMultiplayerPlayer(pPlayer);
+							CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
+							CBaseMultiplayerPlayer* pMultiplayerPlayer = ToBaseMultiplayerPlayer( pPlayer );
 
 							// Check if player is valid, on the unassigned team, and not a spectator
-							if (pMultiplayerPlayer && pMultiplayerPlayer->GetTeamNumber() == TEAM_UNASSIGNED && !pMultiplayerPlayer->IsObserver())
+							if ( pMultiplayerPlayer && pMultiplayerPlayer->GetTeamNumber() == TEAM_UNASSIGNED && !pMultiplayerPlayer->IsObserver() )
 							{
-								unassignedPlayers.AddToTail(pMultiplayerPlayer);
+								unassignedPlayers.AddToTail( pMultiplayerPlayer );
 							}
 						}
 
 						// Sort the unassigned players by frags in descending order
-						unassignedPlayers.Sort([](CBaseMultiplayerPlayer* const* a, CBaseMultiplayerPlayer* const* b) {
-							return (*b)->FragCount() - (*a)->FragCount();
-							});
+						unassignedPlayers.Sort( [] ( CBaseMultiplayerPlayer* const* a, CBaseMultiplayerPlayer* const* b ) {
+							return ( *b )->FragCount() - ( *a )->FragCount();
+							} );
 
 						// Now we loop over each player and display their stats on their own HUD
-						for (int i = 0; i < unassignedPlayers.Count(); i++)
+						for ( int i = 0; i < unassignedPlayers.Count(); i++ )
 						{
-							CBaseMultiplayerPlayer* pCurrentPlayer = unassignedPlayers[i];
+							CBaseMultiplayerPlayer* pCurrentPlayer = unassignedPlayers[ i ];
 							int playerRank = i + 1; // Rank starts from 1, not 0
 
 							// Format the message
-							char playerStatText[128];
-							Q_snprintf(playerStatText, sizeof(playerStatText), "%s\n%d/%d | %d Frag%s", stime, playerRank, unassignedPlayers.Count(), pCurrentPlayer->FragCount(), pCurrentPlayer->FragCount() < 2 ? "" : "s");
+							char playerStatText[ 128 ];
+							Q_snprintf( playerStatText, sizeof( playerStatText ), "%s\n%d/%d | %d Frag%s", stime, playerRank, unassignedPlayers.Count(), pCurrentPlayer->FragCount(), pCurrentPlayer->FragCount() < 2 ? "" : "s" );
 
 							// Display the message to the player
-							UTIL_HudMessage(pCurrentPlayer, textParams, playerStatText);
+							UTIL_HudMessage( pCurrentPlayer, textParams, playerStatText );
 						}
 					}
 					for ( int i = 1; i <= gpGlobals->maxClients; i++ )
@@ -1727,334 +1761,347 @@ void CHL2MPRules::Think(void)
 				}
 				else
 				{
-					for (int i = 1; i <= gpGlobals->maxClients; i++)
+					for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 					{
-						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-						if (pPlayer && pPlayer->IsConnected() && !pPlayer->IsBot())
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
+						if ( pPlayer && pPlayer->IsConnected() && !pPlayer->IsBot() )
 						{
-							UTIL_HudMessage(pPlayer, textParams, stime);
+							UTIL_HudMessage( pPlayer, textParams, stime );
 						}
 					}
 				}
 			}
 		}
 	}
+}
 
-	/*
-	AFK
-	*/
-
-	if (gpGlobals->curtime > m_tmNextPeriodicThink)
+void CHL2MPRules::HandleAFK()
+{
+	if ( gpGlobals->curtime > m_tmNextPeriodicThink )
 	{
 		// Loop through all players
-		for (int i = 1; i <= gpGlobals->maxClients; i++)
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 		{
-			CHL2MP_Player* pHL2MPPlayer = dynamic_cast<CHL2MP_Player*>(UTIL_PlayerByIndex(i));
+			CHL2MP_Player* pHL2MPPlayer = dynamic_cast< CHL2MP_Player* >( UTIL_PlayerByIndex( i ) );
 
 			// Ensure the player is valid and not a spectator
-			if (pHL2MPPlayer && !pHL2MPPlayer->IsBot() && pHL2MPPlayer->GetTeamNumber() != TEAM_SPECTATOR && mp_afk.GetBool())
+			// we don't want to kick spectators since they usually
+			// don't block gameplay - it only really takes a player slot
+			if ( pHL2MPPlayer && !pHL2MPPlayer->IsBot() && pHL2MPPlayer->GetTeamNumber() != TEAM_SPECTATOR && mp_afk.GetBool() )
 			{
 				// The player is not moving, so increment their AFK timer
 				pHL2MPPlayer->IncrementAfkTimer();
 				// Msg("AFK time: %d\n", pHL2MPPlayer->GetAfkTimer());
 
 				// Handle warnings if enabled
-				if (mp_afk_warnings.GetBool())
+				if ( mp_afk_warnings.GetBool() )
 				{
-					if (pHL2MPPlayer->GetAfkTimer() == mp_afk_time.GetInt() - 15)
+					if ( pHL2MPPlayer->GetAfkTimer() == mp_afk_time.GetInt() - 15 )
 					{
-						UTIL_PrintToClient(pHL2MPPlayer, CHAT_CONTEXT "You will be kicked for being AFK in " CHAT_LIGHTBLUE "15 " "seconds.");
+						UTIL_PrintToClient( pHL2MPPlayer, CHAT_CONTEXT "You will be kicked for being AFK in " CHAT_LIGHTBLUE "15 " "seconds." );
 					}
-					else if (pHL2MPPlayer->GetAfkTimer() == mp_afk_time.GetInt() - 5)
+					else if ( pHL2MPPlayer->GetAfkTimer() == mp_afk_time.GetInt() - 5 )
 					{
-						UTIL_PrintToClient(pHL2MPPlayer, CHAT_CONTEXT "You will be kicked for being AFK in " CHAT_LIGHTBLUE "5 " "seconds.");
+						UTIL_PrintToClient( pHL2MPPlayer, CHAT_CONTEXT "You will be kicked for being AFK in " CHAT_LIGHTBLUE "5 " "seconds." );
 					}
 				}
 
 				// Check if they've exceeded the AFK time limit
-				if (pHL2MPPlayer->GetAfkTimer() >= mp_afk_time.GetInt())
+				if ( pHL2MPPlayer->GetAfkTimer() >= mp_afk_time.GetInt() )
 				{
 					// Kick the player for being AFK
-					engine->ServerCommand(UTIL_VarArgs("kickid %d You have been kicked for being AFK\n", pHL2MPPlayer->GetUserID()));
+					engine->ServerCommand( UTIL_VarArgs( "kickid %d You have been kicked for being AFK\n", pHL2MPPlayer->GetUserID() ) );
 				}
 			}
 
-			if (pHL2MPPlayer && !pHL2MPPlayer->IsBot() && !mp_afk.GetBool())
+			if ( pHL2MPPlayer && !pHL2MPPlayer->IsBot() && !mp_afk.GetBool() )
 				pHL2MPPlayer->ResetAfkTimer();
 		}
 	}
+}
+
+void CHL2MPRules::HandleExploit()
+{
+	iConnected = NULL;
 
 	// For match servers
-	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
 
-		if (pPlayer)
+		if ( pPlayer )
 			iConnected++;
 	}
 
-	if (iConnected < 2)
+	if ( iConnected < 2 )
 	{
-		sv_lockteams.SetValue(0);
+		sv_lockteams.SetValue( 0 );
 
-		if (engine->IsPaused())
-			engine->GetIServer()->SetPaused(false);
+		if ( engine->IsPaused() )
+			engine->GetIServer()->SetPaused( false );
 	}
 
-	/*
-		UPDATERATE AND CMDRATE CHECKER
-	*/
+	// Remove pause if sv_pausable becomes 0
+	ConVar* sv_pausable = cvar->FindVar( "sv_pausable" );
 
+	if ( sv_pausable->GetBool() == false && engine->IsPaused() )
+		engine->GetIServer()->SetPaused( false );
+}
+
+void CHL2MPRules::HandlePlayerNetworkCheck()
+{
 	// We don't want people using 0
-	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		if (gpGlobals->curtime > m_tmNextPeriodicThink)
+		if ( gpGlobals->curtime > m_tmNextPeriodicThink )
 		{
-			CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+			CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
 
-			if (pPlayer && !pPlayer->IsBot() && !pPlayer->IsHLTV())
+			if ( pPlayer && !pPlayer->IsBot() && !pPlayer->IsHLTV() )
 			{
 				// Fetch client-side settings from the player
-				const char* cl_updaterate = engine->GetClientConVarValue(pPlayer->entindex(), "cl_updaterate");
-				const char* cl_cmdrate = engine->GetClientConVarValue(pPlayer->entindex(), "cl_cmdrate");
+				const char* cl_updaterate = engine->GetClientConVarValue( pPlayer->entindex(), "cl_updaterate" );
+				const char* cl_cmdrate = engine->GetClientConVarValue( pPlayer->entindex(), "cl_cmdrate" );
 
 				bool shouldKick = false;
-				char kickReason[128] = "";
+				char kickReason[ 128 ] = "";
 
 				// Validate and convert cl_updaterate
-				if (!IsValidPositiveInteger(cl_updaterate))
+				if ( !IsValidPositiveInteger( cl_updaterate ) )
 				{
 					shouldKick = true;
-					Q_snprintf(kickReason, sizeof(kickReason), "cl_updaterate is invalid (value: %s)", cl_updaterate);
+					Q_snprintf( kickReason, sizeof( kickReason ), "cl_updaterate is invalid (value: %s)", cl_updaterate );
 				}
 				else
 				{
-					int updaterate = atoi(cl_updaterate);
-					if (updaterate <= 0)
+					int updaterate = atoi( cl_updaterate );
+					if ( updaterate <= 0 )
 					{
 						shouldKick = true;
-						Q_snprintf(kickReason, sizeof(kickReason), "cl_updaterate is invalid (value: %d)", updaterate);
+						Q_snprintf( kickReason, sizeof( kickReason ), "cl_updaterate is invalid (value: %d)", updaterate );
 					}
 				}
 
 				// Validate and convert cl_cmdrate
-				if (!IsValidPositiveInteger(cl_cmdrate))
+				if ( !IsValidPositiveInteger( cl_cmdrate ) )
 				{
 					shouldKick = true;
-					Q_snprintf(kickReason, sizeof(kickReason), "cl_cmdrate is invalid (value: %s)", cl_cmdrate);
+					Q_snprintf( kickReason, sizeof( kickReason ), "cl_cmdrate is invalid (value: %s)", cl_cmdrate );
 				}
 				else
 				{
-					int cmdrate = atoi(cl_cmdrate);
-					if (cmdrate <= 0)
+					int cmdrate = atoi( cl_cmdrate );
+					if ( cmdrate <= 0 )
 					{
 						shouldKick = true;
-						Q_snprintf(kickReason, sizeof(kickReason), "cl_cmdrate is invalid (value: %d)", cmdrate);
+						Q_snprintf( kickReason, sizeof( kickReason ), "cl_cmdrate is invalid (value: %d)", cmdrate );
 					}
 				}
 
-				if (shouldKick)
+				if ( shouldKick )
 				{
 					// Get the player's user ID instead of the entity index
 					int userID = pPlayer->GetUserID();  // This will provide the correct user ID for kicking
 
-					engine->ServerCommand(UTIL_VarArgs("kickid %d %s\n", userID, kickReason));  // Use userID instead of entindex()
+					engine->ServerCommand( UTIL_VarArgs( "kickid %d %s\n", userID, kickReason ) );  // Use userID instead of entindex()
 					return;
 				}
 			}
 		}
 	}
+}
 
+void CHL2MPRules::RemoveAllPlayersEquipment()
+{
 	// Forcefully remove suit and weapons here to account for mp_restartgame
-	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
 
-		if (pPlayer && pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+		if ( pPlayer && pPlayer->GetTeamNumber() == TEAM_SPECTATOR )
 		{
-			pPlayer->RemoveAllItems(true);
+			pPlayer->RemoveAllItems( true );
 		}
 	}
+}
 
-	/*
-		EQUALIZER
-	*/
-	if (sv_equalizer.GetBool())
+void CHL2MPRules::HandleEqualizer()
+{
+	if ( sv_equalizer.GetBool() )
 	{
 		// We're not reinventing the wheel, we'll just use what SF has already done, 
 		// find the info_target entity named "sf_equalizer_hax"
-		CBaseEntity* pLightingTarget = FindEntityByName("sf_equalizer_hax");
+		CBaseEntity* pLightingTarget = FindEntityByName( "sf_equalizer_hax" );
 
-		if (pLightingTarget)
+		if ( pLightingTarget )
 		{
-			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 			{
-				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
 
-				if (pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
+				if ( pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR )
 				{
 					// Set render color based on team
-					if (pPlayer->GetTeamNumber() == TEAM_COMBINE)
+					if ( pPlayer->GetTeamNumber() == TEAM_COMBINE )
 					{
-						pPlayer->SetRenderColor(sv_equalizer_combine_red.GetInt(),
+						pPlayer->SetRenderColor( sv_equalizer_combine_red.GetInt(),
 							sv_equalizer_combine_green.GetInt(),
-							sv_equalizer_combine_blue.GetInt());
+							sv_equalizer_combine_blue.GetInt() );
 					}
-					else if (pPlayer->GetTeamNumber() == TEAM_REBELS)
+					else if ( pPlayer->GetTeamNumber() == TEAM_REBELS )
 					{
-						pPlayer->SetRenderColor(sv_equalizer_rebels_red.GetInt(),
+						pPlayer->SetRenderColor( sv_equalizer_rebels_red.GetInt(),
 							sv_equalizer_rebels_green.GetInt(),
-							sv_equalizer_rebels_blue.GetInt());
+							sv_equalizer_rebels_blue.GetInt() );
 					}
-					else if (pPlayer->GetTeamNumber() == TEAM_UNASSIGNED)
+					else if ( pPlayer->GetTeamNumber() == TEAM_UNASSIGNED )
 					{
-						const char* szModelName = engine->GetClientConVarValue(engine->IndexOfEdict(pPlayer->edict()), "cl_playermodel");
+						const char* szModelName = engine->GetClientConVarValue( engine->IndexOfEdict( pPlayer->edict() ), "cl_playermodel" );
 
-						if (Q_stristr(szModelName, "models/human"))
+						if ( Q_stristr( szModelName, "models/human" ) )
 						{
-							pPlayer->SetRenderColor(sv_equalizer_rebels_red.GetInt(),
+							pPlayer->SetRenderColor( sv_equalizer_rebels_red.GetInt(),
 								sv_equalizer_rebels_green.GetInt(),
-								sv_equalizer_rebels_blue.GetInt());
+								sv_equalizer_rebels_blue.GetInt() );
 						}
 						else
 						{
-							pPlayer->SetRenderColor(sv_equalizer_combine_red.GetInt(),
+							pPlayer->SetRenderColor( sv_equalizer_combine_red.GetInt(),
 								sv_equalizer_combine_green.GetInt(),
-								sv_equalizer_combine_blue.GetInt());
+								sv_equalizer_combine_blue.GetInt() );
 						}
 					}
 
 					// Apply render mode and glowing effect for better visibility
-					pPlayer->SetRenderMode(kRenderTransAdd);  // Additive blending mode for bright glow
+					pPlayer->SetRenderMode( kRenderTransAdd );  // Additive blending mode for bright glow
 
 					// Access render properties through networked variables
 					pPlayer->m_nRenderFX = kRenderFxGlowShell; // Add glow effect around the player
-					pPlayer->SetRenderColorA(255);  // Full brightness
+					pPlayer->SetRenderColorA( 255 );  // Full brightness
 
 					// Set the lighting origin using the info_target entity handle
-					pPlayer->SetLightingOrigin(pLightingTarget);
+					pPlayer->SetLightingOrigin( pLightingTarget );
 				}
 			}
 		}
 		else
 		{
-#ifdef DEBUG
-			Warning("Could not find info_target entity named 'sf_equalizer_hax'.\n");
-#endif
-			for (int i = 1; i <= gpGlobals->maxClients; i++)
-			{
-				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+			DevWarning( "Could not find info_target entity named 'sf_equalizer_hax'. It probably just means it doesn't exist in the map.\n" );
 
-				if (pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
+			for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+			{
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
+
+				if ( pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR )
 				{
 					// Set render color based on team
-					if (pPlayer->GetTeamNumber() == TEAM_COMBINE)
+					if ( pPlayer->GetTeamNumber() == TEAM_COMBINE )
 					{
-						pPlayer->SetRenderColor(sv_equalizer_combine_red.GetInt(),
+						pPlayer->SetRenderColor( sv_equalizer_combine_red.GetInt(),
 							sv_equalizer_combine_green.GetInt(),
-							sv_equalizer_combine_blue.GetInt());
+							sv_equalizer_combine_blue.GetInt() );
 					}
-					else if (pPlayer->GetTeamNumber() == TEAM_REBELS)
+					else if ( pPlayer->GetTeamNumber() == TEAM_REBELS )
 					{
-						pPlayer->SetRenderColor(sv_equalizer_rebels_red.GetInt(),
+						pPlayer->SetRenderColor( sv_equalizer_rebels_red.GetInt(),
 							sv_equalizer_rebels_green.GetInt(),
-							sv_equalizer_rebels_blue.GetInt());
+							sv_equalizer_rebels_blue.GetInt() );
 					}
 
-					else if (pPlayer->GetTeamNumber() == TEAM_UNASSIGNED)
+					else if ( pPlayer->GetTeamNumber() == TEAM_UNASSIGNED )
 					{
-						const char* szModelName = engine->GetClientConVarValue(engine->IndexOfEdict(pPlayer->edict()), "cl_playermodel");
+						const char* szModelName = engine->GetClientConVarValue( engine->IndexOfEdict( pPlayer->edict() ), "cl_playermodel" );
 
-						if (Q_stristr(szModelName, "models/human"))
+						if ( Q_stristr( szModelName, "models/human" ) )
 						{
-							pPlayer->SetRenderColor(sv_equalizer_rebels_red.GetInt(),
+							pPlayer->SetRenderColor( sv_equalizer_rebels_red.GetInt(),
 								sv_equalizer_rebels_green.GetInt(),
-								sv_equalizer_rebels_blue.GetInt());
+								sv_equalizer_rebels_blue.GetInt() );
 						}
 						else
 						{
-							pPlayer->SetRenderColor(sv_equalizer_combine_red.GetInt(),
+							pPlayer->SetRenderColor( sv_equalizer_combine_red.GetInt(),
 								sv_equalizer_combine_green.GetInt(),
-								sv_equalizer_combine_blue.GetInt());
+								sv_equalizer_combine_blue.GetInt() );
 						}
 					}
 
 					// Apply render mode and glowing effect for better visibility
-					pPlayer->SetRenderMode(kRenderTransAdd);  // Additive blending mode for bright glow
+					pPlayer->SetRenderMode( kRenderTransAdd );  // Additive blending mode for bright glow
 
 					// Access render properties through networked variables
 					pPlayer->m_nRenderFX = kRenderFxGlowShell; // Add glow effect around the player
-					pPlayer->SetRenderColorA(255);  // Full brightness
+					pPlayer->SetRenderColorA( 255 );  // Full brightness
 
 					// Set the lighting origin using the info_target entity handle
-					pPlayer->SetLightingOrigin(pLightingTarget);
+					pPlayer->SetLightingOrigin( pLightingTarget );
 				}
 			}
 		}
 	}
+}
 
-	/*
-		NO BLOCK
-	*/
-	for (int i = 1; i <= gpGlobals->maxClients; i++)
+void CHL2MPRules::HandleNoBlock()
+{
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
 
-		if (pPlayer)
+		if ( pPlayer )
 		{
-			if (mp_noblock.GetBool())
+			if ( mp_noblock.GetBool() )
 			{
-				pPlayer->SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER);
+				pPlayer->SetCollisionGroup( COLLISION_GROUP_DEBRIS_TRIGGER );
 			}
 			else
-				pPlayer->SetCollisionGroup(COLLISION_GROUP_PLAYER);
+				pPlayer->SetCollisionGroup( COLLISION_GROUP_PLAYER );
 		}
 	}
+}
 
-	/*
-		NEW HUD TARGET ID	
-	*/
-	for (int i = 1; i <= gpGlobals->maxClients; i++)
+void CHL2MPRules::HandleNewTargetID()
+{
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CHL2MP_Player* pPlayer = dynamic_cast<CHL2MP_Player*>(UTIL_PlayerByIndex(i));
+		CHL2MP_Player* pPlayer = dynamic_cast< CHL2MP_Player* >( UTIL_PlayerByIndex( i ) );
 
-		if (pPlayer && pPlayer->IsAlive())
+		if ( pPlayer && pPlayer->IsAlive() )
 		{
 			// Limit HUD updates to once per second
-			if (gpGlobals->curtime > pPlayer->GetNextHudUpdate())
+			if ( gpGlobals->curtime > pPlayer->GetNextHudUpdate() )
 			{
 				Vector vecDir;
-				AngleVectors(pPlayer->EyeAngles(), &vecDir);
+				AngleVectors( pPlayer->EyeAngles(), &vecDir );
 
 				Vector vecAbsStart = pPlayer->EyePosition();
-				Vector vecAbsEnd = vecAbsStart + (vecDir * 2048);
+				Vector vecAbsEnd = vecAbsStart + ( vecDir * 2048 );
 
 				trace_t tr;
-				UTIL_TraceLine(vecAbsStart, vecAbsEnd, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &tr);
+				UTIL_TraceLine( vecAbsStart, vecAbsEnd, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &tr );
 
-				CBasePlayer* pPlayerEntity = dynamic_cast<CBasePlayer*>(tr.m_pEnt);
+				CBasePlayer* pPlayerEntity = dynamic_cast< CBasePlayer* >( tr.m_pEnt );
 
-				if (pPlayerEntity && pPlayerEntity->IsPlayer() && pPlayerEntity->IsAlive())
+				if ( pPlayerEntity && pPlayerEntity->IsPlayer() && pPlayerEntity->IsAlive() )
 				{
-					char entity[256];
+					char entity[ 256 ];
 
-					if (IsTeamplay())
+					if ( IsTeamplay() )
 					{
-						if (pPlayerEntity->GetTeamNumber() == pPlayer->GetTeamNumber())
+						if ( pPlayerEntity->GetTeamNumber() == pPlayer->GetTeamNumber() )
 						{
-							if (pPlayerEntity->ArmorValue())
-								Q_snprintf(entity, sizeof(entity), "%s\nHP: %.0i\nAP: %.0i\n", pPlayerEntity->GetPlayerName(), pPlayerEntity->GetHealth(), pPlayerEntity->ArmorValue());
+							if ( pPlayerEntity->ArmorValue() )
+								Q_snprintf( entity, sizeof( entity ), "%s\nHP: %.0i\nAP: %.0i\n", pPlayerEntity->GetPlayerName(), pPlayerEntity->GetHealth(), pPlayerEntity->ArmorValue() );
 							else
-								Q_snprintf(entity, sizeof(entity), "%s\nHP: %.0i\n", pPlayerEntity->GetPlayerName(), pPlayerEntity->GetHealth());
+								Q_snprintf( entity, sizeof( entity ), "%s\nHP: %.0i\n", pPlayerEntity->GetPlayerName(), pPlayerEntity->GetHealth() );
 						}
 						else
 						{
-							Q_snprintf(entity, sizeof(entity), "%s", pPlayerEntity->GetPlayerName());
+							Q_snprintf( entity, sizeof( entity ), "%s", pPlayerEntity->GetPlayerName() );
 						}
 					}
 					else
 					{
-						Q_snprintf(entity, sizeof(entity), "%s", pPlayerEntity->GetPlayerName());
+						Q_snprintf( entity, sizeof( entity ), "%s", pPlayerEntity->GetPlayerName() );
 					}
 
 					// HUD message setup
@@ -2076,26 +2123,19 @@ void CHL2MPRules::Think(void)
 					tTextParam.fxTime = 0;
 					tTextParam.channel = sv_hudtargetid_channel.GetInt();
 
-					UTIL_HudMessage(pPlayer, tTextParam, entity);
+					UTIL_HudMessage( pPlayer, tTextParam, entity );
 				}
-				pPlayer->SetNextHudUpdate(gpGlobals->curtime + 1.0f); // Limit HUD updates to once per second
+				pPlayer->SetNextHudUpdate( gpGlobals->curtime + 1.0f ); // Limit HUD updates to once per second
 			}
 		}
 	}
+}
 
-	// Remove pause if sv_pausable becomes 0
-	ConVar* sv_pausable = cvar->FindVar("sv_pausable");
-
-	if (sv_pausable->GetBool() == false && engine->IsPaused())
-		engine->GetIServer()->SetPaused(false);
-
-	/*
-		AUTO TEAM BALANCE
-	*/
-	// Refactor the team auto balance to actually do something
-	if (mp_autoteambalance.GetBool() && IsTeamplay())
+void CHL2MPRules::HandleTeamAutobalance()
+{
+	if ( mp_autoteambalance.GetBool() && IsTeamplay() )
 	{
-		if (gpGlobals->curtime > m_flBalanceTeamsTime)
+		if ( gpGlobals->curtime > m_flBalanceTeamsTime )
 		{
 			int iCombine = 0;
 			int iRebels = 0;
@@ -2106,139 +2146,111 @@ void CHL2MPRules::Think(void)
 			CUtlVector<CBasePlayer*> combinePlayers;
 			CUtlVector<CBasePlayer*> rebelPlayers;
 
-			CTeam* pCombine = g_Teams[TEAM_COMBINE];
-			CTeam* pRebels = g_Teams[TEAM_REBELS];
+			CTeam* pCombine = g_Teams[ TEAM_COMBINE ];
+			CTeam* pRebels = g_Teams[ TEAM_REBELS ];
 
-			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 			{
-				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
 
 				// Only balance teams if at least 2 players are connected
-				if (pPlayer)
+				if ( pPlayer )
 				{
-					if (pPlayer->GetTeamNumber() == TEAM_COMBINE)
+					if ( pPlayer->GetTeamNumber() == TEAM_COMBINE )
 					{
 						iCombine++;
-						combinePlayers.AddToTail(pPlayer); // Track Combine players
+						combinePlayers.AddToTail( pPlayer ); // Track Combine players
 						combineScore += pPlayer->FragCount(); // Add player frags to Combine score
 					}
-					else if (pPlayer->GetTeamNumber() == TEAM_REBELS)
+					else if ( pPlayer->GetTeamNumber() == TEAM_REBELS )
 					{
 						iRebels++;
-						rebelPlayers.AddToTail(pPlayer); // Track Rebel players
+						rebelPlayers.AddToTail( pPlayer ); // Track Rebel players
 						rebelScore += pPlayer->FragCount(); // Add player frags to Rebel score
 					}
 				}
 			}
 
-#ifdef _DEBUG
-			Msg("%d Combine players, %d Rebel players, currently with %d connected players.\n", iCombine, iRebels, gpGlobals->maxClients);
-			Msg("Current team scores: Combine: %d, Rebels: %d\n", combineScore, rebelScore);
-#endif
-
 			// If the difference is 2 or more, the teams are deemed unbalanced
-			int difference = abs(iCombine - iRebels);
-			if (difference > 1)
+			int difference = abs( iCombine - iRebels );
+			if ( difference > 1 )
 			{
 				// Determine which team has more players and needs balancing
 				CUtlVector<CBasePlayer*>* teamWithMorePlayers = nullptr;
 				int teamWithFewerPlayers = 0;
-				if (iCombine > iRebels)
+				if ( iCombine > iRebels )
 				{
 					teamWithMorePlayers = &combinePlayers;
 					teamWithFewerPlayers = TEAM_REBELS;
-#ifdef _DEBUG
-					Msg("Unbalanced teams! More Combine players than Rebel players!\n");
-#endif
 				}
-				else if (iRebels > iCombine)
+				else if ( iRebels > iCombine )
 				{
 					teamWithMorePlayers = &rebelPlayers;
 					teamWithFewerPlayers = TEAM_COMBINE;
-#ifdef _DEBUG
-					Msg("Unbalanced teams! More Rebel players than Combine players!\n");
-#endif
 				}
 
 				// Move random players to the other team
-				if (teamWithMorePlayers)
+				if ( teamWithMorePlayers )
 				{
-					for (int j = 0; j < difference / 2; j++)
+					for ( int j = 0; j < difference / 2; j++ )
 					{
 						// Select a random player from the team with more players
-						int randomIndex = RandomInt(0, teamWithMorePlayers->Count() - 1);
-						CBasePlayer* pSelectedPlayer = teamWithMorePlayers->Element(randomIndex);
+						int randomIndex = RandomInt( 0, teamWithMorePlayers->Count() - 1 );
+						CBasePlayer* pSelectedPlayer = teamWithMorePlayers->Element( randomIndex );
 
-						if (pSelectedPlayer)
+						if ( pSelectedPlayer )
 						{
-							pSelectedPlayer->ChangeTeam(teamWithFewerPlayers);
-							teamWithMorePlayers->Remove(randomIndex); // Remove player after switching
+							pSelectedPlayer->ChangeTeam( teamWithFewerPlayers );
+							teamWithMorePlayers->Remove( randomIndex ); // Remove player after switching
 
 							// Update the scores after switching players
-							if (teamWithFewerPlayers == TEAM_REBELS)
+							if ( teamWithFewerPlayers == TEAM_REBELS )
 							{
 								// Deduct from Combine, add to Rebels
 								combineScore -= pSelectedPlayer->FragCount();
 								rebelScore += pSelectedPlayer->FragCount();
 							}
-							else if (teamWithFewerPlayers == TEAM_COMBINE)
+							else if ( teamWithFewerPlayers == TEAM_COMBINE )
 							{
 								// Deduct from Rebels, add to Combine
 								rebelScore -= pSelectedPlayer->FragCount();
 								combineScore += pSelectedPlayer->FragCount();
 							}
-
-#ifdef _DEBUG
-							Msg("Switched player %s to the opposite team.\n", pSelectedPlayer->GetPlayerName());
-							Msg("Updated team scores: Combine: %d, Rebels: %d\n", combineScore, rebelScore);
-#endif
 						}
-		}
-					UTIL_PrintToAllClients(CHAT_INFO "Teams have been balanced!");
-					UTIL_ClientPrintAll(HUD_PRINTCONSOLE, "Teams have been balanced!");
-	}
-			}
-			else
-			{
-#ifdef _DEBUG
-				Msg("Teams are balanced!\n");
-#endif
+					}
+					UTIL_PrintToAllClients( CHAT_INFO "Teams have been balanced!" );
+					UTIL_ClientPrintAll( HUD_PRINTCONSOLE, "Teams have been balanced!" );
+				}
 			}
 
 			// Update global team scores with recalculated values
-			pCombine->SetScore(combineScore);
-			pRebels->SetScore(rebelScore);
-#ifdef _DEBUG
-			Msg("Final team scores after balance: Combine: %d, Rebels: %d\n", combineScore, rebelScore);
-#endif
+			pCombine->SetScore( combineScore );
+			pRebels->SetScore( rebelScore );
 		}
 	}
-#ifdef _DEBUG
-	else if (gpGlobals->curtime > m_flBalanceTeamsTime)
-	{
-		Msg("Couldn't check team balance! Teamplay is disabled!\n");
-	}
-#endif
+}
 
-	if (g_fGameOver)   // someone else quit the game already
+void CHL2MPRules::HandleGameOver()
+{
+	if ( g_fGameOver )   // someone else quit the game already
 	{
-		if (!g_bGameOverSounds && sv_custom_sounds.GetBool())
+		if ( !g_bGameOverSounds && sv_custom_sounds.GetBool() )
 		{
 			g_bGameOverSounds = true; // Ensure sounds are only played once
 
 			// Count connected players
 			int connectedPlayers = 0;
-			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 			{
-				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-				if (pPlayer && pPlayer->IsConnected())
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
+				if ( pPlayer && pPlayer->IsConnected() )
 				{
 					connectedPlayers++;
 				}
 			}
 
 			// Skip the rest if only one player is connected
-			if (connectedPlayers <= 1)
+			if ( connectedPlayers <= 1 )
 			{
 				return;
 			}
@@ -2252,93 +2264,93 @@ void CHL2MPRules::Think(void)
 			textParams.holdTime = mp_chattime.GetInt();
 			textParams.fxTime = 0;
 
-			if (IsTeamplay())
+			if ( IsTeamplay() )
 			{
-				CTeam* pCombine = g_Teams[TEAM_COMBINE];
-				CTeam* pRebels = g_Teams[TEAM_REBELS];
+				CTeam* pCombine = g_Teams[ TEAM_COMBINE ];
+				CTeam* pRebels = g_Teams[ TEAM_REBELS ];
 
 				// Check team scores
-				if (pCombine->GetScore() > pRebels->GetScore())
+				if ( pCombine->GetScore() > pRebels->GetScore() )
 				{
 					// Blue team wins
-					UTIL_PrintToAllClients(CHAT_CONTEXT "Team " CHAT_BLUE "Combine " CHAT_CONTEXT "wins!");
+					UTIL_PrintToAllClients( CHAT_CONTEXT "Team " CHAT_BLUE "Combine " CHAT_CONTEXT "wins!" );
 
 					textParams.r1 = 159;
 					textParams.g1 = 202;
 					textParams.b1 = 242;
 
-					for (int i = 1; i <= gpGlobals->maxClients; i++)
+					for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 					{
-						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-						if (pPlayer && pPlayer->IsConnected() && !pPlayer->IsBot())
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
+						if ( pPlayer && pPlayer->IsConnected() && !pPlayer->IsBot() )
 						{
-							UTIL_HudMessage(pPlayer, textParams, "TEAM COMBINE WINS!");
+							UTIL_HudMessage( pPlayer, textParams, "TEAM COMBINE WINS!" );
 						}
 					}
 					// UTIL_HudMessage(UTIL_GetLocalPlayer(), textParams, "TEAM COMBINE WINS!");
 
-					for (int i = 0; i < gpGlobals->maxClients; i++)
+					for ( int i = 0; i < gpGlobals->maxClients; i++ )
 					{
-						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i + 1);
-						if (pPlayer)
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex( i + 1 );
+						if ( pPlayer )
 						{
-							engine->ClientCommand(pPlayer->edict(), "play server_sounds/blue_wins.wav\n");
+							engine->ClientCommand( pPlayer->edict(), "play server_sounds/blue_wins.wav\n" );
 						}
 					}
 				}
-				else if (pRebels->GetScore() > pCombine->GetScore())
+				else if ( pRebels->GetScore() > pCombine->GetScore() )
 				{
 					// Red team wins
-					UTIL_PrintToAllClients(CHAT_CONTEXT "Team " CHAT_RED "Rebels " CHAT_CONTEXT "wins!");
+					UTIL_PrintToAllClients( CHAT_CONTEXT "Team " CHAT_RED "Rebels " CHAT_CONTEXT "wins!" );
 
 					textParams.r1 = 255;
 					textParams.g1 = 50;
 					textParams.b1 = 50;
 
-					for (int i = 1; i <= gpGlobals->maxClients; i++)
+					for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 					{
-						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-						if (pPlayer && pPlayer->IsConnected() && !pPlayer->IsBot())
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
+						if ( pPlayer && pPlayer->IsConnected() && !pPlayer->IsBot() )
 						{
-							UTIL_HudMessage(pPlayer, textParams, "TEAM REBELS WINS!");
+							UTIL_HudMessage( pPlayer, textParams, "TEAM REBELS WINS!" );
 						}
 					}
 					// UTIL_HudMessage(UTIL_GetLocalPlayer(), textParams, "TEAM REBELS WIN!");
 
-					for (int i = 0; i < gpGlobals->maxClients; i++)
+					for ( int i = 0; i < gpGlobals->maxClients; i++ )
 					{
-						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i + 1);
-						if (pPlayer)
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex( i + 1 );
+						if ( pPlayer )
 						{
-							engine->ClientCommand(pPlayer->edict(), "play server_sounds/red_wins.wav\n");
+							engine->ClientCommand( pPlayer->edict(), "play server_sounds/red_wins.wav\n" );
 						}
 					}
 				}
 				else
 				{
 					// It's a draw
-					UTIL_PrintToAllClients(CHAT_CONTEXT "Game is a draw!");
+					UTIL_PrintToAllClients( CHAT_CONTEXT "Game is a draw!" );
 
 					textParams.r1 = 255;
 					textParams.g1 = 255;
 					textParams.b1 = 255;
 
-					for (int i = 1; i <= gpGlobals->maxClients; i++)
+					for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 					{
-						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-						if (pPlayer && pPlayer->IsConnected() && !pPlayer->IsBot())
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
+						if ( pPlayer && pPlayer->IsConnected() && !pPlayer->IsBot() )
 						{
-							UTIL_HudMessage(pPlayer, textParams, "GAME DRAW!");
+							UTIL_HudMessage( pPlayer, textParams, "GAME DRAW!" );
 						}
 					}
 					// UTIL_HudMessage(UTIL_GetLocalPlayer(), textParams, "GAME DRAW!");
 
-					for (int i = 0; i < gpGlobals->maxClients; i++)
+					for ( int i = 0; i < gpGlobals->maxClients; i++ )
 					{
-						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i + 1);
-						if (pPlayer)
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex( i + 1 );
+						if ( pPlayer )
 						{
-							engine->ClientCommand(pPlayer->edict(), "play server_sounds/draw.wav\n");
+							engine->ClientCommand( pPlayer->edict(), "play server_sounds/draw.wav\n" );
 						}
 					}
 				}
@@ -2351,23 +2363,23 @@ void CHL2MPRules::Think(void)
 				CBasePlayer* pWinner = nullptr;
 
 				// Loop through all players to find the highest frag count and check for ties
-				for (int i = 1; i <= gpGlobals->maxClients; i++)
+				for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 				{
-					CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+					CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
 
-					if (pPlayer && pPlayer->IsConnected())
+					if ( pPlayer && pPlayer->IsConnected() )
 					{
 						int frags = pPlayer->FragCount();
 
 						// If we find a higher frag count, reset the tie count and update the winner
-						if (frags > highestFrags)
+						if ( frags > highestFrags )
 						{
 							highestFrags = frags;
 							tieCount = 1;
 							pWinner = pPlayer; // Set the potential winner
 						}
 						// If another player has the same frag count, increase the tie count
-						else if (frags == highestFrags)
+						else if ( frags == highestFrags )
 						{
 							tieCount++;
 						}
@@ -2375,40 +2387,40 @@ void CHL2MPRules::Think(void)
 				}
 
 				// Play appropriate sound based on the results
-				for (int i = 0; i < gpGlobals->maxClients; i++)
+				for ( int i = 0; i < gpGlobals->maxClients; i++ )
 				{
-					CBasePlayer* pPlayer = UTIL_PlayerByIndex(i + 1);
-					if (pPlayer && pPlayer->IsConnected())
+					CBasePlayer* pPlayer = UTIL_PlayerByIndex( i + 1 );
+					if ( pPlayer && pPlayer->IsConnected() )
 					{
-						if (tieCount > 1)
+						if ( tieCount > 1 )
 						{
 							// Loop through all players and play the tie sound
-							for (int i = 0; i < gpGlobals->maxClients; i++)
+							for ( int i = 0; i < gpGlobals->maxClients; i++ )
 							{
-								CBasePlayer* pPlayer = UTIL_PlayerByIndex(i + 1);
-								if (pPlayer && pPlayer->IsConnected())
+								CBasePlayer* pPlayer = UTIL_PlayerByIndex( i + 1 );
+								if ( pPlayer && pPlayer->IsConnected() )
 								{
-									engine->ClientCommand(pPlayer->edict(), "play server_sounds/tie.wav\n");
+									engine->ClientCommand( pPlayer->edict(), "play server_sounds/tie.wav\n" );
 								}
 							}
 						}
 
-						else if (pPlayer == pWinner)
+						else if ( pPlayer == pWinner )
 						{
 							// Play the "you win" sound for the winner
-							engine->ClientCommand(pPlayer->edict(), "play server_sounds/youwin.wav\n");
-							UTIL_PrintToAllClients(UTIL_VarArgs(CHAT_DEFAULT "%s " CHAT_CONTEXT "wins!", pPlayer->GetPlayerName()));
+							engine->ClientCommand( pPlayer->edict(), "play server_sounds/youwin.wav\n" );
+							UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_DEFAULT "%s " CHAT_CONTEXT "wins!", pPlayer->GetPlayerName() ) );
 
 							textParams.r1 = 255;
 							textParams.g1 = 165;
 							textParams.b1 = 0;
 
-							for (int i = 1; i <= gpGlobals->maxClients; i++)
+							for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 							{
-								CBasePlayer* player = UTIL_PlayerByIndex(i);
-								if (player && player->IsConnected() && !player->IsBot())
+								CBasePlayer* player = UTIL_PlayerByIndex( i );
+								if ( player && player->IsConnected() && !player->IsBot() )
 								{
-									UTIL_HudMessage(player, textParams, UTIL_VarArgs("%s WINS!", pPlayer->GetPlayerName()));
+									UTIL_HudMessage( player, textParams, UTIL_VarArgs( "%s WINS!", pPlayer->GetPlayerName() ) );
 								}
 							}
 
@@ -2417,7 +2429,7 @@ void CHL2MPRules::Think(void)
 						else
 						{
 							// Play the "game over" sound for everyone else
-							engine->ClientCommand(pPlayer->edict(), "play server_sounds/gameover.wav\n");
+							engine->ClientCommand( pPlayer->edict(), "play server_sounds/gameover.wav\n" );
 						}
 					}
 				}
@@ -2425,9 +2437,9 @@ void CHL2MPRules::Think(void)
 		}
 
 		// check to see if we should change levels now
-		if (m_flIntermissionEndTime < gpGlobals->curtime)
+		if ( m_flIntermissionEndTime < gpGlobals->curtime )
 		{
-			if (!m_bChangelevelDone)
+			if ( !m_bChangelevelDone )
 			{
 				ChangeLevel(); // intermission is over
 				m_bChangelevelDone = true;
@@ -2440,12 +2452,12 @@ void CHL2MPRules::Think(void)
 	//	float flTimeLimit = mp_timelimit.GetFloat() * 60;
 	float flFragLimit = fraglimit.GetFloat();
 
-	if (GetMapRemainingTime() < 0)
+	if ( GetMapRemainingTime() < 0 )
 	{
-		if (sv_overtime.GetBool() && (sv_overtime_limit.GetInt() > iOvertimeLimit) || 
-			sv_overtime.GetBool() && sv_overtime_limit.GetInt() == 0)
+		if ( sv_overtime.GetBool() && ( sv_overtime_limit.GetInt() > iOvertimeLimit ) ||
+			sv_overtime.GetBool() && sv_overtime_limit.GetInt() == 0 )
 		{
-			if (!IsTeamplay())
+			if ( !IsTeamplay() )
 			{
 				// Check for a tie before going to intermission
 				int highestFrags = -1;
@@ -2454,22 +2466,22 @@ void CHL2MPRules::Think(void)
 				iOvertimeLimit++;
 
 				// Loop through all players to find the highest frag count
-				for (int i = 1; i <= gpGlobals->maxClients; i++)
+				for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 				{
-					CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+					CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
 
-					if (pPlayer && pPlayer->IsConnected())
+					if ( pPlayer && pPlayer->IsConnected() )
 					{
 						int frags = pPlayer->FragCount();
 
 						// If we find a higher frag count, reset the tie count and update the highest frags
-						if (frags > highestFrags)
+						if ( frags > highestFrags )
 						{
 							highestFrags = frags;
 							tieCount = 1; // Reset to 1 because we found a new highest frag player
 						}
 						// If another player has the same frag count, increase the tie count
-						else if (frags == highestFrags)
+						else if ( frags == highestFrags )
 						{
 							tieCount++;
 						}
@@ -2477,34 +2489,34 @@ void CHL2MPRules::Think(void)
 				}
 
 				// If we have a tie (2 or more players with the highest frag count)
-				if (tieCount > 1)
+				if ( tieCount > 1 )
 				{
 					// Add 1 minute to the game time (60 seconds)
 					float flExtraTime = sv_overtime_time.GetInt() * 60.0f; // 1 minute in seconds
 
 					// Use the same formula from GetMapRemainingTime() and add 60 seconds
-					float currentRemainingTime = (m_flGameStartTime + mp_timelimit.GetInt() * 60.0f) - gpGlobals->curtime;
+					float currentRemainingTime = ( m_flGameStartTime + mp_timelimit.GetInt() * 60.0f ) - gpGlobals->curtime;
 
 					// Add the extra time to the remaining time
 					currentRemainingTime += flExtraTime;
 
 					// Update m_flGameStartTime to reflect the new end time based on the remaining time
-					m_flGameStartTime = gpGlobals->curtime - (mp_timelimit.GetInt() * 60.0f - currentRemainingTime);
+					m_flGameStartTime = gpGlobals->curtime - ( mp_timelimit.GetInt() * 60.0f - currentRemainingTime );
 
 					// Play overtime sound to all players
-					for (int i = 1; i <= gpGlobals->maxClients; i++)
+					for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 					{
-						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-						if (pPlayer && pPlayer->IsConnected())
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
+						if ( pPlayer && pPlayer->IsConnected() )
 						{
 							CRecipientFilter filter;
-							filter.AddRecipient(pPlayer);
+							filter.AddRecipient( pPlayer );
 							filter.MakeReliable();
 
-							if (sv_custom_sounds.GetBool())
-								CBaseEntity::EmitSound(filter, pPlayer->entindex(), "server_sounds_overtime");
+							if ( sv_custom_sounds.GetBool() )
+								CBaseEntity::EmitSound( filter, pPlayer->entindex(), "server_sounds_overtime" );
 
-							UTIL_ClientPrintAll(HUD_PRINTCENTER, UTIL_VarArgs("+0%d:00 OVERTIME", sv_overtime_time.GetInt()));
+							UTIL_ClientPrintAll( HUD_PRINTCENTER, UTIL_VarArgs( "+0%d:00 OVERTIME", sv_overtime_time.GetInt() ) );
 						}
 					}
 
@@ -2514,37 +2526,37 @@ void CHL2MPRules::Think(void)
 			}
 			else
 			{
-				CTeam* pCombine = g_Teams[TEAM_COMBINE];
-				CTeam* pRebels = g_Teams[TEAM_REBELS];
+				CTeam* pCombine = g_Teams[ TEAM_COMBINE ];
+				CTeam* pRebels = g_Teams[ TEAM_REBELS ];
 
-				if (pCombine->GetScore() == pRebels->GetScore())
+				if ( pCombine->GetScore() == pRebels->GetScore() )
 				{
 					// Add 1 minute to the game time (60 seconds)
 					float flExtraTime = sv_overtime_time.GetInt() * 60.0f; // 1 minute in seconds
 
 					// Use the same formula from GetMapRemainingTime() and add 60 seconds
-					float currentRemainingTime = (m_flGameStartTime + mp_timelimit.GetInt() * 60.0f) - gpGlobals->curtime;
+					float currentRemainingTime = ( m_flGameStartTime + mp_timelimit.GetInt() * 60.0f ) - gpGlobals->curtime;
 
 					// Add the extra time to the remaining time
 					currentRemainingTime += flExtraTime;
 
 					// Update m_flGameStartTime to reflect the new end time based on the remaining time
-					m_flGameStartTime = gpGlobals->curtime - (mp_timelimit.GetInt() * 60.0f - currentRemainingTime);
+					m_flGameStartTime = gpGlobals->curtime - ( mp_timelimit.GetInt() * 60.0f - currentRemainingTime );
 
 					// Play overtime sound to all players
-					for (int i = 1; i <= gpGlobals->maxClients; i++)
+					for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 					{
-						CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-						if (pPlayer && pPlayer->IsConnected())
+						CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
+						if ( pPlayer && pPlayer->IsConnected() )
 						{
 							CRecipientFilter filter;
-							filter.AddRecipient(pPlayer);
+							filter.AddRecipient( pPlayer );
 							filter.MakeReliable();
 
-							if (sv_custom_sounds.GetBool())
-								CBaseEntity::EmitSound(filter, pPlayer->entindex(), "server_sounds_overtime");
+							if ( sv_custom_sounds.GetBool() )
+								CBaseEntity::EmitSound( filter, pPlayer->entindex(), "server_sounds_overtime" );
 
-							UTIL_ClientPrintAll(HUD_PRINTCENTER, UTIL_VarArgs("+0%d:00 OVERTIME", sv_overtime_time.GetInt()));
+							UTIL_ClientPrintAll( HUD_PRINTCENTER, UTIL_VarArgs( "+0%d:00 OVERTIME", sv_overtime_time.GetInt() ) );
 						}
 					}
 
@@ -2559,14 +2571,14 @@ void CHL2MPRules::Think(void)
 		return;
 	}
 
-	if (flFragLimit)
+	if ( flFragLimit )
 	{
-		if (IsTeamplay() == true)
+		if ( IsTeamplay() == true )
 		{
-			CTeam* pCombine = g_Teams[TEAM_COMBINE];
-			CTeam* pRebels = g_Teams[TEAM_REBELS];
+			CTeam* pCombine = g_Teams[ TEAM_COMBINE ];
+			CTeam* pRebels = g_Teams[ TEAM_REBELS ];
 
-			if (pCombine->GetScore() >= flFragLimit || pRebels->GetScore() >= flFragLimit)
+			if ( pCombine->GetScore() >= flFragLimit || pRebels->GetScore() >= flFragLimit )
 			{
 				GoToIntermission();
 				return;
@@ -2575,11 +2587,11 @@ void CHL2MPRules::Think(void)
 		else
 		{
 			// check if any player is over the frag limit
-			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 			{
-				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex( i );
 
-				if (pPlayer && pPlayer->FragCount() >= flFragLimit)
+				if ( pPlayer && pPlayer->FragCount() >= flFragLimit )
 				{
 					GoToIntermission();
 					return;
@@ -2587,27 +2599,8 @@ void CHL2MPRules::Think(void)
 			}
 		}
 	}
-
-	if (gpGlobals->curtime > m_flBalanceTeamsTime)
-	{
-		m_flBalanceTeamsTime = gpGlobals->curtime + 60.0;
-	}
-
-	if (gpGlobals->curtime > m_tmNextPeriodicThink)
-	{
-		CheckRestartGame();
-		m_tmNextPeriodicThink = gpGlobals->curtime + 1.0;
-	}
-
-	if (m_flRestartGameTime > 0.0f && m_flRestartGameTime <= gpGlobals->curtime)
-	{
-		RestartGame();
-	}
-
-	ManageObjectRelocation();
-
-#endif
 }
+#endif
 
 void CHL2MPRules::GoToIntermission(void)
 {

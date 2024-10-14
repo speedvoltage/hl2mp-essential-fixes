@@ -139,6 +139,20 @@ public:
 	const char *GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer );
 	virtual bool FAllowNPCs(void) { return true; };
 
+#if 0
+	void HandlePlayerWhitelisting();
+#endif
+	void HandleTimeleft();
+	void HandleAFK();
+	void HandleExploit();
+	void HandlePlayerNetworkCheck();
+	void RemoveAllPlayersEquipment();
+	void HandleEqualizer();
+	void HandleNoBlock();
+	void HandleNewTargetID();
+	void HandleTeamAutobalance();
+	void HandleGameOver();
+
 #endif
 	virtual void ClientDisconnected( edict_t *pClient );
 
