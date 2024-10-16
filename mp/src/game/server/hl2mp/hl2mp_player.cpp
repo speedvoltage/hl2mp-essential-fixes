@@ -1222,7 +1222,11 @@ void CHL2MP_Player::PlayerDeathThink()
 void CHL2MP_Player::FireBullets ( const FireBulletsInfo_t &info )
 {
 	// Move other players back to history positions based on local player's lag
+#ifdef NEWLAGCOMP
+	lagcompensation->StartLagCompensation(this, LAG_COMPENSATE_HITBOXES );
+#else
 	lagcompensation->StartLagCompensation(this, this->GetCurrentCommand());
+#endif
 
 	FireBulletsInfo_t modinfo = info;
 

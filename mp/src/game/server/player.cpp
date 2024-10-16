@@ -753,7 +753,12 @@ bool CBasePlayer::WantsLagCompensationOnEntity( const CBasePlayer*pPlayer, const
 
 	// get max distance player could have moved within max lag compensation time, 
 	// multiply by 1.5 to to avoid "dead zones"  (sqrt(2) would be the exact value)
+#ifdef NEWLAGCOMP
+	float entityMaxSpeed = ToBasePlayer ( pPlayer ) ? ToBasePlayer ( pPlayer )->MaxSpeed ( ) : 300.0f;
+	float maxDistance = 1.5 * entityMaxSpeed * sv_maxunlag.GetFloat ( );
+#else
 	float maxDistance = 1.5 * pPlayer->MaxSpeed() * sv_maxunlag.GetFloat();
+#endif
 
 	// If the player is within this distance, lag compensate them in case they're running past us.
 	if ( vHisOrigin.DistTo( vMyOrigin ) < maxDistance )
@@ -1705,6 +1710,21 @@ int CBasePlayer::OnTakeDamage_Alive(const CTakeDamageInfo& info)
 			DispatchEffect("cball_explode", data);
 		}
 	}
+#ifdef NEWLAGCOMP
+	IGameEvent* evUpdate = gameeventmanager->CreateEvent ( "spec_target_updated" );
+	if ( evUpdate )
+	{
+		Log ( "Update\n" );
+		if ( gameeventmanager->FireEvent( evUpdate ) )
+		{
+			Log ( "Success\n" );
+		}
+		else
+		{
+			Log ( "Fail\n" );
+		}
+	}
+#endif
 
 	// Fire global game event
 	IGameEvent* event = gameeventmanager->CreateEvent("player_hurt");

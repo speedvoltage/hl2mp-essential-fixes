@@ -1692,6 +1692,7 @@ public:
 
 	CTriggerUserInput();
 	void Spawn() override;
+	void Touch(CBaseEntity* pOther) override;
 	void StartTouch( CBaseEntity* pOther ) override;
 	void EndTouch( CBaseEntity* pOther ) override;
 	void MonitorKeyInput();  // Think function
@@ -1712,9 +1713,11 @@ private:
 	};
 	int m_ButtonRep;
 	Key m_eKey;
+	bool m_bDetectPlayerMovement;
 	COutputEvent m_OnKeyPressed;
 	COutputEvent m_OnKeyHeld;
 	COutputEvent m_OnKeyReleased;
+	COutputEvent m_OnPlayerMovementDetected;
 
 	CBasePlayer* m_pActivePlayer;  // Track the player inside the trigger
 };
@@ -1723,9 +1726,11 @@ LINK_ENTITY_TO_CLASS( trigger_userinput, CTriggerUserInput );
 
 BEGIN_DATADESC( CTriggerUserInput )
 DEFINE_KEYFIELD( m_eKey, FIELD_INTEGER, "lookedkey" ),
+DEFINE_KEYFIELD(m_bDetectPlayerMovement, FIELD_BOOLEAN, "detectplayermovement"),
 DEFINE_OUTPUT( m_OnKeyPressed, "OnKeyPressed" ),
 DEFINE_OUTPUT( m_OnKeyHeld, "OnKeyHeld" ),
 DEFINE_OUTPUT( m_OnKeyReleased, "OnKeyReleased" ),
+DEFINE_OUTPUT(m_OnPlayerMovementDetected, "OnPlayerMovementDetected"),
 END_DATADESC();
 
 CTriggerUserInput::CTriggerUserInput()
@@ -1733,6 +1738,7 @@ CTriggerUserInput::CTriggerUserInput()
 	m_eKey = KEY_FORWARD;
 	m_ButtonRep = IN_FORWARD;
 	m_pActivePlayer = nullptr;
+	m_bDetectPlayerMovement = false;
 }
 
 void CTriggerUserInput::Spawn()
@@ -1777,6 +1783,42 @@ void CTriggerUserInput::Spawn()
 
 	BaseClass::Spawn();
 	InitTrigger();
+}
+
+void CTriggerUserInput::Touch(CBaseEntity* pOther)
+{
+	if (PassesTriggerFilters(pOther))
+	{
+		auto pPlayer = dynamic_cast<CBasePlayer*>(pOther);
+		if (pPlayer)
+		{
+			// Detect specific key input events
+			if (pPlayer->m_afButtonPressed & m_ButtonRep)
+			{
+				m_OnKeyPressed.FireOutput(pPlayer, this);
+			}
+
+			if (pPlayer->m_nButtons & m_ButtonRep)
+			{
+				m_OnKeyHeld.FireOutput(pPlayer, this);
+			}
+
+			if (pPlayer->m_afButtonReleased & m_ButtonRep)
+			{
+				m_OnKeyReleased.FireOutput(pPlayer, this);
+			}
+
+			// Detect movement if enabled
+			if (m_bDetectPlayerMovement)
+			{
+				Vector velocity = pPlayer->GetAbsVelocity();
+				if (velocity.Length2D() > 0.1f)
+				{
+					m_OnPlayerMovementDetected.FireOutput(pPlayer, this);
+				}
+			}
+		}
+	}
 }
 
 void CTriggerUserInput::StartTouch( CBaseEntity* pOther )

@@ -81,10 +81,10 @@ ConVar func_breakdmg_explosive( "func_breakdmg_explosive", "1.25" );
 ConVar sv_turbophysics( "sv_turbophysics", "0", FCVAR_REPLICATED, "Turns on turbo physics" );
 
 #ifdef HL2_EPISODIC
-	#define PROP_FLARE_LIFETIME 30.0f
-	#define PROP_FLARE_IGNITE_SUBSTRACT 5.0f
-	CBaseEntity *CreateFlare( Vector vOrigin, QAngle Angles, CBaseEntity *pOwner, float flDuration );
-	void KillFlare( CBaseEntity *pOwnerEntity, CBaseEntity *pEntity, float flKillTime );
+#define PROP_FLARE_LIFETIME 30.0f
+#define PROP_FLARE_IGNITE_SUBSTRACT 5.0f
+CBaseEntity *CreateFlare( Vector vOrigin, QAngle Angles, CBaseEntity *pOwner, float flDuration );
+void KillFlare( CBaseEntity *pOwnerEntity, CBaseEntity *pEntity, float flKillTime );
 #endif
 
 
@@ -260,7 +260,7 @@ void CBaseProp::Precache( void )
 void CBaseProp::Activate( void )
 {
 	BaseClass::Activate();
-	
+
 	// Make sure mapmakers haven't used the wrong prop type.
 	if ( m_takedamage == DAMAGE_NO && m_iHealth != 0 )
 	{
@@ -484,14 +484,14 @@ void CBreakableProp::HandleFirstCollisionInteractions( int index, gamevcollision
 		TakeDamage( info );
 		return;
 	}
-	
+
 	if( HasInteraction( PROPINTER_PHYSGUN_FIRST_PAINT ) )
 	{
 		IPhysicsObject *pObj = VPhysicsGetObject();
- 
+
 		Vector vecPos;
 		pObj->GetPosition( &vecPos, NULL );
- 
+
 		Vector vecVelocity = pEvent->preVelocity[0];
 		VectorNormalize(vecVelocity);
 
@@ -504,7 +504,7 @@ void CBreakableProp::HandleFirstCollisionInteractions( int index, gamevcollision
 			// Don't paintsplat friendlies
 			int iClassify = tr.m_pEnt->Classify();
 			if ( iClassify != CLASS_PLAYER_ALLY_VITAL && iClassify != CLASS_PLAYER_ALLY && 
-				 iClassify != CLASS_CITIZEN_PASSIVE && iClassify != CLASS_CITIZEN_REBEL ) 
+				iClassify != CLASS_CITIZEN_PASSIVE && iClassify != CLASS_CITIZEN_REBEL ) 
 #endif
 			{
 				switch( entindex() % 3 )
@@ -583,7 +583,7 @@ void CPhysicsProp::HandleAnyCollisionInteractions( int index, gamevcollisioneven
 		if ( GetPropDataAngles( "impale_forward", angImpaleForward ) )
 		{
 			Vector vecImpaleForward;
- 			AngleVectors( angImpaleForward, &vecImpaleForward );
+			AngleVectors( angImpaleForward, &vecImpaleForward );
 			VectorRotate( vecImpaleForward, EntityToWorldTransform(), forward );
 		}
 		else
@@ -750,73 +750,73 @@ END_SEND_TABLE()
 
 BEGIN_DATADESC( CBreakableProp )
 
-	DEFINE_KEYFIELD( m_explodeDamage, FIELD_FLOAT, "ExplodeDamage"),	
-	DEFINE_KEYFIELD( m_explodeRadius, FIELD_FLOAT, "ExplodeRadius"),	
-	DEFINE_KEYFIELD( m_iMinHealthDmg, FIELD_INTEGER, "minhealthdmg" ),
-	DEFINE_FIELD( m_createTick, FIELD_INTEGER ),
-	DEFINE_FIELD( m_hBreaker, FIELD_EHANDLE ),
-	DEFINE_KEYFIELD( m_PerformanceMode, FIELD_INTEGER, "PerformanceMode" ),
+DEFINE_KEYFIELD( m_explodeDamage, FIELD_FLOAT, "ExplodeDamage"),	
+DEFINE_KEYFIELD( m_explodeRadius, FIELD_FLOAT, "ExplodeRadius"),	
+DEFINE_KEYFIELD( m_iMinHealthDmg, FIELD_INTEGER, "minhealthdmg" ),
+DEFINE_FIELD( m_createTick, FIELD_INTEGER ),
+DEFINE_FIELD( m_hBreaker, FIELD_EHANDLE ),
+DEFINE_KEYFIELD( m_PerformanceMode, FIELD_INTEGER, "PerformanceMode" ),
 
-	DEFINE_KEYFIELD( m_iszBreakModelMessage, FIELD_STRING, "BreakModelMessage" ),
+DEFINE_KEYFIELD( m_iszBreakModelMessage, FIELD_STRING, "BreakModelMessage" ),
 
-	DEFINE_FIELD( m_flDmgModBullet, FIELD_FLOAT ),
-	DEFINE_FIELD( m_flDmgModClub, FIELD_FLOAT ),
-	DEFINE_FIELD( m_flDmgModExplosive, FIELD_FLOAT ),
-	DEFINE_FIELD( m_iszPhysicsDamageTableName, FIELD_STRING ),
-	DEFINE_FIELD( m_iszBreakableModel, FIELD_STRING ),
-	DEFINE_FIELD( m_iBreakableSkin, FIELD_INTEGER ),
-	DEFINE_FIELD( m_iBreakableCount, FIELD_INTEGER ),
-	DEFINE_FIELD( m_iMaxBreakableSize, FIELD_INTEGER ),
-	DEFINE_FIELD( m_iszBasePropData, FIELD_STRING ),
-	DEFINE_FIELD( m_iInteractions,	FIELD_INTEGER ),
-	DEFINE_FIELD( m_iNumBreakableChunks, FIELD_INTEGER ),
-	DEFINE_FIELD( m_nPhysgunState, FIELD_CHARACTER ),
-	DEFINE_KEYFIELD( m_iszPuntSound, FIELD_STRING, "puntsound" ),
+DEFINE_FIELD( m_flDmgModBullet, FIELD_FLOAT ),
+DEFINE_FIELD( m_flDmgModClub, FIELD_FLOAT ),
+DEFINE_FIELD( m_flDmgModExplosive, FIELD_FLOAT ),
+DEFINE_FIELD( m_iszPhysicsDamageTableName, FIELD_STRING ),
+DEFINE_FIELD( m_iszBreakableModel, FIELD_STRING ),
+DEFINE_FIELD( m_iBreakableSkin, FIELD_INTEGER ),
+DEFINE_FIELD( m_iBreakableCount, FIELD_INTEGER ),
+DEFINE_FIELD( m_iMaxBreakableSize, FIELD_INTEGER ),
+DEFINE_FIELD( m_iszBasePropData, FIELD_STRING ),
+DEFINE_FIELD( m_iInteractions,	FIELD_INTEGER ),
+DEFINE_FIELD( m_iNumBreakableChunks, FIELD_INTEGER ),
+DEFINE_FIELD( m_nPhysgunState, FIELD_CHARACTER ),
+DEFINE_KEYFIELD( m_iszPuntSound, FIELD_STRING, "puntsound" ),
 
-	DEFINE_KEYFIELD( m_flPressureDelay, FIELD_FLOAT, "PressureDelay" ),
-	DEFINE_FIELD( m_preferredCarryAngles, FIELD_VECTOR ),
-	DEFINE_FIELD( m_flDefaultFadeScale, FIELD_FLOAT ),
-	DEFINE_FIELD( m_bUsePuntSound, FIELD_BOOLEAN ),
-	// DEFINE_FIELD( m_mpBreakMode, mp_break_t ),
+DEFINE_KEYFIELD( m_flPressureDelay, FIELD_FLOAT, "PressureDelay" ),
+DEFINE_FIELD( m_preferredCarryAngles, FIELD_VECTOR ),
+DEFINE_FIELD( m_flDefaultFadeScale, FIELD_FLOAT ),
+DEFINE_FIELD( m_bUsePuntSound, FIELD_BOOLEAN ),
+// DEFINE_FIELD( m_mpBreakMode, mp_break_t ),
 
-	// Inputs
-	DEFINE_INPUTFUNC( FIELD_VOID, "Break", InputBreak ),
-	DEFINE_INPUTFUNC( FIELD_INTEGER, "SetHealth", InputSetHealth ),
-	DEFINE_INPUTFUNC( FIELD_INTEGER, "AddHealth", InputAddHealth ),
-	DEFINE_INPUTFUNC( FIELD_INTEGER, "RemoveHealth", InputRemoveHealth ),
-	DEFINE_INPUT( m_impactEnergyScale, FIELD_FLOAT, "physdamagescale" ),
-	DEFINE_INPUTFUNC( FIELD_VOID, "EnablePhyscannonPickup", InputEnablePhyscannonPickup ),
-	DEFINE_INPUTFUNC( FIELD_VOID, "DisablePhyscannonPickup", InputDisablePhyscannonPickup ),
-	DEFINE_INPUTFUNC( FIELD_VOID, "EnablePuntSound", InputEnablePuntSound ),
-	DEFINE_INPUTFUNC( FIELD_VOID, "DisablePuntSound", InputDisablePuntSound ),
+// Inputs
+DEFINE_INPUTFUNC( FIELD_VOID, "Break", InputBreak ),
+DEFINE_INPUTFUNC( FIELD_INTEGER, "SetHealth", InputSetHealth ),
+DEFINE_INPUTFUNC( FIELD_INTEGER, "AddHealth", InputAddHealth ),
+DEFINE_INPUTFUNC( FIELD_INTEGER, "RemoveHealth", InputRemoveHealth ),
+DEFINE_INPUT( m_impactEnergyScale, FIELD_FLOAT, "physdamagescale" ),
+DEFINE_INPUTFUNC( FIELD_VOID, "EnablePhyscannonPickup", InputEnablePhyscannonPickup ),
+DEFINE_INPUTFUNC( FIELD_VOID, "DisablePhyscannonPickup", InputDisablePhyscannonPickup ),
+DEFINE_INPUTFUNC( FIELD_VOID, "EnablePuntSound", InputEnablePuntSound ),
+DEFINE_INPUTFUNC( FIELD_VOID, "DisablePuntSound", InputDisablePuntSound ),
 
-	// Outputs
-	DEFINE_OUTPUT( m_OnBreak, "OnBreak" ),
-	DEFINE_OUTPUT( m_OnHealthChanged, "OnHealthChanged" ),
-	DEFINE_OUTPUT( m_OnTakeDamage, "OnTakeDamage" ),
-	DEFINE_OUTPUT( m_OnPhysCannonDetach, "OnPhysCannonDetach" ),
-	DEFINE_OUTPUT( m_OnPhysCannonAnimatePreStarted, "OnPhysCannonAnimatePreStarted" ),
-	DEFINE_OUTPUT( m_OnPhysCannonAnimatePullStarted, "OnPhysCannonAnimatePullStarted" ),
-	DEFINE_OUTPUT( m_OnPhysCannonAnimatePostStarted, "OnPhysCannonAnimatePostStarted" ),
-	DEFINE_OUTPUT( m_OnPhysCannonPullAnimFinished, "OnPhysCannonPullAnimFinished" ),
+// Outputs
+DEFINE_OUTPUT( m_OnBreak, "OnBreak" ),
+DEFINE_OUTPUT( m_OnHealthChanged, "OnHealthChanged" ),
+DEFINE_OUTPUT( m_OnTakeDamage, "OnTakeDamage" ),
+DEFINE_OUTPUT( m_OnPhysCannonDetach, "OnPhysCannonDetach" ),
+DEFINE_OUTPUT( m_OnPhysCannonAnimatePreStarted, "OnPhysCannonAnimatePreStarted" ),
+DEFINE_OUTPUT( m_OnPhysCannonAnimatePullStarted, "OnPhysCannonAnimatePullStarted" ),
+DEFINE_OUTPUT( m_OnPhysCannonAnimatePostStarted, "OnPhysCannonAnimatePostStarted" ),
+DEFINE_OUTPUT( m_OnPhysCannonPullAnimFinished, "OnPhysCannonPullAnimFinished" ),
 
-	// Function Pointers
-	DEFINE_THINKFUNC( BreakThink ),
-	DEFINE_THINKFUNC( AnimateThink ),
-	DEFINE_THINKFUNC( RampToDefaultFadeScale ),
-	DEFINE_ENTITYFUNC( BreakablePropTouch ),
+// Function Pointers
+DEFINE_THINKFUNC( BreakThink ),
+DEFINE_THINKFUNC( AnimateThink ),
+DEFINE_THINKFUNC( RampToDefaultFadeScale ),
+DEFINE_ENTITYFUNC( BreakablePropTouch ),
 
-	// Physics Influence
-	DEFINE_FIELD( m_hPhysicsAttacker, FIELD_EHANDLE ),
-	DEFINE_FIELD( m_flLastPhysicsInfluenceTime, FIELD_TIME ),
+// Physics Influence
+DEFINE_FIELD( m_hPhysicsAttacker, FIELD_EHANDLE ),
+DEFINE_FIELD( m_flLastPhysicsInfluenceTime, FIELD_TIME ),
 
-	DEFINE_FIELD( m_bOriginalBlockLOS, FIELD_BOOLEAN ),
-	DEFINE_FIELD( m_bBlockLOSSetByPropData, FIELD_BOOLEAN ),
-	DEFINE_FIELD( m_bIsWalkableSetByPropData, FIELD_BOOLEAN ),
+DEFINE_FIELD( m_bOriginalBlockLOS, FIELD_BOOLEAN ),
+DEFINE_FIELD( m_bBlockLOSSetByPropData, FIELD_BOOLEAN ),
+DEFINE_FIELD( m_bIsWalkableSetByPropData, FIELD_BOOLEAN ),
 
-	// Damage
-	DEFINE_FIELD( m_hLastAttacker, FIELD_EHANDLE ),
-	DEFINE_FIELD( m_hFlareEnt,	FIELD_EHANDLE ),
+// Damage
+DEFINE_FIELD( m_hLastAttacker, FIELD_EHANDLE ),
+DEFINE_FIELD( m_hFlareEnt,	FIELD_EHANDLE ),
 
 END_DATADESC()
 
@@ -831,7 +831,7 @@ CBreakableProp::CBreakableProp()
 	m_flFadeScale = 1;
 	m_flDefaultFadeScale = 1;
 	m_mpBreakMode = MULTIPLAYER_BREAK_DEFAULT;
-	
+
 	// This defaults to on. Most times mapmakers won't specify a punt sound to play.
 	m_bUsePuntSound = true;
 }
@@ -848,11 +848,11 @@ void CBreakableProp::Spawn()
 	m_flDmgModBullet = 1.0;
 	m_flDmgModClub = 1.0;
 	m_flDmgModExplosive = 1.0;
-	
+
 	ClearFlags(); // Clear flags we don't want (specifically FL_ONFIRE for explosive barrels)
 
 	BaseClass::Spawn();
-	
+
 	if ( IsMarkedForDeletion() )
 		return;
 
@@ -878,12 +878,12 @@ void CBreakableProp::Spawn()
 
 	// Setup takedamage based upon the health we parsed earlier, and our interactions
 	if ( ( m_iHealth == 0 ) ||
-        ( !m_iNumBreakableChunks && 
-		    !HasInteraction( PROPINTER_PHYSGUN_BREAK_EXPLODE ) &&
-		    !HasInteraction( PROPINTER_PHYSGUN_FIRST_BREAK ) &&
-		    !HasInteraction( PROPINTER_FIRE_FLAMMABLE ) &&
-		    !HasInteraction( PROPINTER_FIRE_IGNITE_HALFHEALTH ) &&
-		    !HasInteraction( PROPINTER_FIRE_EXPLOSIVE_RESIST ) ) )
+		( !m_iNumBreakableChunks && 
+			!HasInteraction( PROPINTER_PHYSGUN_BREAK_EXPLODE ) &&
+			!HasInteraction( PROPINTER_PHYSGUN_FIRST_BREAK ) &&
+			!HasInteraction( PROPINTER_FIRE_FLAMMABLE ) &&
+			!HasInteraction( PROPINTER_FIRE_IGNITE_HALFHEALTH ) &&
+			!HasInteraction( PROPINTER_FIRE_EXPLOSIVE_RESIST ) ) )
 	{
 		m_iHealth = 0;
 		m_takedamage = DAMAGE_EVENTS_ONLY;
@@ -911,7 +911,7 @@ void CBreakableProp::Spawn()
 		m_impactEnergyScale = 0.1f;
 	}
 
- 	m_preferredCarryAngles = QAngle( -5, 0, 0 );
+	m_preferredCarryAngles = QAngle( -5, 0, 0 );
 
 	// The presence of this activity causes us to have to detach it before it can be grabbed.
 	if ( SelectWeightedSequence( ACT_PHYSCANNON_ANIMATE ) != ACTIVITY_NOT_AVAILABLE )
@@ -944,7 +944,7 @@ void CBreakableProp::DisableAutoFade()
 	m_flDefaultFadeScale = 0;
 }
 
-	
+
 //-----------------------------------------------------------------------------
 // Copy fade from another breakable.
 //-----------------------------------------------------------------------------
@@ -1014,7 +1014,7 @@ void CBreakableProp::BreakablePropTouch( CBaseEntity *pOther )
 		{
 			SetThink( &CBreakableProp::BreakThink );
 			//SetTouch( NULL );
-		
+
 			// Add optional delay 
 			SetNextThink( gpGlobals->curtime + m_flPressureDelay );
 		}
@@ -1050,7 +1050,7 @@ int CBreakableProp::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	CTakeDamageInfo info = inputInfo;
 
 	// If attacker can't do at least the min required damage to us, don't take any damage from them
- 	if ( info.GetDamage() < m_iMinHealthDmg )
+	if ( info.GetDamage() < m_iMinHealthDmg )
 		return 0;
 
 	if (!PassesDamageFilter( info ))
@@ -1316,14 +1316,14 @@ bool CBreakableProp::OnAttemptPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunP
 			m_OnPhysCannonAnimatePullStarted.FireOutput( NULL,this );
 		}
 
- 		ResetSequence( iSequence );
+		ResetSequence( iSequence );
 		SetPlaybackRate( 1.0f );
 		ResetClientsideFrame();
 	}
 
 	// If we're running PRE or POST ANIMATE sequences, wait for them to be done
 	if ( m_nPhysgunState == PHYSGUN_ANIMATE_IS_PRE_ANIMATING ||
-		 m_nPhysgunState == PHYSGUN_ANIMATE_IS_POST_ANIMATING )
+		m_nPhysgunState == PHYSGUN_ANIMATE_IS_POST_ANIMATING )
 		return false;
 
 	if ( m_nPhysgunState == PHYSGUN_ANIMATE_IS_ANIMATING )
@@ -1333,7 +1333,7 @@ bool CBreakableProp::OnAttemptPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunP
 			return false;
 
 		StudioFrameAdvanceManual( gpGlobals->frametime );
- 		DispatchAnimEvents( this );
+		DispatchAnimEvents( this );
 
 		if ( IsActivityFinished() )
 		{
@@ -1408,7 +1408,7 @@ void CBreakableProp::AnimateThink( void )
 		}
 	}
 }
-	
+
 //-----------------------------------------------------------------------------
 // Physics Attacker
 //-----------------------------------------------------------------------------
@@ -1418,7 +1418,7 @@ void CBreakableProp::SetPhysicsAttacker( CBasePlayer *pEntity, float flTime )
 	m_flLastPhysicsInfluenceTime = flTime;
 }
 
-	
+
 //-----------------------------------------------------------------------------
 // Prevents fade scale from happening
 //-----------------------------------------------------------------------------
@@ -1843,43 +1843,43 @@ IMPLEMENT_AUTO_LIST( IPhysicsPropAutoList );
 
 BEGIN_DATADESC( CDynamicProp )
 
-	// Fields
-	DEFINE_KEYFIELD( m_iszDefaultAnim, FIELD_STRING, "DefaultAnim"),	
-	DEFINE_FIELD(	 m_iGoalSequence, FIELD_INTEGER ),
-	DEFINE_FIELD(	 m_iTransitionDirection, FIELD_INTEGER ),
-	DEFINE_KEYFIELD( m_bRandomAnimator, FIELD_BOOLEAN, "RandomAnimation"),	
-	DEFINE_FIELD(	 m_flNextRandAnim, FIELD_TIME ),
-	DEFINE_KEYFIELD( m_flMinRandAnimTime, FIELD_FLOAT, "MinAnimTime"),
-	DEFINE_KEYFIELD( m_flMaxRandAnimTime, FIELD_FLOAT, "MaxAnimTime"),
-	DEFINE_KEYFIELD( m_bStartDisabled, FIELD_BOOLEAN, "StartDisabled" ),
-	DEFINE_KEYFIELD( m_bDisableBoneFollowers, FIELD_BOOLEAN, "DisableBoneFollowers" ),
-	DEFINE_FIELD(	 m_bUseHitboxesForRenderBox, FIELD_BOOLEAN ),
-	DEFINE_FIELD(	m_nPendingSequence, FIELD_SHORT ),
-		
-	// Inputs
-	DEFINE_INPUTFUNC( FIELD_STRING,	"SetAnimation",	InputSetAnimation ),
-	DEFINE_INPUTFUNC( FIELD_STRING,	"SetDefaultAnimation",	InputSetDefaultAnimation ),
-	DEFINE_INPUTFUNC( FIELD_VOID,		"TurnOn",		InputTurnOn ),
-	DEFINE_INPUTFUNC( FIELD_VOID,		"TurnOff",		InputTurnOff ),
-	DEFINE_INPUTFUNC( FIELD_VOID,		"Enable",		InputTurnOn ),
-	DEFINE_INPUTFUNC( FIELD_VOID,		"Disable",		InputTurnOff ),
-	DEFINE_INPUTFUNC( FIELD_VOID,		"EnableCollision",	InputEnableCollision ),
-	DEFINE_INPUTFUNC( FIELD_VOID,		"DisableCollision",	InputDisableCollision ),
-	DEFINE_INPUTFUNC( FIELD_FLOAT,		"SetPlaybackRate",	InputSetPlaybackRate ),
+// Fields
+DEFINE_KEYFIELD( m_iszDefaultAnim, FIELD_STRING, "DefaultAnim"),	
+DEFINE_FIELD(	 m_iGoalSequence, FIELD_INTEGER ),
+DEFINE_FIELD(	 m_iTransitionDirection, FIELD_INTEGER ),
+DEFINE_KEYFIELD( m_bRandomAnimator, FIELD_BOOLEAN, "RandomAnimation"),	
+DEFINE_FIELD(	 m_flNextRandAnim, FIELD_TIME ),
+DEFINE_KEYFIELD( m_flMinRandAnimTime, FIELD_FLOAT, "MinAnimTime"),
+DEFINE_KEYFIELD( m_flMaxRandAnimTime, FIELD_FLOAT, "MaxAnimTime"),
+DEFINE_KEYFIELD( m_bStartDisabled, FIELD_BOOLEAN, "StartDisabled" ),
+DEFINE_KEYFIELD( m_bDisableBoneFollowers, FIELD_BOOLEAN, "DisableBoneFollowers" ),
+DEFINE_FIELD(	 m_bUseHitboxesForRenderBox, FIELD_BOOLEAN ),
+DEFINE_FIELD(	m_nPendingSequence, FIELD_SHORT ),
 
-	// Outputs
-	DEFINE_OUTPUT( m_pOutputAnimBegun, "OnAnimationBegun" ),
-	DEFINE_OUTPUT( m_pOutputAnimOver, "OnAnimationDone" ),
+// Inputs
+DEFINE_INPUTFUNC( FIELD_STRING,	"SetAnimation",	InputSetAnimation ),
+DEFINE_INPUTFUNC( FIELD_STRING,	"SetDefaultAnimation",	InputSetDefaultAnimation ),
+DEFINE_INPUTFUNC( FIELD_VOID,		"TurnOn",		InputTurnOn ),
+DEFINE_INPUTFUNC( FIELD_VOID,		"TurnOff",		InputTurnOff ),
+DEFINE_INPUTFUNC( FIELD_VOID,		"Enable",		InputTurnOn ),
+DEFINE_INPUTFUNC( FIELD_VOID,		"Disable",		InputTurnOff ),
+DEFINE_INPUTFUNC( FIELD_VOID,		"EnableCollision",	InputEnableCollision ),
+DEFINE_INPUTFUNC( FIELD_VOID,		"DisableCollision",	InputDisableCollision ),
+DEFINE_INPUTFUNC( FIELD_FLOAT,		"SetPlaybackRate",	InputSetPlaybackRate ),
 
-	// Function Pointers
-	DEFINE_THINKFUNC( AnimThink ),
+// Outputs
+DEFINE_OUTPUT( m_pOutputAnimBegun, "OnAnimationBegun" ),
+DEFINE_OUTPUT( m_pOutputAnimOver, "OnAnimationDone" ),
 
-	DEFINE_EMBEDDED( m_BoneFollowerManager ),
+// Function Pointers
+DEFINE_THINKFUNC( AnimThink ),
+
+DEFINE_EMBEDDED( m_BoneFollowerManager ),
 
 END_DATADESC()
 
 IMPLEMENT_SERVERCLASS_ST(CDynamicProp, DT_DynamicProp)
-	SendPropBool( SENDINFO( m_bUseHitboxesForRenderBox ) ),
+SendPropBool( SENDINFO( m_bUseHitboxesForRenderBox ) ),
 END_SEND_TABLE()
 
 //-----------------------------------------------------------------------------
@@ -2149,23 +2149,23 @@ void CDynamicProp::HandleAnimEvent( animevent_t *pEvent )
 { 
 	switch( pEvent->event )
 	{
-		case SCRIPT_EVENT_FIRE_INPUT:
-		{
-			variant_t emptyVariant;
-			this->AcceptInput( pEvent->options, this, this, emptyVariant, 0 );
-			return;
-		}
-		
-		case SCRIPT_EVENT_SOUND:
-		{
-			EmitSound( pEvent->options );
-			break;
-		}
-		
-		default:
-		{
-			break;
-		}
+	case SCRIPT_EVENT_FIRE_INPUT:
+	{
+		variant_t emptyVariant;
+		this->AcceptInput( pEvent->options, this, this, emptyVariant, 0 );
+		return;
+	}
+
+	case SCRIPT_EVENT_SOUND:
+	{
+		EmitSound( pEvent->options );
+		break;
+	}
+
+	default:
+	{
+		break;
+	}
 	}
 
 	BaseClass::HandleAnimEvent( pEvent ); 
@@ -2379,10 +2379,10 @@ LINK_ENTITY_TO_CLASS( prop_dynamic_ornament, COrnamentProp );
 
 BEGIN_DATADESC( COrnamentProp )
 
-	DEFINE_KEYFIELD( m_initialOwner, FIELD_STRING, "InitialOwner" ),
-	// Inputs
-	DEFINE_INPUTFUNC( FIELD_STRING,	"SetAttached",	InputSetAttached ),
-	DEFINE_INPUTFUNC( FIELD_VOID,		"Detach",	InputDetach ),
+DEFINE_KEYFIELD( m_initialOwner, FIELD_STRING, "InitialOwner" ),
+// Inputs
+DEFINE_INPUTFUNC( FIELD_STRING,	"SetAttached",	InputSetAttached ),
+DEFINE_INPUTFUNC( FIELD_VOID,		"Detach",	InputDetach ),
 
 END_DATADESC()
 
@@ -2403,7 +2403,7 @@ void COrnamentProp::DetachFromOwner()
 void COrnamentProp::Activate()
 {
 	BaseClass::Activate();
-	
+
 	if ( m_initialOwner != NULL_STRING )
 	{
 		AttachTo( STRING(m_initialOwner) );
@@ -2441,40 +2441,40 @@ LINK_ENTITY_TO_CLASS( prop_physics_override, CPhysicsProp );
 
 BEGIN_DATADESC( CPhysicsProp )
 
-	DEFINE_INPUTFUNC( FIELD_VOID, "EnableMotion", InputEnableMotion ),
-	DEFINE_INPUTFUNC( FIELD_VOID, "DisableMotion", InputDisableMotion ),
-	DEFINE_INPUTFUNC( FIELD_VOID, "Wake", InputWake ),
-	DEFINE_INPUTFUNC( FIELD_VOID, "Sleep", InputSleep ),
-	DEFINE_INPUTFUNC( FIELD_VOID, "DisableFloating", InputDisableFloating ),
+DEFINE_INPUTFUNC( FIELD_VOID, "EnableMotion", InputEnableMotion ),
+DEFINE_INPUTFUNC( FIELD_VOID, "DisableMotion", InputDisableMotion ),
+DEFINE_INPUTFUNC( FIELD_VOID, "Wake", InputWake ),
+DEFINE_INPUTFUNC( FIELD_VOID, "Sleep", InputSleep ),
+DEFINE_INPUTFUNC( FIELD_VOID, "DisableFloating", InputDisableFloating ),
 
-	DEFINE_FIELD( m_bAwake, FIELD_BOOLEAN ),
+DEFINE_FIELD( m_bAwake, FIELD_BOOLEAN ),
 
-	DEFINE_KEYFIELD( m_massScale, FIELD_FLOAT, "massscale" ),
-	DEFINE_KEYFIELD( m_inertiaScale, FIELD_FLOAT, "inertiascale" ),
-	DEFINE_KEYFIELD( m_damageType, FIELD_INTEGER, "Damagetype" ),
-	DEFINE_KEYFIELD( m_iszOverrideScript, FIELD_STRING, "overridescript" ),
+DEFINE_KEYFIELD( m_massScale, FIELD_FLOAT, "massscale" ),
+DEFINE_KEYFIELD( m_inertiaScale, FIELD_FLOAT, "inertiascale" ),
+DEFINE_KEYFIELD( m_damageType, FIELD_INTEGER, "Damagetype" ),
+DEFINE_KEYFIELD( m_iszOverrideScript, FIELD_STRING, "overridescript" ),
 
-	DEFINE_KEYFIELD( m_damageToEnableMotion, FIELD_INTEGER, "damagetoenablemotion" ), 
-	DEFINE_KEYFIELD( m_flForceToEnableMotion, FIELD_FLOAT, "forcetoenablemotion" ), 
-	DEFINE_OUTPUT( m_OnAwakened, "OnAwakened" ),
-	DEFINE_OUTPUT( m_MotionEnabled, "OnMotionEnabled" ),
-	DEFINE_OUTPUT( m_OnPhysGunPickup, "OnPhysGunPickup" ),
-	DEFINE_OUTPUT( m_OnPhysGunOnlyPickup, "OnPhysGunOnlyPickup" ),
-	DEFINE_OUTPUT( m_OnPhysGunPunt, "OnPhysGunPunt" ),
-	DEFINE_OUTPUT( m_OnPhysGunDrop, "OnPhysGunDrop" ),
-	DEFINE_OUTPUT( m_OnPlayerUse, "OnPlayerUse" ),
-	DEFINE_OUTPUT( m_OnPlayerPickup, "OnPlayerPickup" ),
-	DEFINE_OUTPUT( m_OnOutOfWorld, "OnOutOfWorld" ),
+DEFINE_KEYFIELD( m_damageToEnableMotion, FIELD_INTEGER, "damagetoenablemotion" ), 
+DEFINE_KEYFIELD( m_flForceToEnableMotion, FIELD_FLOAT, "forcetoenablemotion" ), 
+DEFINE_OUTPUT( m_OnAwakened, "OnAwakened" ),
+DEFINE_OUTPUT( m_MotionEnabled, "OnMotionEnabled" ),
+DEFINE_OUTPUT( m_OnPhysGunPickup, "OnPhysGunPickup" ),
+DEFINE_OUTPUT( m_OnPhysGunOnlyPickup, "OnPhysGunOnlyPickup" ),
+DEFINE_OUTPUT( m_OnPhysGunPunt, "OnPhysGunPunt" ),
+DEFINE_OUTPUT( m_OnPhysGunDrop, "OnPhysGunDrop" ),
+DEFINE_OUTPUT( m_OnPlayerUse, "OnPlayerUse" ),
+DEFINE_OUTPUT( m_OnPlayerPickup, "OnPlayerPickup" ),
+DEFINE_OUTPUT( m_OnOutOfWorld, "OnOutOfWorld" ),
 
-	DEFINE_FIELD( m_bThrownByPlayer, FIELD_BOOLEAN ),
-	DEFINE_FIELD( m_bFirstCollisionAfterLaunch, FIELD_BOOLEAN ),
+DEFINE_FIELD( m_bThrownByPlayer, FIELD_BOOLEAN ),
+DEFINE_FIELD( m_bFirstCollisionAfterLaunch, FIELD_BOOLEAN ),
 
-	DEFINE_THINKFUNC( ClearFlagsThink ),
+DEFINE_THINKFUNC( ClearFlagsThink ),
 
 END_DATADESC()
 
 IMPLEMENT_SERVERCLASS_ST( CPhysicsProp, DT_PhysicsProp )
-	SendPropBool( SENDINFO( m_bAwake ) ),
+SendPropBool( SENDINFO( m_bAwake ) ),
 END_SEND_TABLE()
 
 // external function to tell if this entity is a gib physics prop
@@ -2553,7 +2553,7 @@ void CPhysicsProp::Spawn( )
 		SetFadeDistance( -1, 0 );
 		DisableAutoFade();
 	}
-	
+
 }
 
 //-----------------------------------------------------------------------------
@@ -2583,7 +2583,7 @@ bool CPhysicsProp::CreateVPhysics()
 
 	solid_t tmpSolid;
 	PhysModelParseSolid( tmpSolid, this, GetModelIndex() );
-	
+
 	if ( m_massScale > 0 )
 	{
 		tmpSolid.params.mass *= m_massScale;
@@ -2750,7 +2750,7 @@ void CPhysicsProp::EnableMotion( void )
 	{
 		Vector pos;
 		QAngle angles;
-	
+
 		if ( GetEnableMotionPosition( &pos, &angles ) )
 		{
 			ClearEnableMotionPosition();
@@ -2832,7 +2832,7 @@ void CPhysicsProp::OnPhysGunDrop( CBasePlayer *pPhysGunUser, PhysGunDrop_t Reaso
 		{
 			AngularImpulse angVel( 0, 0, 5000.0 );
 			VPhysicsGetObject()->AddVelocity( NULL, &angVel );
-			
+
 			// no angular drag on this object anymore
 			float angDrag = 0.0f;
 			VPhysicsGetObject()->SetDragCoefficient( NULL, &angDrag );
@@ -2848,7 +2848,7 @@ void CPhysicsProp::OnPhysGunDrop( CBasePlayer *pPhysGunUser, PhysGunDrop_t Reaso
 	}
 
 	m_OnPhysGunDrop.FireOutput( pPhysGunUser, this );
-	
+
 	if ( HasInteraction( PROPINTER_PHYSGUN_NOTIFY_CHILDREN ) )
 	{
 		CUtlVector<CBaseEntity *> children;
@@ -3064,7 +3064,7 @@ void CPhysicsProp::VPhysicsCollision( int index, gamevcollisionevent_t *pEvent )
 		{
 			// Large enough to enable motion?
 			float flForce = pEvent->collisionSpeed * pPhysObj->GetMass();
-			
+
 			if ( flForce >= m_flForceToEnableMotion )
 			{
 				ComputeEnablingImpulse( index, pEvent );
@@ -3185,7 +3185,7 @@ int CPhysicsProp::OnTakeDamage( const CTakeDamageInfo &info )
 			}
 		}
 	}
-	
+
 	// If we have a force to enable motion, and we're still disabled, check to see if this should enable us
 	if ( m_flForceToEnableMotion )
 	{
@@ -3203,7 +3203,7 @@ int CPhysicsProp::OnTakeDamage( const CTakeDamageInfo &info )
 	{
 		// only do this once
 		m_damageToEnableMotion = 0;
-		
+
 		// The damage that enables motion may have been enough damage to kill me if I'm breakable
 		// in which case my physics object is gone.
 		if ( VPhysicsGetObject() != NULL )
@@ -3212,7 +3212,7 @@ int CPhysicsProp::OnTakeDamage( const CTakeDamageInfo &info )
 			VPhysicsTakeDamage( info );
 		}
 	}
-	
+
 	return ret;
 }
 
@@ -3237,7 +3237,7 @@ float CPhysicsProp::GetMass() const
 	return VPhysicsGetObject() ? VPhysicsGetObject()->GetMass() : 1.0f;
 }
 
-	
+
 //-----------------------------------------------------------------------------
 // Purpose: Draw any debug text overlays
 // Output : Current text offset from the top
@@ -3510,7 +3510,7 @@ int PropBreakablePrecacheAll( string_t modelName )
 
 		PropBreakablePrecacheAll( breakModelName );
 	}
-	
+
 	return iBreakables;
 }
 
@@ -3521,7 +3521,7 @@ bool PropBreakableCapEdictsOnCreateAll(int modelindex, IPhysicsObject *pPhysics,
 
 	CUtlVector<breakmodel_t> list;
 	BreakModelList( list, modelindex, params.defBurstScale, params.defCollisionGroup );
-	
+
 	int numToCreate = 0;
 
 	if ( iPrecomputedBreakableCount != -1 )
@@ -3577,62 +3577,62 @@ void PlayLockSounds(CBaseEntity *pEdict, locksound_t *pls, int flocked, int fbut
 
 BEGIN_DATADESC_NO_BASE(locksound_t)
 
-	DEFINE_FIELD( sLockedSound,	FIELD_STRING),
-	DEFINE_FIELD( sLockedSentence,	FIELD_STRING ),
-	DEFINE_FIELD( sUnlockedSound,	FIELD_STRING ),
-	DEFINE_FIELD( sUnlockedSentence, FIELD_STRING ),
-	DEFINE_FIELD( iLockedSentence, FIELD_INTEGER ),
-	DEFINE_FIELD( iUnlockedSentence, FIELD_INTEGER ),
-	DEFINE_FIELD( flwaitSound,		FIELD_FLOAT ),
-	DEFINE_FIELD( flwaitSentence,	FIELD_FLOAT ),
-	DEFINE_FIELD( bEOFLocked,		FIELD_CHARACTER ),
-	DEFINE_FIELD( bEOFUnlocked,	FIELD_CHARACTER ),
+DEFINE_FIELD( sLockedSound,	FIELD_STRING),
+DEFINE_FIELD( sLockedSentence,	FIELD_STRING ),
+DEFINE_FIELD( sUnlockedSound,	FIELD_STRING ),
+DEFINE_FIELD( sUnlockedSentence, FIELD_STRING ),
+DEFINE_FIELD( iLockedSentence, FIELD_INTEGER ),
+DEFINE_FIELD( iUnlockedSentence, FIELD_INTEGER ),
+DEFINE_FIELD( flwaitSound,		FIELD_FLOAT ),
+DEFINE_FIELD( flwaitSentence,	FIELD_FLOAT ),
+DEFINE_FIELD( bEOFLocked,		FIELD_CHARACTER ),
+DEFINE_FIELD( bEOFUnlocked,	FIELD_CHARACTER ),
 
 END_DATADESC()
 
 BEGIN_DATADESC(CBasePropDoor)
-	//DEFINE_FIELD(m_bLockedSentence, FIELD_CHARACTER),
-	//DEFINE_FIELD(m_bUnlockedSentence, FIELD_CHARACTER),	
-	DEFINE_KEYFIELD(m_nHardwareType, FIELD_INTEGER, "hardware"),
-	DEFINE_KEYFIELD(m_flAutoReturnDelay, FIELD_FLOAT, "returndelay"),
-	DEFINE_FIELD( m_hActivator, FIELD_EHANDLE ),
-	DEFINE_KEYFIELD(m_SoundMoving, FIELD_SOUNDNAME, "soundmoveoverride"),
-	DEFINE_KEYFIELD(m_SoundOpen, FIELD_SOUNDNAME, "soundopenoverride"),
-	DEFINE_KEYFIELD(m_SoundClose, FIELD_SOUNDNAME, "soundcloseoverride"),
-	DEFINE_KEYFIELD(m_ls.sLockedSound, FIELD_SOUNDNAME, "soundlockedoverride"),
-	DEFINE_KEYFIELD(m_ls.sUnlockedSound, FIELD_SOUNDNAME, "soundunlockedoverride"),
-	DEFINE_KEYFIELD(m_SlaveName, FIELD_STRING, "slavename" ),
-	DEFINE_FIELD(m_bLocked, FIELD_BOOLEAN),
-	//DEFINE_KEYFIELD(m_flBlockDamage, FIELD_FLOAT, "dmg"),
-	DEFINE_KEYFIELD( m_bForceClosed, FIELD_BOOLEAN, "forceclosed" ),
-	DEFINE_FIELD(m_eDoorState, FIELD_INTEGER),
-	DEFINE_FIELD( m_hMaster, FIELD_EHANDLE ),
-	DEFINE_FIELD( m_hBlocker, FIELD_EHANDLE ),
-	DEFINE_FIELD( m_bFirstBlocked, FIELD_BOOLEAN ),
-	//DEFINE_FIELD(m_hDoorList, FIELD_CLASSPTR),	// Reconstructed
-	
-	DEFINE_INPUTFUNC(FIELD_VOID, "Open", InputOpen),
-	DEFINE_INPUTFUNC(FIELD_STRING, "OpenAwayFrom", InputOpenAwayFrom),
-	DEFINE_INPUTFUNC(FIELD_VOID, "Close", InputClose),
-	DEFINE_INPUTFUNC(FIELD_VOID, "Toggle", InputToggle),
-	DEFINE_INPUTFUNC(FIELD_VOID, "Lock", InputLock),
-	DEFINE_INPUTFUNC(FIELD_VOID, "Unlock", InputUnlock),
+//DEFINE_FIELD(m_bLockedSentence, FIELD_CHARACTER),
+//DEFINE_FIELD(m_bUnlockedSentence, FIELD_CHARACTER),	
+DEFINE_KEYFIELD(m_nHardwareType, FIELD_INTEGER, "hardware"),
+DEFINE_KEYFIELD(m_flAutoReturnDelay, FIELD_FLOAT, "returndelay"),
+DEFINE_FIELD( m_hActivator, FIELD_EHANDLE ),
+DEFINE_KEYFIELD(m_SoundMoving, FIELD_SOUNDNAME, "soundmoveoverride"),
+DEFINE_KEYFIELD(m_SoundOpen, FIELD_SOUNDNAME, "soundopenoverride"),
+DEFINE_KEYFIELD(m_SoundClose, FIELD_SOUNDNAME, "soundcloseoverride"),
+DEFINE_KEYFIELD(m_ls.sLockedSound, FIELD_SOUNDNAME, "soundlockedoverride"),
+DEFINE_KEYFIELD(m_ls.sUnlockedSound, FIELD_SOUNDNAME, "soundunlockedoverride"),
+DEFINE_KEYFIELD(m_SlaveName, FIELD_STRING, "slavename" ),
+DEFINE_FIELD(m_bLocked, FIELD_BOOLEAN),
+//DEFINE_KEYFIELD(m_flBlockDamage, FIELD_FLOAT, "dmg"),
+DEFINE_KEYFIELD( m_bForceClosed, FIELD_BOOLEAN, "forceclosed" ),
+DEFINE_FIELD(m_eDoorState, FIELD_INTEGER),
+DEFINE_FIELD( m_hMaster, FIELD_EHANDLE ),
+DEFINE_FIELD( m_hBlocker, FIELD_EHANDLE ),
+DEFINE_FIELD( m_bFirstBlocked, FIELD_BOOLEAN ),
+//DEFINE_FIELD(m_hDoorList, FIELD_CLASSPTR),	// Reconstructed
 
-	DEFINE_OUTPUT(m_OnBlockedOpening, "OnBlockedOpening"),
-	DEFINE_OUTPUT(m_OnBlockedClosing, "OnBlockedClosing"),
-	DEFINE_OUTPUT(m_OnUnblockedOpening, "OnUnblockedOpening"),
-	DEFINE_OUTPUT(m_OnUnblockedClosing, "OnUnblockedClosing"),
-	DEFINE_OUTPUT(m_OnFullyClosed, "OnFullyClosed"),
-	DEFINE_OUTPUT(m_OnFullyOpen, "OnFullyOpen"),
-	DEFINE_OUTPUT(m_OnClose, "OnClose"),
-	DEFINE_OUTPUT(m_OnOpen, "OnOpen"),
-	DEFINE_OUTPUT(m_OnLockedUse, "OnLockedUse" ),
-	DEFINE_EMBEDDED( m_ls ),
+DEFINE_INPUTFUNC(FIELD_VOID, "Open", InputOpen),
+DEFINE_INPUTFUNC(FIELD_STRING, "OpenAwayFrom", InputOpenAwayFrom),
+DEFINE_INPUTFUNC(FIELD_VOID, "Close", InputClose),
+DEFINE_INPUTFUNC(FIELD_VOID, "Toggle", InputToggle),
+DEFINE_INPUTFUNC(FIELD_VOID, "Lock", InputLock),
+DEFINE_INPUTFUNC(FIELD_VOID, "Unlock", InputUnlock),
 
-	// Function Pointers
-	DEFINE_THINKFUNC(DoorOpenMoveDone),
-	DEFINE_THINKFUNC(DoorCloseMoveDone),
-	DEFINE_THINKFUNC(DoorAutoCloseThink),
+DEFINE_OUTPUT(m_OnBlockedOpening, "OnBlockedOpening"),
+DEFINE_OUTPUT(m_OnBlockedClosing, "OnBlockedClosing"),
+DEFINE_OUTPUT(m_OnUnblockedOpening, "OnUnblockedOpening"),
+DEFINE_OUTPUT(m_OnUnblockedClosing, "OnUnblockedClosing"),
+DEFINE_OUTPUT(m_OnFullyClosed, "OnFullyClosed"),
+DEFINE_OUTPUT(m_OnFullyOpen, "OnFullyOpen"),
+DEFINE_OUTPUT(m_OnClose, "OnClose"),
+DEFINE_OUTPUT(m_OnOpen, "OnOpen"),
+DEFINE_OUTPUT(m_OnLockedUse, "OnLockedUse" ),
+DEFINE_EMBEDDED( m_ls ),
+
+// Function Pointers
+DEFINE_THINKFUNC(DoorOpenMoveDone),
+DEFINE_THINKFUNC(DoorCloseMoveDone),
+DEFINE_THINKFUNC(DoorAutoCloseThink),
 END_DATADESC()
 
 IMPLEMENT_SERVERCLASS_ST(CBasePropDoor, DT_BasePropDoor)
@@ -3661,12 +3661,12 @@ void CBasePropDoor::Spawn()
 	}
 
 	SetMoveType(MOVETYPE_PUSH);
-	
+
 	if (m_flSpeed == 0)
 	{
 		m_flSpeed = 100;
 	}
-	
+
 	RemoveFlag(FL_STATICPROP);
 
 	SetSolid(SOLID_VPHYSICS);
@@ -3733,7 +3733,7 @@ void CBasePropDoor::RegisterPrivateActivities(void)
 void CBasePropDoor::Activate( void )
 {
 	BaseClass::Activate();
-	
+
 	UpdateAreaPortals( !IsDoorClosed() );
 
 	// If we have a name, we may be linked
@@ -3842,7 +3842,7 @@ void CBasePropDoor::CalcDoorSounds()
 
 			// If any sounds were missing, try the "defaults" block.
 			if ( ( strSoundOpen == NULL_STRING ) || ( strSoundClose == NULL_STRING ) || ( strSoundMoving == NULL_STRING ) ||
-				 ( strSoundLocked == NULL_STRING ) || ( strSoundUnlocked == NULL_STRING ) )
+				( strSoundLocked == NULL_STRING ) || ( strSoundUnlocked == NULL_STRING ) )
 			{
 				KeyValues *pkvDefaults = pkvDoorSounds->FindKey( "defaults" );
 				if ( pkvDefaults )
@@ -3897,7 +3897,7 @@ void CBasePropDoor::UpdateAreaPortals(bool isOpen)
 	string_t name = GetEntityName();
 	if (!name)
 		return;
-	
+
 	CBaseEntity *pPortal = NULL;
 	while ((pPortal = gEntList.FindEntityByClassname(pPortal, "func_areaportal")) != NULL)
 	{
@@ -4159,7 +4159,7 @@ void CBasePropDoor::DoorOpen(CBaseEntity *pOpenAwayFrom)
 	}
 
 	SetDoorState( DOOR_STATE_OPENING );
-	
+
 	SetMoveDone(&CBasePropDoor::DoorOpenMoveDone);
 
 	// Virtual function that starts the door moving for whatever type of door this is.
@@ -4204,7 +4204,7 @@ void CBasePropDoor::DoorOpenMoveDone(void)
 
 	ASSERT(IsDoorOpening());
 	SetDoorState( DOOR_STATE_OPEN );
-	
+
 	if (WillAutoReturn())
 	{
 		// In flWait seconds, DoorClose will fire, unless wait is -1, then door stays open
@@ -4279,7 +4279,7 @@ void CBasePropDoor::DoorClose(void)
 			CSoundEnt::InsertSound( SOUND_PLAYER, GetAbsOrigin(), 512, 0.5, this );//<<TODO>>//magic number
 		}
 	}
-	
+
 	ASSERT(IsDoorOpen() || IsDoorOpening());
 	SetDoorState( DOOR_STATE_CLOSING );
 
@@ -4422,7 +4422,7 @@ void CBasePropDoor::OnStartBlocked( CBaseEntity *pOther )
 		}
 
 		CAI_BaseNPC *pNPC = dynamic_cast<CAI_BaseNPC *>(m_hActivator.Get());
-		
+
 		if ( pNPC != NULL )
 		{
 			// Notify the NPC that tried to open us.
@@ -4447,7 +4447,7 @@ void CBasePropDoor::Blocked(CBaseEntity *pOther)
 	//}
 
 	if ( m_bForceClosed && ( pOther->GetMoveType() == MOVETYPE_VPHYSICS ) &&
-		 ( pOther->m_takedamage == DAMAGE_NO || pOther->m_takedamage == DAMAGE_EVENTS_ONLY ) )
+		( pOther->m_takedamage == DAMAGE_NO || pOther->m_takedamage == DAMAGE_EVENTS_ONLY ) )
 	{
 		EntityPhysics_CreateSolver( this, pOther, true, 4.0f );
 	}
@@ -4462,67 +4462,67 @@ void CBasePropDoor::Blocked(CBaseEntity *pOther)
 
 	// If a door has a negative wait, it would never come back if blocked,
 	// so let it just squash the object to death real fast.
-//	if (m_flAutoReturnDelay >= 0)
-//	{
-//		if (IsDoorClosing())
-//		{
-//			DoorOpen();
-//		}
-//		else
-//		{
-//			DoorClose();
-//		}
-//	}
+	//	if (m_flAutoReturnDelay >= 0)
+	//	{
+	//		if (IsDoorClosing())
+	//		{
+	//			DoorOpen();
+	//		}
+	//		else
+	//		{
+	//			DoorClose();
+	//		}
+	//	}
 
 	// Block all door pieces with the same targetname here.
-//	if (GetEntityName() != NULL_STRING)
-//	{
-//		CBaseEntity pTarget = NULL;
-//		for (;;)
-//		{
-//			pTarget = gEntList.FindEntityByName(pTarget, GetEntityName() );
-//
-//			if (pTarget != this)
-//			{
-//				if (!pTarget)
-//					break;
-//
-//				if (FClassnameIs(pTarget, "prop_door_rotating"))
-//				{
-//					CPropDoorRotating *pDoor = (CPropDoorRotating *)pTarget;
-//
-//					if (pDoor->m_fAutoReturnDelay >= 0)
-//					{
-//						if (pDoor->GetAbsVelocity() == GetAbsVelocity() && pDoor->GetLocalAngularVelocity() == GetLocalAngularVelocity())
-//						{
-//							// this is the most hacked, evil, bastardized thing I've ever seen. kjb
-//							if (FClassnameIs(pTarget, "prop_door_rotating"))
-//							{
-//								// set angles to realign rotating doors
-//								pDoor->SetLocalAngles(GetLocalAngles());
-//								pDoor->SetLocalAngularVelocity(vec3_angle);
-//							}
-//							else
-//							//{
-//							//	// set origin to realign normal doors
-//							//	pDoor->SetLocalOrigin(GetLocalOrigin());
-//							//	pDoor->SetAbsVelocity(vec3_origin);// stop!
-//							//}
-//						}
-//
-//						if (IsDoorClosing())
-//						{
-//							pDoor->DoorOpen();
-//						}
-//						else
-//						{
-//							pDoor->DoorClose();
-//						}
-//					}
-//				}
-//			}
-//		}
-//	}
+	//	if (GetEntityName() != NULL_STRING)
+	//	{
+	//		CBaseEntity pTarget = NULL;
+	//		for (;;)
+	//		{
+	//			pTarget = gEntList.FindEntityByName(pTarget, GetEntityName() );
+	//
+	//			if (pTarget != this)
+	//			{
+	//				if (!pTarget)
+	//					break;
+	//
+	//				if (FClassnameIs(pTarget, "prop_door_rotating"))
+	//				{
+	//					CPropDoorRotating *pDoor = (CPropDoorRotating *)pTarget;
+	//
+	//					if (pDoor->m_fAutoReturnDelay >= 0)
+	//					{
+	//						if (pDoor->GetAbsVelocity() == GetAbsVelocity() && pDoor->GetLocalAngularVelocity() == GetLocalAngularVelocity())
+	//						{
+	//							// this is the most hacked, evil, bastardized thing I've ever seen. kjb
+	//							if (FClassnameIs(pTarget, "prop_door_rotating"))
+	//							{
+	//								// set angles to realign rotating doors
+	//								pDoor->SetLocalAngles(GetLocalAngles());
+	//								pDoor->SetLocalAngularVelocity(vec3_angle);
+	//							}
+	//							else
+	//							//{
+	//							//	// set origin to realign normal doors
+	//							//	pDoor->SetLocalOrigin(GetLocalOrigin());
+	//							//	pDoor->SetAbsVelocity(vec3_origin);// stop!
+	//							//}
+	//						}
+	//
+	//						if (IsDoorClosing())
+	//						{
+	//							pDoor->DoorOpen();
+	//						}
+	//						else
+	//						{
+	//							pDoor->DoorClose();
+	//						}
+	//					}
+	//				}
+	//			}
+	//		}
+	//	}
 }
 
 
@@ -4598,7 +4598,7 @@ bool CBasePropDoor::NPCOpenDoor( CAI_BaseNPC *pNPC )
 {
 	// dvs: TODO: use activator filter here
 	// dvs: TODO: outboard entity containing rules for whether door is operable?
-	
+
 	if ( IsDoorClosed() )
 	{
 		// Use the door
@@ -4642,12 +4642,12 @@ class CTraceFilterDoor : public CTraceFilterEntitiesOnly
 public:
 	// It does have a base, but we'll never network anything below here..
 	DECLARE_CLASS_NOBASE( CTraceFilterDoor );
-	
+
 	CTraceFilterDoor( const IHandleEntity *pDoor, const IHandleEntity *passentity, int collisionGroup )
 		: m_pDoor(pDoor), m_pPassEnt(passentity), m_collisionGroup(collisionGroup)
 	{
 	}
-	
+
 	virtual bool ShouldHitEntity( IHandleEntity *pHandleEntity, int contentsMask )
 	{
 		if ( !StandardFilterRules( pHandleEntity, contentsMask ) )
@@ -4661,12 +4661,12 @@ public:
 
 		// Don't test if the game code tells us we should ignore this collision...
 		CBaseEntity *pEntity = EntityFromEntityHandle( pHandleEntity );
-		
+
 		if ( pEntity )
 		{
 			if ( !pEntity->ShouldCollide( m_collisionGroup, contentsMask ) )
 				return false;
-			
+
 			if ( !g_pGameRules->ShouldCollide( m_collisionGroup, pEntity->GetCollisionGroup() ) )
 				return false;
 
@@ -4675,7 +4675,7 @@ public:
 			{
 				IPhysicsObject *pPhysics = pEntity->VPhysicsGetObject();
 				Assert(pPhysics);
-				
+
 				// Must either be squashable or very light
 				if ( pPhysics->IsMoveable() && pPhysics->GetMass() < 32 )
 					return false;
@@ -4693,8 +4693,8 @@ private:
 };
 
 inline void TraceHull_Door( const CBasePropDoor *pDoor, const Vector &vecAbsStart, const Vector &vecAbsEnd, const Vector &hullMin, 
-					 const Vector &hullMax,	unsigned int mask, const CBaseEntity *ignore, 
-					 int collisionGroup, trace_t *ptr )
+	const Vector &hullMax,	unsigned int mask, const CBaseEntity *ignore, 
+	int collisionGroup, trace_t *ptr )
 {
 	Ray_t ray;
 	ray.Init( vecAbsStart, vecAbsEnd, hullMin, hullMax );
@@ -4776,7 +4776,7 @@ private:
 	void	CalculateDoorVolume( QAngle closedAngles, QAngle openAngles, Vector *destMins, Vector *destMaxs );
 
 	bool	CheckDoorClear( doorCheck_e state );
-	
+
 	doorCheck_e	GetOpenState( void );
 
 	void	InputSetRotationDistance ( inputdata_t &inputdata );			// Set the degree difference between open and closed
@@ -4806,22 +4806,22 @@ private:
 
 
 BEGIN_DATADESC(CPropDoorRotating)
-	DEFINE_KEYFIELD(m_eSpawnPosition, FIELD_INTEGER, "spawnpos"),
-	DEFINE_KEYFIELD(m_eOpenDirection, FIELD_INTEGER, "opendir" ),
-	DEFINE_KEYFIELD(m_vecAxis, FIELD_VECTOR, "axis"),
-	DEFINE_KEYFIELD(m_flDistance, FIELD_FLOAT, "distance"),
-	DEFINE_KEYFIELD( m_angRotationAjar, FIELD_VECTOR, "ajarangles" ),
-	DEFINE_FIELD( m_angRotationClosed, FIELD_VECTOR ),
-	DEFINE_FIELD( m_angRotationOpenForward, FIELD_VECTOR ),
-	DEFINE_FIELD( m_angRotationOpenBack, FIELD_VECTOR ),
-	DEFINE_FIELD( m_angGoal, FIELD_VECTOR ),
-	DEFINE_FIELD( m_hDoorBlocker, FIELD_EHANDLE ),
-	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetRotationDistance", InputSetRotationDistance ),
-	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetSpeed", InputSetSpeed ),
-	//m_vecForwardBoundsMin
-	//m_vecForwardBoundsMax
-	//m_vecBackBoundsMin
-	//m_vecBackBoundsMax
+DEFINE_KEYFIELD(m_eSpawnPosition, FIELD_INTEGER, "spawnpos"),
+DEFINE_KEYFIELD(m_eOpenDirection, FIELD_INTEGER, "opendir" ),
+DEFINE_KEYFIELD(m_vecAxis, FIELD_VECTOR, "axis"),
+DEFINE_KEYFIELD(m_flDistance, FIELD_FLOAT, "distance"),
+DEFINE_KEYFIELD( m_angRotationAjar, FIELD_VECTOR, "ajarangles" ),
+DEFINE_FIELD( m_angRotationClosed, FIELD_VECTOR ),
+DEFINE_FIELD( m_angRotationOpenForward, FIELD_VECTOR ),
+DEFINE_FIELD( m_angRotationOpenBack, FIELD_VECTOR ),
+DEFINE_FIELD( m_angGoal, FIELD_VECTOR ),
+DEFINE_FIELD( m_hDoorBlocker, FIELD_EHANDLE ),
+DEFINE_INPUTFUNC( FIELD_FLOAT, "SetRotationDistance", InputSetRotationDistance ),
+DEFINE_INPUTFUNC( FIELD_FLOAT, "SetSpeed", InputSetSpeed ),
+//m_vecForwardBoundsMin
+//m_vecForwardBoundsMax
+//m_vecBackBoundsMin
+//m_vecBackBoundsMax
 END_DATADESC()
 
 LINK_ENTITY_TO_CLASS(prop_door_rotating, CPropDoorRotating);
@@ -4995,7 +4995,7 @@ void CPropDoorRotating::OnDoorClosed( void )
 	{
 		// Destroy the blocker that was preventing NPCs from getting in our way.
 		UTIL_Remove( m_hDoorBlocker );
-		
+
 		if ( g_debug_doors.GetBool() )
 		{
 			NDebugOverlay::Box( GetAbsOrigin(), m_hDoorBlocker->CollisionProp()->OBBMins(), m_hDoorBlocker->CollisionProp()->OBBMaxs(), 0, 255, 0, true, 1.0f );
@@ -5013,7 +5013,7 @@ bool CPropDoorRotating::DoorCanClose( bool bAutoClose )
 {
 	if ( GetMaster() != NULL )
 		return GetMaster()->DoorCanClose( bAutoClose );
-	
+
 	// Check all slaves
 	if ( HasSlaves() )
 	{
@@ -5033,7 +5033,7 @@ bool CPropDoorRotating::DoorCanClose( bool bAutoClose )
 			}
 		}
 	}
-	
+
 	// See if our path of movement is clear to allow us to shut
 	return CheckDoorClear( bAutoClose ? DOOR_CHECK_FULL : GetOpenState() );
 }
@@ -5055,7 +5055,7 @@ void CPropDoorRotating::CalculateDoorVolume( QAngle closedAngles, QAngle openAng
 	// Find our AABB at the closed state
 	Vector	closedMins, closedMaxs;
 	CollisionProp()->WorldSpaceAABB( &closedMins, &closedMaxs );
-	
+
 	SetLocalAngles( openAngles );
 
 	// Find our AABB at the open state
@@ -5067,7 +5067,7 @@ void CPropDoorRotating::CalculateDoorVolume( QAngle closedAngles, QAngle openAng
 
 	// Find the minimum extents
 	UTIL_ComputeAABBForBounds( closedMins, closedMaxs, openMins, openMaxs, destMins, destMaxs );
-	
+
 	// Move this back into local space
 	*destMins -= GetAbsOrigin();
 	*destMaxs -= GetAbsOrigin();
@@ -5204,7 +5204,7 @@ void CPropDoorRotating::MoveDone()
 void CPropDoorRotating::AngularMove(const QAngle &vecDestAngle, float flSpeed)
 {
 	ASSERTSZ(flSpeed != 0, "AngularMove:  no speed is defined!");
-	
+
 	m_angGoal = vecDestAngle;
 
 	// Already there?
@@ -5213,10 +5213,10 @@ void CPropDoorRotating::AngularMove(const QAngle &vecDestAngle, float flSpeed)
 		MoveDone();
 		return;
 	}
-	
+
 	// Set destdelta to the vector needed to move.
 	QAngle vecDestDelta = vecDestAngle - GetLocalAngles();
-	
+
 	// Divide by speed to get time to reach dest
 	float flTravelTime = vecDestDelta.Length() / flSpeed;
 
@@ -5298,7 +5298,7 @@ void CPropDoorRotating::BeginOpening(CBaseEntity *pOpenAwayFrom)
 
 	// Create a blocking entity to keep random entities out of our movement path
 	m_hDoorBlocker = CEntityBlocker::Create( GetAbsOrigin(), mins, maxs, pOpenAwayFrom, false );
-	
+
 	Vector	volumeCenter = ((mins+maxs) * 0.5f) + GetAbsOrigin();
 
 	// Ignoring the Z
@@ -5351,7 +5351,7 @@ void CPropDoorRotating::BeginClosing( void )
 		{
 			m_hDoorBlocker->RemoveSolidFlags( FSOLID_NOT_SOLID );
 		}
-		
+
 		if ( g_debug_doors.GetBool() )
 		{
 			NDebugOverlay::Box( GetAbsOrigin(), m_hDoorBlocker->CollisionProp()->OBBMins(), m_hDoorBlocker->CollisionProp()->OBBMaxs(), 255, 0, 0, true, 1.0f );
@@ -5424,7 +5424,7 @@ float CPropDoorRotating::GetOpenInterval()
 {
 	// set destdelta to the vector needed to move
 	QAngle vecDestDelta = m_angRotationOpenForward - GetLocalAngles();
-	
+
 	// divide by speed to get time to reach dest
 	return vecDestDelta.Length() / m_flSpeed;
 }
@@ -5478,7 +5478,7 @@ int CPropDoorRotating::DrawDebugTextOverlays(void)
 void CPropDoorRotating::InputSetRotationDistance( inputdata_t &inputdata )
 {
 	m_flDistance = inputdata.value.Float();
-	
+
 	// Recalculate our open volume
 	CalcOpenAngles();
 	CalculateDoorVolume( GetLocalAngles(), m_angRotationOpenForward, &m_vecForwardBoundsMin, &m_vecForwardBoundsMax );
@@ -5504,7 +5504,7 @@ public:
 			SetMoveType( MOVETYPE_VPHYSICS );
 			pPhysicsObject->Wake();
 		}
-	
+
 		return true;
 	}
 };
@@ -5563,8 +5563,8 @@ BEGIN_DATADESC( CPhysBoxMultiplayer )
 END_DATADESC()
 
 IMPLEMENT_SERVERCLASS_ST( CPhysBoxMultiplayer, DT_PhysBoxMultiplayer )
-	SendPropInt( SENDINFO( m_iPhysicsMode ), 1, SPROP_UNSIGNED ),
-	SendPropFloat( SENDINFO( m_fMass ), 0, SPROP_NOSCALE ),
+SendPropInt( SENDINFO( m_iPhysicsMode ), 1, SPROP_UNSIGNED ),
+SendPropFloat( SENDINFO( m_fMass ), 0, SPROP_NOSCALE ),
 END_SEND_TABLE()
 
 
@@ -5585,7 +5585,7 @@ class CPhysicsPropMultiplayer : public CPhysicsProp, public IMultiplayerPhysics
 		m_usingCustomCollisionBounds = false;
 	}
 
-// IBreakableWithPropData:
+	// IBreakableWithPropData:
 	void SetPhysicsMode(int iMode)
 	{
 		m_iPhysicsMode = iMode;
@@ -5593,7 +5593,7 @@ class CPhysicsPropMultiplayer : public CPhysicsProp, public IMultiplayerPhysics
 
 	int		GetPhysicsMode() { return m_iPhysicsMode; }
 
-// IMultiplayerPhysics:
+	// IMultiplayerPhysics:
 	int		GetMultiplayerPhysicsMode() { return m_iPhysicsMode; }
 	float	GetMass() { return m_fMass; }
 	bool	IsAsleep() { return !m_bAwake; }
@@ -5664,7 +5664,7 @@ class CPhysicsPropMultiplayer : public CPhysicsProp, public IMultiplayerPhysics
 				UTIL_Remove( this );
 				return;
 			}
-			
+
 		}
 
 		if ( GetCollisionGroup() == COLLISION_GROUP_NONE )
@@ -5716,18 +5716,18 @@ private:
 LINK_ENTITY_TO_CLASS( prop_physics_multiplayer, CPhysicsPropMultiplayer );
 
 BEGIN_DATADESC( CPhysicsPropMultiplayer )
-	DEFINE_KEYFIELD( m_iPhysicsMode, FIELD_INTEGER, "physicsmode" ),
-	DEFINE_FIELD( m_fMass, FIELD_FLOAT ),
-	DEFINE_FIELD( m_usingCustomCollisionBounds, FIELD_BOOLEAN ),
-	DEFINE_FIELD( m_collisionMins, FIELD_VECTOR ),
-	DEFINE_FIELD( m_collisionMaxs, FIELD_VECTOR ),
+DEFINE_KEYFIELD( m_iPhysicsMode, FIELD_INTEGER, "physicsmode" ),
+DEFINE_FIELD( m_fMass, FIELD_FLOAT ),
+DEFINE_FIELD( m_usingCustomCollisionBounds, FIELD_BOOLEAN ),
+DEFINE_FIELD( m_collisionMins, FIELD_VECTOR ),
+DEFINE_FIELD( m_collisionMaxs, FIELD_VECTOR ),
 END_DATADESC()
 
 IMPLEMENT_SERVERCLASS_ST( CPhysicsPropMultiplayer, DT_PhysicsPropMultiplayer )
-	SendPropInt( SENDINFO( m_iPhysicsMode ), 2, SPROP_UNSIGNED ),
-	SendPropFloat( SENDINFO( m_fMass ), 0, SPROP_NOSCALE ),
-	SendPropVector( SENDINFO( m_collisionMins ), 0, SPROP_NOSCALE ),
-	SendPropVector( SENDINFO( m_collisionMaxs ), 0, SPROP_NOSCALE ),
+SendPropInt( SENDINFO( m_iPhysicsMode ), 2, SPROP_UNSIGNED ),
+SendPropFloat( SENDINFO( m_fMass ), 0, SPROP_NOSCALE ),
+SendPropVector( SENDINFO( m_collisionMins ), 0, SPROP_NOSCALE ),
+SendPropVector( SENDINFO( m_collisionMaxs ), 0, SPROP_NOSCALE ),
 END_SEND_TABLE()
 
 #define RESPAWNABLE_PROP_DEFAULT_TIME 60.0f
@@ -5761,12 +5761,12 @@ private:
 LINK_ENTITY_TO_CLASS( prop_physics_respawnable, CPhysicsPropRespawnable );
 
 BEGIN_DATADESC( CPhysicsPropRespawnable )
-	DEFINE_THINKFUNC( Materialize ),
-	DEFINE_KEYFIELD( m_flRespawnTime, FIELD_FLOAT, "RespawnTime" ),
-	DEFINE_FIELD( m_vOriginalSpawnOrigin, FIELD_POSITION_VECTOR ),
-	DEFINE_FIELD( m_vOriginalSpawnAngles, FIELD_VECTOR ),
-	DEFINE_FIELD( m_vOriginalMins, FIELD_VECTOR ),
-	DEFINE_FIELD( m_vOriginalMaxs, FIELD_VECTOR ),
+DEFINE_THINKFUNC( Materialize ),
+DEFINE_KEYFIELD( m_flRespawnTime, FIELD_FLOAT, "RespawnTime" ),
+DEFINE_FIELD( m_vOriginalSpawnOrigin, FIELD_POSITION_VECTOR ),
+DEFINE_FIELD( m_vOriginalSpawnAngles, FIELD_VECTOR ),
+DEFINE_FIELD( m_vOriginalMins, FIELD_VECTOR ),
+DEFINE_FIELD( m_vOriginalMaxs, FIELD_VECTOR ),
 END_DATADESC()
 
 CPhysicsPropRespawnable::CPhysicsPropRespawnable( void )
@@ -5993,16 +5993,16 @@ CPhysicsProp* CreatePhysicsProp( const char *pModelName, const Vector &vTraceSta
 	trace_t tr;
 	UTIL_TraceHull( vTraceStart, vTraceEnd,
 		vecSweepMins, vecSweepMaxs, MASK_NPCSOLID, pTraceIgnore, COLLISION_GROUP_NONE, &tr );
-		    
+
 	// No hit? We're done.
 	if ( (tr.fraction == 1.0 && (vTraceEnd-vTraceStart).Length() > 0.01) || tr.allsolid )
 		return NULL;
-		    
+
 	VectorMA( tr.endpos, 1.0f, tr.plane.normal, tr.endpos );
 
 	bool bAllowPrecache = CBaseEntity::IsPrecacheAllowed();
 	CBaseEntity::SetAllowPrecache( true );
-				  
+
 	// Try to create entity
 	CPhysicsProp *pProp = dynamic_cast< CPhysicsProp * >( CreateEntityByName( pClassName ) );
 	if ( pProp )
@@ -6196,7 +6196,7 @@ void CC_Ent_Rotate( const CCommand &args )
 
 	QAngle angles = pEntity->GetLocalAngles();
 	float flAngle = (args.ArgC() == 2) ? atof( args[1] ) : 7.5f;
-	   
+
 	VMatrix entToWorld, rot, newEntToWorld;
 	MatrixBuildRotateZ( rot, flAngle );
 	MatrixFromAngles( angles, entToWorld );

@@ -5,6 +5,7 @@
 //
 // $NoKeywords: $
 //=============================================================================//
+#ifdef NEWLAGCOMP
 
 #ifndef _PLAYER_LAG_COMPENSATION_H_
 #define _PLAYER_LAG_COMPENSATION_H_
@@ -204,8 +205,9 @@ private:
 	float					m_weaponRange;
 	bool					m_isCurrentlyDoingCompensation;	// Sentinel to prevent calling StartLagCompensation a second time before a Finish.
 
-	 // List of additional entities flagged by mappers for lag compensation (shouldn't be more than a few)
+	// List of additional entities flagged by mappers for lag compensation (shouldn't be more than a few)
 	CUtlRBTree< EHANDLE >	m_AdditionalEntities;
 };
 
+#endif
 #endif

@@ -124,6 +124,10 @@ public:
 #define	MAX_AMMO_TYPES	32		// ???
 #define MAX_AMMO_SLOTS  32		// not really slots
 
+#ifndef NEWLAGCOMP
+#define NEWLAGCOMP
+#endif
+
 #ifndef COLOR
 #define COLOR(x)				"\x07"#x
 #endif

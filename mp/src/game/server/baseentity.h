@@ -69,6 +69,9 @@ class CTeam;
 class Vector;
 struct gamevcollisionevent_t;
 class CBaseAnimating;
+#ifdef NEWLAGCOMP
+class CBaseAnimatingOverlay;
+#endif
 class CBasePlayer;
 class IServerVehicle;
 struct solid_t;
@@ -883,7 +886,9 @@ public:
 
 	// Returns a CBaseAnimating if the entity is derived from CBaseAnimating.
 	virtual CBaseAnimating*	GetBaseAnimating() { return 0; }
-
+#ifdef NEWLAGCOMP
+	virtual CBaseAnimatingOverlay* GetBaseAnimatingOverlay ( ) { return nullptr; }
+#endif
 	virtual IResponseSystem *GetResponseSystem();
 	virtual void	DispatchResponse( const char *conceptName );
 

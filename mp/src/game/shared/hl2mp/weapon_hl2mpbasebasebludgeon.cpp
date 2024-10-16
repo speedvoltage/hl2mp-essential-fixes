@@ -107,7 +107,11 @@ void CBaseHL2MPBludgeonWeapon::PrimaryAttack()
 #ifndef CLIENT_DLL
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer( GetPlayerOwner() );
 	// Move other players back to history positions based on local player's lag
+#ifdef NEWLAGCOMP
+	lagcompensation->StartLagCompensation( pPlayer, LAG_COMPENSATE_HITBOXES );
+#else
 	lagcompensation->StartLagCompensation(pPlayer, pPlayer->GetCurrentCommand());
+#endif
 #endif
 	Swing( false );
 #ifndef CLIENT_DLL

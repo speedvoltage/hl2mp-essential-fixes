@@ -134,3 +134,8 @@ mp/src/lib/public/tier1.lib
 mp/src/lib/public/mathlib.lib
 mp/src/game/server/Release_mod_hl2mp/vc120.pdb
 *.sentinel
+*.exe
+*.dll
+*.lib
+*.filters
+*.res
