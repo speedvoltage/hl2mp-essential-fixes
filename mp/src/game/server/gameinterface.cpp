@@ -2749,10 +2749,17 @@ EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerGameClients, IServerGameClients, INTERF
 // Output : Returns TRUE if player is allowed to join, FALSE if connection is denied.
 //-----------------------------------------------------------------------------
 static ConVar sv_allow_sharedgame_connection("sv_allow_sharedgame_connection", "0", 0, "If non-zero, allows this game to be shared with other users when using Steam Family.");
+ConVar net_maskclientipaddress( "net_maskclientipaddress", "1", 0, "Prevent players from potentially seeing other players IP address" );
 bool CServerGameClients::ClientConnect( edict_t *pEdict, const char *pszName, const char *pszAddress, char *reject, int maxrejectlen )
 {	
 	if ( !g_pGameRules )
 		return false;
+
+	if ( net_maskclientipaddress.GetBool() )
+	{
+		const char* maskedAddress = "*PROTECTED*";
+		pszAddress = maskedAddress;
+	}
 
 	if (sv_show_client_connect_msg.GetBool())
 		UTIL_PrintToAllClients(CHAT_DEFAULT "%s1 " CHAT_CONTEXT "has joined the game.", pszName[0] != 0 ? pszName : "<unconnected>");

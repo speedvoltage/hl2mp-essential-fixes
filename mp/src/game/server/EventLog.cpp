@@ -55,6 +55,7 @@ bool CEventLog::PrintEvent( IGameEvent *event )
 	}
 }
 
+extern ConVar net_maskclientipaddress;
 bool CEventLog::PrintGameEvent( IGameEvent *event )
 {
 //	const char * name = event->GetName() + Q_strlen("game_"); // remove prefix
@@ -72,7 +73,10 @@ bool CEventLog::PrintPlayerEvent( IGameEvent *event )
 		const char* name = event->GetString("name");
 		const char *address = event->GetString( "address" );
 		const char *networkid = event->GetString("networkid" );
-		UTIL_LogPrintf( "\"%s<%i><%s><>\" connected, address \"%s\"\n", name, userid, networkid, address);
+		if ( !net_maskclientipaddress.GetBool() )
+			UTIL_LogPrintf( "\"%s<%i><%s><>\" connected, address \"%s\"\n", name, userid, networkid, address );
+		else
+			UTIL_LogPrintf( "\"%s<%i><%s><>\" connected\n", name, userid, networkid );
 
 		if (Q_strcmp(eventName, "player_connect_client") == 0)
 		{
@@ -82,7 +86,7 @@ bool CEventLog::PrintPlayerEvent( IGameEvent *event )
 	}
 	else if ( !Q_strncmp( eventName, "player_disconnect", Q_strlen("player_disconnect")  ) )
 	{
-		const char *reason = event->GetString("reason" );
+		const char *reason = event->GetString( "reason" );
 		const char *name = event->GetString("name" );
 		const char *networkid = event->GetString("networkid" );
 		CTeam *team = NULL;
@@ -92,6 +96,21 @@ bool CEventLog::PrintPlayerEvent( IGameEvent *event )
 		{
 			team = pPlayer->GetTeam();
 		}
+
+		// Sanitize the reason by removing control characters
+		char sanitizedReason[256];
+		V_strncpy(sanitizedReason, reason, sizeof(sanitizedReason));
+
+		for (char* p = sanitizedReason; *p; p++)
+		{
+			if (*p < 32) // Remove ASCII control characters
+			{
+				*p = ' ';
+			}
+		}
+
+		// Set the sanitized reason back to the event
+		event->SetString("reason", sanitizedReason);
 
 		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" disconnected (reason \"%s\")\n", name, userid, networkid, team ? team->GetName() : "", reason );
 		
