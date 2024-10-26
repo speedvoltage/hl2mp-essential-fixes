@@ -1714,14 +1714,14 @@ int CBasePlayer::OnTakeDamage_Alive(const CTakeDamageInfo& info)
 	IGameEvent* evUpdate = gameeventmanager->CreateEvent ( "spec_target_updated" );
 	if ( evUpdate )
 	{
-		Log ( "Update\n" );
+		DevLog ( "Update\n" );
 		if ( gameeventmanager->FireEvent( evUpdate ) )
 		{
-			Log ( "Success\n" );
+			DevLog ( "Success\n" );
 		}
 		else
 		{
-			Log ( "Fail\n" );
+			DevLog ( "Fail\n" );
 		}
 	}
 #endif
