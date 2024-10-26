@@ -1,7 +1,7 @@
 #include "cbase.h"
 #include "hl2mp_serveradmin.h"
 #include "filesystem.h"
-#include "keyvalues.h"
+#include <KeyValues.h>
 #include "hl2mp_player.h"
 #include "convar.h"
 #include "tier0/memdbgon.h"
