@@ -63,6 +63,21 @@ bool CEventLog::PrintGameEvent( IGameEvent *event )
 	return false;
 }
 
+static void RemoveDisallowedCharacters(char* str, const char** disallowedStrings, int disallowedCount, int strLength)
+{
+	for (int i = 0; i < disallowedCount; i++)
+	{
+		const char* disallowed = disallowedStrings[i];
+		char* pos;
+
+		while ((pos = strstr(str, disallowed)) != nullptr)
+		{
+			int len = strlen(disallowed);
+			memmove(pos, pos + len, strLength - (pos - str) - len + 1); 
+		}
+	}
+}
+
 bool CEventLog::PrintPlayerEvent( IGameEvent *event )
 {
 	const char * eventName = event->GetName();
@@ -97,19 +112,14 @@ bool CEventLog::PrintPlayerEvent( IGameEvent *event )
 			team = pPlayer->GetTeam();
 		}
 
-		// Sanitize the reason by removing control characters
 		char sanitizedReason[256];
 		V_strncpy(sanitizedReason, reason, sizeof(sanitizedReason));
 
-		for (char* p = sanitizedReason; *p; p++)
-		{
-			if (*p < 32) // Remove ASCII control characters
-			{
-				*p = ' ';
-			}
-		}
+		const char *disallowedStrings[] = { "\n", "\t", "\r", "\x01", "\x02", "\x03", "\x04", "\x05", "\x06", "\x07", "\x08" };
+		int disallowedCount = sizeof(disallowedStrings) / sizeof(disallowedStrings[0]);
 
-		// Set the sanitized reason back to the event
+		RemoveDisallowedCharacters(sanitizedReason, disallowedStrings, disallowedCount, sizeof(sanitizedReason));
+
 		event->SetString("reason", sanitizedReason);
 
 		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" disconnected (reason \"%s\")\n", name, userid, networkid, team ? team->GetName() : "", reason );
