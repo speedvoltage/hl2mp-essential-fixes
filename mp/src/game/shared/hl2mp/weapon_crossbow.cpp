@@ -878,6 +878,10 @@ void CWeaponCrossbow::CheckZoomToggle( void )
 	
 	if ( pPlayer->m_afButtonPressed & IN_ATTACK2 )
 	{
+#ifndef CLIENT_DLL
+		if ( !pPlayer->IsXbowZoomEnabled() )
+			return;
+#endif
 		ToggleZoom();
 	}
 }
@@ -1062,6 +1066,7 @@ void CWeaponCrossbow::ToggleZoom(void)
 			m_bInZoom = false;
 			// pPlayer->SetWeaponZoomActive(false);
 			SetContextThink(&CWeaponCrossbow::DisableWeaponZoom, gpGlobals->curtime + 0.2f, "DisableZoomContext");
+			pPlayer->ShowViewModel( true );
 		}
 	}
 	else
@@ -1073,6 +1078,7 @@ void CWeaponCrossbow::ToggleZoom(void)
 		{
 			m_bInZoom = true;
 		}
+		pPlayer->ShowViewModel( false );
 	}
 #endif
 }

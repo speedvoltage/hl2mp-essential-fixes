@@ -27,6 +27,7 @@
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 
 #include "ilagcompensationmanager.h"
+#include "admin/hl2mp_serveradmin.h"
 
 int g_iLastCitizenModel = 0;
 int g_iLastCombineModel = 0;
@@ -208,42 +209,45 @@ void CHL2MP_Player::Precache( void )
 	PrecacheScriptSound( "NPC_CombineS.Die" );
 	PrecacheScriptSound( "NPC_Citizen.die" );
 
-	if (sv_custom_sounds.GetBool())
+	if ( sv_custom_sounds.GetBool() )
 	{
-		PrecacheScriptSound("server_sounds_red_team");
-		PrecacheScriptSound("server_sounds_red_leads");
-		PrecacheScriptSound("server_sounds_blue_team");
-		PrecacheScriptSound("server_sounds_blue_leads");
-		PrecacheScriptSound("server_sounds_five");
-		PrecacheScriptSound("server_sounds_four");
-		PrecacheScriptSound("server_sounds_three");
-		PrecacheScriptSound("server_sounds_two");
-		PrecacheScriptSound("server_sounds_one");
-		PrecacheScriptSound("server_sounds_gameover");
-		PrecacheScriptSound("server_sounds_gamepaused");
-		PrecacheScriptSound("server_sounds_go1");
-		PrecacheScriptSound("server_sounds_go2");
-		PrecacheScriptSound("server_sounds_go3");
-		PrecacheScriptSound("server_sounds_matchcancel");
-		PrecacheScriptSound("server_sounds_rankdown");
-		PrecacheScriptSound("server_sounds_rankup");
-		PrecacheScriptSound("server_sounds_tie");
-		PrecacheScriptSound("server_sounds_overtime");
-		PrecacheScriptSound("server_sounds_youlead");
-		PrecacheScriptSound("server_sounds_youlost");
-		PrecacheScriptSound("server_sounds_younolead");
-		PrecacheScriptSound("server_sounds_youwin");
-		PrecacheScriptSound("kevlar1");
-		PrecacheScriptSound("kevlar2");
-		PrecacheScriptSound("kevlar3");
-		PrecacheScriptSound("kevlar4");
-		PrecacheScriptSound("kevlar5");
-		PrecacheScriptSound("server_sounds_bhit_helmet-1");
-		PrecacheScriptSound("server_sounds_hitbody");
-		PrecacheScriptSound("server_sounds_hithead");
-		PrecacheScriptSound("headshot_kill_snd");
-		PrecacheScriptSound("frag_snd");
-		PrecacheScriptSound("server_sounds_tkill");
+		PrecacheScriptSound( "server_sounds_red_team" );
+		PrecacheScriptSound( "server_sounds_red_leads" );
+		PrecacheScriptSound( "server_sounds_blue_team" );
+		PrecacheScriptSound( "server_sounds_blue_leads" );
+		PrecacheScriptSound( "server_sounds_five" );
+		PrecacheScriptSound( "server_sounds_four" );
+		PrecacheScriptSound( "server_sounds_three" );
+		PrecacheScriptSound( "server_sounds_two" );
+		PrecacheScriptSound( "server_sounds_one" );
+		PrecacheScriptSound( "server_sounds_gameover" );
+		PrecacheScriptSound( "server_sounds_gamepaused" );
+		PrecacheScriptSound( "server_sounds_go1" );
+		PrecacheScriptSound( "server_sounds_go2" );
+		PrecacheScriptSound( "server_sounds_go3" );
+		PrecacheScriptSound( "server_sounds_matchcancel" );
+		PrecacheScriptSound( "server_sounds_rankdown" );
+		PrecacheScriptSound( "server_sounds_rankup" );
+		PrecacheScriptSound( "server_sounds_tie" );
+		PrecacheScriptSound( "server_sounds_overtime" );
+		PrecacheScriptSound( "server_sounds_youlead" );
+		PrecacheScriptSound( "server_sounds_youlost" );
+		PrecacheScriptSound( "server_sounds_younolead" );
+		PrecacheScriptSound( "server_sounds_youwin" );
+		PrecacheScriptSound( "kevlar1" );
+		PrecacheScriptSound( "kevlar2" );
+		PrecacheScriptSound( "kevlar3" );
+		PrecacheScriptSound( "kevlar4" );
+		PrecacheScriptSound( "kevlar5" );
+		PrecacheScriptSound( "server_sounds_bhit_helmet-1" );
+		PrecacheScriptSound( "server_sounds_hitbody" );
+		PrecacheScriptSound( "server_sounds_hithead" );
+		PrecacheScriptSound( "headshot_kill_snd" );
+		PrecacheScriptSound( "frag_snd" );
+		PrecacheScriptSound( "server_sounds_tkill" );
+		PrecacheScriptSound( "Buttons.snd41" );
+		PrecacheScriptSound( "Player.FallDamage" );
+		PrecacheScriptSound( "Player.SonicDamage" );
 	}
 }
 
@@ -304,7 +308,6 @@ KeyValues* LoadWeaponConfig(const char* fileName)
 
 	return pConfig;
 }
-
 
 void CHL2MP_Player::GiveDefaultItems( void )
 {
@@ -779,6 +782,8 @@ bool CHL2MP_Player::SavePlayerSettings()
 	// Save hit sound and kill sound settings using getters
 	playerSettings->SetInt("HitSoundsEnabled", AreHitSoundsEnabled() ? 1 : 0);
 	playerSettings->SetInt("KillSoundsEnabled", AreKillSoundsEnabled() ? 1 : 0);
+	playerSettings->SetInt( ".357 Zoom Enabled", Is357ZoomEnabled() ? 1 : 0 );
+	playerSettings->SetInt( "Crossbow Zoom Enabled", IsXbowZoomEnabled() ? 1 : 0 );
 
 	if (kv->SaveToFile(filesystem, filename, "MOD"))
 	{
@@ -817,6 +822,8 @@ bool CHL2MP_Player::LoadPlayerSettings()
 		SetXbowZoomLevel(20);  // Default crossbow zoom level
 		SetHitSoundsEnabled(true);  // Enable hit sounds by default
 		SetKillSoundsEnabled(true);  // Enable kill sounds by default
+		Set357ZoomEnabled( true );
+		SetXbowZoomEnabled( true );
 
 		// Create the player settings KeyValues entry
 		KeyValues* playerSettings = new KeyValues(UTIL_VarArgs("%llu", steamID64));
@@ -826,6 +833,8 @@ bool CHL2MP_Player::LoadPlayerSettings()
 		playerSettings->SetInt("Xbow Zoom Level", GetXbowZoomLevel());
 		playerSettings->SetBool("HitSoundsEnabled", AreHitSoundsEnabled());
 		playerSettings->SetBool("KillSoundsEnabled", AreKillSoundsEnabled());
+		playerSettings->SetBool( ".357 Zoom Enabled", Is357ZoomEnabled() );
+		playerSettings->SetBool( "Crossbow Zoom Enabled", IsXbowZoomEnabled() );
 
 		// Add player settings to the main KeyValues
 		kv->AddSubKey(playerSettings);
@@ -869,6 +878,8 @@ bool CHL2MP_Player::LoadPlayerSettings()
 
 void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 {
+	CHL2MP_Admin::CheckChatText(p, bufsize);
+
 	//Look for escape sequences and replace
 
 	char* buf = new char[bufsize];
@@ -1037,6 +1048,38 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 		}
 	}
 
+	if ( Q_stricmp( p, "!mz" ) == 0 )
+	{
+		bool bMagZoomEnabled = !Is357ZoomEnabled();
+		Set357ZoomEnabled( bMagZoomEnabled );
+		if ( bMagZoomEnabled )
+		{
+			UTIL_PrintToClient( this, CHAT_CONTEXT "357 zooming " CHAT_WHITE "enabled" );
+		}
+		else
+		{
+			UTIL_PrintToClient( this, CHAT_CONTEXT "357 zooming " CHAT_WHITE "disabled" );
+		}
+		SavePlayerSettings();
+		return;
+	}
+
+	if ( Q_stricmp( p, "!cz" ) == 0 )
+	{
+		bool bXbowZoomEnabled = !IsXbowZoomEnabled();
+		SetXbowZoomEnabled( bXbowZoomEnabled );
+		if ( bXbowZoomEnabled )
+		{
+			UTIL_PrintToClient( this, CHAT_CONTEXT "Crossbow zooming " CHAT_WHITE "enabled" );
+		}
+		else
+		{
+			UTIL_PrintToClient( this, CHAT_CONTEXT "Crossbow zooming " CHAT_WHITE "disabled" );
+		}
+		SavePlayerSettings();
+		return;
+	}
+
 	if (Q_stricmp(p, "!hs") == 0)
 	{
 		bool newHitSoundState = !AreHitSoundsEnabled();
@@ -1071,7 +1114,7 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 		return;
 	}
 
-	if (Q_stricmp(p, "!teams") == 0 && sv_teamsmenu.GetBool())
+	if (Q_stricmp(p, "!switch") == 0 && sv_teamsmenu.GetBool())
 	{
 		if (serverpluginhelpers)
 		{
@@ -1098,6 +1141,35 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 			serverpluginhelpers->CreateMessage(this->edict(), DIALOG_MENU, kv, &g_EmptyPluginCallbacks);
 
 			kv->deleteThis();
+		}
+		return;
+	}
+
+	if ( sv_teamsmenu.GetBool() )
+	{
+		if ( Q_stricmp( p, "!1" ) == 0 ||
+			Q_stricmp( p, "!spec" ) == 0 ||
+			Q_stricmp( p, "!spectate" ) == 0 )
+		{
+			engine->ClientCommand( edict(), "spectate" );
+		}
+
+		if ( Q_stricmp( p, "!2" ) == 0 ||
+			Q_stricmp( p, "!comb" ) == 0 ||
+			Q_stricmp( p, "!combine" ) == 0 ||
+			Q_stricmp( p, "!blue" ) == 0 )
+		{
+			engine->ClientCommand( edict(), "jointeam 2" );
+		}
+
+		if ( Q_stricmp( p, "!3" ) == 0 ||
+			Q_stricmp( p, "!reb" ) == 0 ||
+			Q_stricmp( p, "!rebs" ) == 0 ||
+			Q_stricmp( p, "!red" ) == 0 ||
+			Q_stricmp( p, "!rebels" ) == 0 ||
+			Q_stricmp( p, "!rebel" ) == 0 )
+		{
+			engine->ClientCommand( edict(), "jointeam 3" );
 		}
 		return;
 	}
@@ -2053,7 +2125,7 @@ CBaseEntity* CHL2MP_Player::EntSelectSpawnPoint(void)
 	CBaseEntity* pLastSpawnPoint = g_pLastSpawn;
 	const char* pSpawnpointName = "info_player_deathmatch";
 
-	if (HL2MPRules()->IsTeamplay() == true)
+	if (HL2MPRules()->IsTeamplay())
 	{
 		if (GetTeamNumber() == TEAM_COMBINE)
 		{
@@ -2088,13 +2160,15 @@ CBaseEntity* CHL2MP_Player::EntSelectSpawnPoint(void)
 	// or is within radius. This is done to prevent farming easy frag points. 
 	// If both logic fail, then revert back to the default spawning logic 
 	// (i.e. selecting a random spawn point)
+	// If teamplay is enabled, then it is fine to spawn near a teammate
+
 	do
 	{
 		if (pSpot)
 		{
 			bool bValidSpot = true;
 
-			// Check line of sight if enabled
+			// do we have a line of sight? Is teamplay enabled?
 			if (sv_spawnpoint_lineofsight.GetBool())
 			{
 				CBasePlayer* pPlayer = NULL;
@@ -2103,19 +2177,20 @@ CBaseEntity* CHL2MP_Player::EntSelectSpawnPoint(void)
 					if (pPlayer == this)
 						continue;
 
+					if (HL2MPRules()->IsTeamplay() && pPlayer->GetTeamNumber() == GetTeamNumber())
+						continue;
+
 					trace_t tr;
 					UTIL_TraceLine(pSpot->GetAbsOrigin(), pPlayer->GetAbsOrigin(), MASK_SOLID_BRUSHONLY, pSpot, COLLISION_GROUP_NONE, &tr);
 
-					if (tr.fraction == 1.0) // Direct line of sight
+					if (tr.fraction == 1.0) // direct LoS
 					{
-						// Msg("Direct line of sight, spawning elsewhere\n");
 						bValidSpot = false;
 						break;
 					}
 				}
 			}
 
-			// Check player radius if enabled
 			if (bValidSpot && sv_spawnradius.GetFloat() > 0)
 			{
 				CBasePlayer* pPlayer = NULL;
@@ -2126,16 +2201,17 @@ CBaseEntity* CHL2MP_Player::EntSelectSpawnPoint(void)
 					if (pPlayer == this)
 						continue;
 
+					if (HL2MPRules()->IsTeamplay() && pPlayer->GetTeamNumber() == GetTeamNumber())
+						continue;
+
 					if ((pPlayer->GetAbsOrigin() - pSpot->GetAbsOrigin()).LengthSqr() < flRadiusSquared)
 					{
-						// Msg("Within radius, spawning elsewhere\n");
 						bValidSpot = false;
 						break;
 					}
 				}
 			}
 
-			// If both checks passed, spawn here
 			if (bValidSpot && g_pGameRules->IsSpawnPointValid(pSpot, this))
 			{
 				if (pSpot->GetLocalOrigin() != vec3_origin)
@@ -2145,11 +2221,10 @@ CBaseEntity* CHL2MP_Player::EntSelectSpawnPoint(void)
 			}
 		}
 
-		// Move to next spawn point
 		pSpot = gEntList.FindEntityByClassname(pSpot, pSpawnpointName);
 	} while (pSpot != pFirstSpot); // loop if we're not back to the start
 
-	// Fall back to Valve's default if all spawn points failed checks
+	// Valve's default if all spawn points failed checks
 	if (pSpot && (TEAM_SPECTATOR != GetPlayerInfo()->GetTeamIndex()))
 	{
 		goto ReturnSpot;
@@ -2157,7 +2232,7 @@ CBaseEntity* CHL2MP_Player::EntSelectSpawnPoint(void)
 
 ReturnSpot:
 
-	if (HL2MPRules()->IsTeamplay() == true)
+	if (HL2MPRules()->IsTeamplay())
 	{
 		if (GetTeamNumber() == TEAM_COMBINE)
 		{
@@ -2171,8 +2246,7 @@ ReturnSpot:
 
 	if (!pSpot)
 	{
-		// use the player start entity 
-		// if nothing else is found (prevents crashes)
+		// use the player start entity if nothing else is found (prevents crashes)
 		pSpot = gEntList.FindEntityByClassnameRandom(pSpot, "info_player_start");
 
 		if (pSpot)
@@ -2182,7 +2256,6 @@ ReturnSpot:
 	}
 
 	g_pLastSpawn = pSpot;
-
 	m_flSlamProtectTime = gpGlobals->curtime + 0.9;
 
 	return pSpot;
@@ -2194,12 +2267,12 @@ void CHL2MP_Player::FirstThinkAfterSpawn()
 {
 	if (HasFirstTimeSpawned())
 		return;
-
+	
 	SetFirstTimeSpawned(true);
 
 	if (sv_showhelpmessages.GetBool())
 	{
-		UTIL_PrintToClient(this, CHAT_CONTEXT "Type " CHAT_LIGHTBLUE "!help " CHAT_CONTEXT "to view chat commands.");
+		UTIL_PrintToClient(this, CHAT_CONTEXT "Type " CHAT_LIGHTBLUE "!cmds " CHAT_CONTEXT "to view chat commands.");
 	}
 
 	if (HL2MPRules()->IsTeamplay() == true)

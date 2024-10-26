@@ -241,12 +241,12 @@ void CGrenadeAR2::Detonate(void)
 		m_hSmokeTrail = NULL;
 	}
 
-	CPASFilter filter( GetAbsOrigin() );
+	CBroadcastRecipientFilter filter;
 
 	te->Explosion( filter, 0.0,
-		&GetAbsOrigin(), 
+		&GetAbsOrigin(),
 		g_sModelIndexFireball,
-		2.0, 
+		2.0,
 		15,
 		TE_EXPLFLAG_NONE,
 		m_DmgRadius,

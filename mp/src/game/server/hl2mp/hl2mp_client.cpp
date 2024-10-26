@@ -25,6 +25,9 @@
 #include "engine/IEngineSound.h"
 #include "team.h"
 #include "viewport_panel_names.h"
+#ifndef NO_STEAM
+#include "hl2mp_playerscoremanager.h"
+#endif
 
 #include "tier0/vprof.h"
 
@@ -79,6 +82,17 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 		"AuthenticationCheckThink"
 	);
 
+	CSteamID steamID;
+	if (pPlayer->GetSteamID(&steamID))
+	{
+		int savedFrags, savedDeaths;
+		if (g_PlayerScoreManager.LoadPlayerScore(steamID, savedFrags, savedDeaths))
+		{
+			pPlayer->IncrementFragCount(savedFrags - pPlayer->FragCount());
+			pPlayer->IncrementDeathCount(savedDeaths - pPlayer->DeathCount());
+			DevMsg( "Score set for player %s1\n", pPlayer->GetPlayerName() );
+		}
+	}
 #endif
 
 	pPlayer->InitialSpawn();

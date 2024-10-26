@@ -22,11 +22,6 @@
 #define CWeapon357 C_Weapon357
 #endif
 
-#ifdef _WIN32
-ConVar mp_357_zoom("mp_357_zoom", "1", FCVAR_NOTIFY);
-ConVar mp_357_zoom_fov("mp_357_zoom_fov", "50", FCVAR_NOTIFY);
-#endif
-
 //-----------------------------------------------------------------------------
 // CWeapon357
 //-----------------------------------------------------------------------------
@@ -164,12 +159,14 @@ void CWeapon357::ItemBusyFrame(void)
 
 void CWeapon357::CheckZoomToggle(void)
 {
+#ifndef CLIENT_DLL
 	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
 
-	if (pPlayer->m_afButtonPressed & IN_ATTACK2)
+	if (pPlayer->m_afButtonPressed & IN_ATTACK2 && pPlayer->Is357ZoomEnabled())
 	{
 		ToggleZoom();
 	}
+#endif
 }
 
 void CWeapon357::ItemPostFrame(void)
@@ -219,6 +216,7 @@ void CWeapon357::ToggleZoom(void)
 			// pPlayer->SetWeaponZoomActive(false);
 			SetContextThink(&CWeapon357::DisableWeaponZoom, gpGlobals->curtime + 0.2f, "DisableZoomContext");
 		}
+		pPlayer->ShowViewModel( true );
 	}
 	else
 	{
@@ -229,6 +227,7 @@ void CWeapon357::ToggleZoom(void)
 		{
 			m_bInZoom = true;
 		}
+		pPlayer->ShowViewModel( false );
 	}
 #endif
 }

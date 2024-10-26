@@ -153,6 +153,13 @@ public:
 	void HandleTeamAutobalance();
 	void HandleGameOver();
 
+	// Server Admin Map Change
+	void SetMapChangeOnGoing( bool enabled ) { bMapChangeOnGoing = enabled; }
+	void SetMapChange( bool enabled ) { bMapChange = enabled; }
+	bool IsMapChangeOnGoing() const { return bMapChangeOnGoing; }
+	bool IsMapChange() const { return bMapChange; }
+	void SetScheduledMapName(const char* mapName) { Q_strncpy(m_scheduledMapName, mapName, sizeof(m_scheduledMapName)); }
+
 #endif
 	virtual void ClientDisconnected( edict_t *pClient );
 
@@ -188,6 +195,11 @@ private:
 	bool bSwitchCombinePlayer;
 	bool bSwitchRebelPlayer;
 	int iConnected;
+
+	bool bMapChangeOnGoing;
+	bool bMapChange;
+	float m_flMapChangeTime;
+	char m_scheduledMapName[64];  // The map name to change to
 
 #ifndef CLIENT_DLL
 	bool m_bChangelevelDone;

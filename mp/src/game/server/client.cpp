@@ -136,28 +136,41 @@ char* CheckChatText(CBasePlayer* pPlayer, char* text)
 
 	GameRules()->CheckChatText(pPlayer, p);
 
-	if (FStrEq(p, "!help") && sv_showhelpmessages.GetBool())
+	if ( FStrEq( p, "!cmds" ) && sv_showhelpmessages.GetBool() )
 	{
-		UTIL_PrintToClient(pPlayer, CHAT_CONTEXT "Available commands:\n");
+		UTIL_PrintToClient( pPlayer, CHAT_CONTEXT "Check your console for output." );
 
-		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!fov " CHAT_CONTEXT "- Change your FOV\n");
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "Available commands:\n\n" );
 
-		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!mzl " CHAT_CONTEXT "- Change your .357 zoom level\n");
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "!motd - Opens the MOTD\n\n" );
 
-		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!czl " CHAT_CONTEXT "- Change your crossbow zoom level\n");
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "!fov - Change your FOV\n\n" );
 
-		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!ks " CHAT_CONTEXT "- Toggle kill sounds\n");
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "!mzl - Change your .357 zoom level\n\n" );
 
-		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!hs " CHAT_CONTEXT "- Toggle hit sounds\n");
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "!mz - Enable or disable zooming with the .357\n\n" );
 
-		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!e/!eq/!equalizer " CHAT_CONTEXT "- Toggle equalizer mode\n");
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "!czl - Change your crossbow zoom level\n\n" );
 
-		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!teams " CHAT_CONTEXT "- Opens a menu to select a team\n");
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "!cz - Enable or disable zooming with the crossbow\n\n" );
 
-		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!timeleft/timeleft " CHAT_CONTEXT "- Displays the remaining time in the map\n");
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "!ks - Toggle kill sounds\n\n" );
 
-		UTIL_PrintToClient(pPlayer, CHAT_LIGHTBLUE "!nextmap/nextmap " CHAT_CONTEXT "- Displays the next map in the queue\n");
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "!hs - Toggle hit sounds\n\n" );
 
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "!e/!eq/!equalizer - Toggle equalizer mode\n\n" );
+
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "!switch - Opens a menu to select a team\n\n" );
+
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "!timeleft/timeleft - Displays the remaining time in the map\n\n" );
+
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "!nextmap/nextmap - Displays the next map in the queue\n\n" );
+
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "!1 / !spec / !spectate - Join the spectator team\n\n" );
+
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "!2 / !comb / !combine / !blue - Join the Combine team\n\n" );
+
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "!3 / !reb / !rebs / !rebel / !rebels - Join the Rebels team\n\n" );
 	}
 
 	if (sv_chat_trigger.GetBool())
@@ -367,15 +380,56 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 			FStrEq(p, "!fov") ||
 			FStrEq(p, "!mzl") ||
 			FStrEq(p, "!czl") ||
+			FStrEq(p, "!mz") ||
+			FStrEq(p, "!cz") ||
 			FStrEq(p, "!ks") ||
 			FStrEq(p, "!hs") ||
-			FStrEq(p, "!teams") ||
-			FStrEq(p, "!help"))
+			FStrEq(p, "!switch") ||
+			FStrEq(p, "!cmds") ||
+			FStrEq(p, "!motd") ||
+			FStrEq(p, "!1") ||
+			FStrEq(p, "!2") ||
+			FStrEq(p, "!3") ||
+			FStrEq(p, "!spec") ||
+			FStrEq(p, "!spectate") ||
+			FStrEq(p, "!comb") ||
+			FStrEq(p, "!combine") ||
+			FStrEq(p, "!blue") ||
+			FStrEq(p, "!reb") ||
+			FStrEq(p, "!rebs") ||
+			FStrEq(p, "!rebels") ||
+			FStrEq(p, "!red") ||
+			FStrEq(p, "!rebel") || 
+			// admin commands
+			FStrEq(p, "/sa") ||
+			FStrEq(p, "/credits") || 
+			FStrEq(p, "/version") || 
+			FStrEq(p, "/help") || 
+			FStrEq(p, "/reloadadmins") )
 			return;
 
-		if (Q_strncmp(p, "!fov", strlen("!fov")) == 0 ||
-			Q_strncmp(p, "!mzl", strlen("!mzl")) == 0 ||
-			Q_strncmp(p, "!czl", strlen("!czl")) == 0)
+		if ( Q_strncmp( p, "!fov", strlen( "!fov" ) ) == 0 ||
+			Q_strncmp( p, "!mzl", strlen( "!mzl" ) ) == 0 ||
+			Q_strncmp( p, "!czl", strlen( "!czl" ) ) == 0 ||
+			// admin commands
+			Q_strncmp( p, "/kick", strlen( "/kick" ) ) == 0 ||
+			Q_strncmp( p, "/ban", strlen( "/ban" ) ) == 0 ||
+			Q_strncmp( p, "/addban", strlen( "/addban" ) ) == 0 ||
+			Q_strncmp( p, "/unban", strlen( "/unban" ) ) == 0 ||
+			Q_strncmp( p, "/slap", strlen( "/slap" ) ) == 0 ||
+			Q_strncmp( p, "/slay", strlen( "/slay" ) ) == 0 ||
+			Q_strncmp( p, "/noclip", strlen( "/noclip" ) ) == 0 ||
+			Q_strncmp( p, "/team", strlen( "/team" ) ) == 0 ||
+			Q_strncmp( p, "/gag", strlen( "/gag" ) ) == 0 ||
+			Q_strncmp( p, "/ungag", strlen( "/ungag" ) ) == 0 ||
+			Q_strncmp( p, "/mute", strlen( "/mute" ) ) == 0 ||
+			Q_strncmp( p, "/unmute", strlen( "/unmute" ) ) == 0 ||
+			Q_strncmp( p, "/bring", strlen( "/bring" ) ) == 0 ||
+			Q_strncmp( p, "/goto", strlen( "/goto" ) ) == 0 ||
+			Q_strncmp( p, "/map", strlen( "/map" ) ) == 0 ||
+			Q_strncmp( p, "/cvar", strlen( "/cvar" ) ) == 0 ||
+			Q_strncmp( p, "/exec", strlen( "/exec" ) ) == 0 ||
+			Q_strncmp( p, "/rcon", strlen( "/rcon" ) ) == 0 )
 		{
 			if (args.ArgC() > 1)
 			{
@@ -383,6 +437,9 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 			}
 		}
 	}
+
+	if ( pPlayer->IsGagged() )
+		return;
 
 	const char* pszFormat = NULL;
 	const char* pszPrefix = NULL;

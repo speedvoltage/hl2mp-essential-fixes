@@ -121,7 +121,46 @@ void CWeaponHL2MPBase::WeaponSound( WeaponSound_t sound_type, float soundtime /*
 				
 		CBaseEntity::EmitSound( filter, GetPlayerOwner()->entindex(), shootsound, &GetPlayerOwner()->GetAbsOrigin() ); 
 #else
-		BaseClass::WeaponSound( sound_type, soundtime );
+	const char *shootsound = GetShootSound(sound_type); 
+	if (!shootsound || !shootsound[0])
+		return;
+
+	CBroadcastRecipientFilter soundFilter;
+	// we add all the players
+	soundFilter.AddAllPlayers();
+	// but exclude ourselves
+	// the weapon sounds are already handled for the client just above, 
+	// we are making sure PVS does not cut the sounds for everyone else,
+	// we are making an exception here for the following sounds, 
+	// because they do not work client-side due to prediction and,
+	// since we have changed how the sound is filtered and propagated,
+	// we need to do that in order to hear them again.
+
+	if ( strcmp( shootsound, "Weapon_Crossbow.BoltElectrify" ) != 0 &&
+		strcmp( shootsound, "Weapon_PhysCannon.OpenClaws" ) != 0 &&
+		strcmp( shootsound, "Weapon_PhysCannon.Pickup" ) != 0 &&
+		strcmp( shootsound, "Weapon_PhysCannon.Drop" ) != 0 &&
+		strcmp( shootsound, "Weapon_PhysCannon.HoldSound" ) != 0 &&
+		strcmp( shootsound, "Weapon_PhysCannon.TooHeavy" ) != 0 &&
+		strcmp( shootsound, "Weapon_PhysCannon.HoldSound" ) != 0 &&
+		strcmp( shootsound, "WeaponFrag.Roll" ) != 0 &&
+		strcmp( shootsound, "Weapon_RPG.LaserOn" ) != 0 &&
+		strcmp( shootsound, "Weapon_RPG.LaserOff" ) != 0 )
+	{
+		// and remove ourselves from the recipients if the sound is not one of the above
+		soundFilter.RemoveRecipient( static_cast< CBasePlayer* >( GetOwner() ) );
+	}
+
+	EmitSound_t ep;
+	ep.m_nChannel = CHAN_WEAPON;
+	ep.m_pSoundName = shootsound;
+	ep.m_flVolume = 1.0f;
+	ep.m_SoundLevel = SNDLVL_140dB;
+	ep.m_nFlags = SND_NOFLAGS;
+
+	EmitSound(soundFilter, entindex(), ep);
+
+	// BaseClass::WeaponSound( sound_type, soundtime );
 #endif
 }
 

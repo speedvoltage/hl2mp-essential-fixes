@@ -1382,12 +1382,14 @@ void CHL2_Player::StartZooming( void )
 	{
 		m_HL2Local.m_bZooming = true;
 	}
+	ShowViewModel( false );
 }
 
 #ifndef CLIENT_DLL
 void CHL2_Player::DisableSuitZoom()
 {
 	SetSuitZoomActive(false);
+	ShowViewModel( true );
 }
 #endif
 
@@ -1407,6 +1409,7 @@ void CHL2_Player::StopZooming( void )
 		SetDefaultFOV(GetStoredCustomFOV());
 		m_HL2Local.m_bZooming = false;
 	}
+	ShowViewModel( true );
 }
 
 //-----------------------------------------------------------------------------
@@ -1848,31 +1851,10 @@ void CHL2_Player::SuitPower_Update( void )
 	}
 	else if( m_HL2Local.m_bitsActiveDevices )
 	{
+		if ( sv_infinite_aux_power.GetBool() )
+			return;
+
 		float flPowerLoad = m_flSuitPowerLoad;
-
-		if (SuitPower_IsDeviceActive(SuitDeviceSprint))
-		{
-			if (!fabs(GetAbsVelocity().x) && !fabs(GetAbsVelocity().y))
-			{
-				// If player's not moving, don't drain sprint juice.
-				flPowerLoad -= SuitDeviceSprint.GetDeviceDrainRate();
-				// Recharge the aux power if we're not moving.
-				SuitPower_Charge(SUITPOWER_CHARGE_RATE * gpGlobals->frametime);
-			}
-		}
-
-		// if the oxygen cheat is on, also keep charging
-		if (SuitPower_IsDeviceActive(SuitDeviceBreather) && sv_infinite_oxygen.GetBool())
-			SuitPower_Charge(SUITPOWER_CHARGE_RATE * gpGlobals->frametime);
-
-		if( SuitPower_IsDeviceActive(SuitDeviceFlashlight) )
-		{
-			float factor;
-
-			factor = 1.0f / m_flFlashlightPowerDrainScale;
-
-			flPowerLoad -= ( SuitDeviceFlashlight.GetDeviceDrainRate() * (1.0f - factor) );
-		}
 
 		if( !SuitPower_Drain( flPowerLoad * gpGlobals->frametime ) )
 		{
@@ -2693,9 +2675,10 @@ int CHL2_Player::GiveAmmo( int nCount, int nAmmoIndex, bool bSuppressSound)
 		{
 			CBaseCombatWeapon *pWeapon = g_pGameRules->GetNextBestWeapon(this, GetActiveWeapon());
 
-			if (pWeapon && pWeapon->GetPrimaryAmmoType() == nAmmoIndex)
+			if ( pWeapon && pWeapon->GetPrimaryAmmoType() == nAmmoIndex
+				&& (GetActiveWeapon() == NULL || pWeapon->GetWeight() > GetActiveWeapon()->GetWeight()) )
 			{
-				SwitchToNextBestWeapon(GetActiveWeapon());
+				Weapon_Switch(pWeapon);
 			}
 		}
 	}
@@ -3171,6 +3154,9 @@ bool CHL2_Player::Weapon_CanSwitchTo( CBaseCombatWeapon *pWeapon )
 	IClientVehicle *pVehicle = pPlayer->GetVehicle();
 #endif
 	if (pVehicle && !pPlayer->UsingStandardWeaponsInVehicle())
+		return false;
+
+	if ( !pWeapon->HasAnyAmmo() && !GetAmmoCount( pWeapon->m_iPrimaryAmmoType ) )
 		return false;
 
 	if ( !pWeapon->CanDeploy() )

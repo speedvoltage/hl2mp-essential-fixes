@@ -430,6 +430,11 @@ CHL2MPRules::CHL2MPRules()
 
 	iOvertimeLimit = 0;
 
+	bMapChangeOnGoing = false;
+	bMapChange = false;
+	m_flMapChangeTime = 0.0f;
+	Q_strncpy(m_scheduledMapName, "", sizeof(m_scheduledMapName));
+
 #endif
 }
 
@@ -1579,6 +1584,24 @@ void CHL2MPRules::Think( void )
 	HandleNewTargetID();
 	HandleTeamAutobalance();
 	HandleGameOver();
+
+	// TODO: move this to a separate function
+	if (IsMapChangeOnGoing() && IsMapChange())
+	{
+		SetMapChange(false);
+		m_flMapChangeTime = gpGlobals->curtime + 5.0f;
+	}
+
+	if (IsMapChangeOnGoing() && gpGlobals->curtime > m_flMapChangeTime)
+	{
+		SetMapChange(false);
+		SetMapChangeOnGoing(false);
+
+		if (Q_strlen(m_scheduledMapName) > 0)
+		{
+			engine->ServerCommand(UTIL_VarArgs("changelevel %s\n", m_scheduledMapName));
+		}
+	}
 
 	if ( gpGlobals->curtime > m_flBalanceTeamsTime )
 	{

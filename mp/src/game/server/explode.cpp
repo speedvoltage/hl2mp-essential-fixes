@@ -392,6 +392,8 @@ void ExplosionCreate( const Vector &center, const QAngle &angles,
 {
 	char			buf[128];
 
+	nSpawnFlags |= SF_ENVEXPLOSION_NOSOUND;
+
 	CEnvExplosion *pExplosion = (CEnvExplosion*)CBaseEntity::Create( "env_explosion", center, angles, pOwner );
 	Q_snprintf( buf,sizeof(buf), "%3d", magnitude );
 	char *szKeyName = "iMagnitude";
@@ -425,6 +427,17 @@ void ExplosionCreate( const Vector &center, const QAngle &angles,
 	pExplosion->m_iClassIgnore = ignoredClass;
 
 	pExplosion->AcceptInput( "Explode", NULL, NULL, emptyVariant, 0 );
+
+	CBroadcastRecipientFilter soundFilter;
+	EmitSound_t ep;
+	ep.m_nChannel = CHAN_STATIC;
+	ep.m_pSoundName = "BaseExplosionEffect.Sound";
+	ep.m_flVolume = 1.0f; 
+	ep.m_SoundLevel = SNDLVL_140dB; 
+	ep.m_nFlags = SND_NOFLAGS;
+
+	// Emit the sound
+	CBaseEntity::EmitSound(soundFilter, pExplosion->entindex(), ep);
 }
 
 

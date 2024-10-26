@@ -1159,10 +1159,9 @@ static ConCommand Command_Playgamesound( "playgamesound", Playgamesound_f, "Play
 //-----------------------------------------------------------------------------
 void CBaseEntity::EmitSound( const char *soundname, float soundtime /*= 0.0f*/, float *duration /*=NULL*/ )
 {
-	//VPROF( "CBaseEntity::EmitSound" );
 	VPROF_BUDGET( "CBaseEntity::EmitSound", _T( "CBaseEntity::EmitSound" ) );
 
-	CPASAttenuationFilter filter( this, soundname );
+	CBroadcastRecipientFilter filter;
 
 	EmitSound_t params;
 	params.m_pSoundName = soundname;
@@ -1172,6 +1171,7 @@ void CBaseEntity::EmitSound( const char *soundname, float soundtime /*= 0.0f*/, 
 
 	EmitSound( filter, entindex(), params );
 }
+
 
 //-----------------------------------------------------------------------------
 // Purpose:  Non-static override for doing the general case of CPASAttenuationFilter( this ), and EmitSound( filter, entindex(), etc. );

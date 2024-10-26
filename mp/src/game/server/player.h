@@ -751,9 +751,13 @@ public:
 
 	int Get357ZoomLevel() const { return m_i357ZoomLevel; }
 	void Set357ZoomLevel( int level ) { m_i357ZoomLevel = level; }
+	bool Is357ZoomEnabled() const { return m_b357ZoomEnabled; }
+	void Set357ZoomEnabled( bool enabled ) { m_b357ZoomEnabled = enabled; }
 
 	int GetXbowZoomLevel() const { return m_iXbowZoomLevel; }
 	void SetXbowZoomLevel( int level ) { m_iXbowZoomLevel = level; }
+	bool IsXbowZoomEnabled() const { return m_bXbowZoomEnabled; }
+	void SetXbowZoomEnabled( bool enabled ) { m_bXbowZoomEnabled = enabled; }
 
 	bool IsSuitZoomActive() const { return m_bIsSuitZoomActive; }
 	void SetSuitZoomActive( bool state ) { m_bIsSuitZoomActive = state; }
@@ -769,6 +773,11 @@ public:
 
 	bool AreKillSoundsEnabled() const { return m_bKillSoundsEnabled; }
 	void SetKillSoundsEnabled( bool enabled ) { m_bKillSoundsEnabled = enabled; }
+
+	bool IsGagged() const { return m_bIsGagged; }
+	void SetGagged( bool gagged ) { m_bIsGagged = gagged; }
+	bool IsMuted() const { return m_bIsMuted; }
+	void SetMuted( bool muted ) { m_bIsMuted = muted; }
 
 	// trigger_catapult air control
 	void SetAirControlSuppression( float flDuration );
@@ -854,6 +863,8 @@ private:
 
 	int m_i357ZoomLevel;   // .357 weapon zoom level
 	int m_iXbowZoomLevel;  // Crossbow weapon zoom level
+	bool m_b357ZoomEnabled;
+	bool m_bXbowZoomEnabled;
 	bool m_bIsSuitZoomActive;
 	bool m_bWeaponZoomActive;
 	bool m_bHitSoundsEnabled;  // Hit sound toggle
@@ -862,6 +873,10 @@ private:
 	// trigger_catapult air control
 	float m_flAirControlSuppressionTime;  // How long air control is suppressed
 	bool m_bAirControlSuppressed;         // Is air control currently suppressed?
+
+	// Gagged and muted
+	bool m_bIsGagged;
+	bool m_bIsMuted;
 
 public:
 	

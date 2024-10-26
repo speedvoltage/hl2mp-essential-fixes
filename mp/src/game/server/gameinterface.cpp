@@ -85,6 +85,8 @@
 #include "particle_parse.h"
 #ifndef NO_STEAM
 #include "steam/steam_gameserver.h"
+#include "hl2mp_playerscoremanager.h"
+#include "hl2mp/admin/hl2mp_serveradmin.h"
 #endif
 #include "tier3/tier3.h"
 #include "serverbenchmark_base.h"
@@ -967,11 +969,13 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 		pItemSchema->BInitFromDelayedBuffer();
 	}
 #endif // USES_ECON_ITEMS
-
+	CHL2MP_Admin::InitAdminSystem();
 	ResetWindspeed();
 	UpdateChapterRestrictions( pMapName );
 
 	sv_equalizer.SetValue(0);
+	g_PlayerScoreManager.ClearAllScores();
+	DevMsg( "All saved scores cleared\n" );
 
 	if ( IsX360() && !background && (gpGlobals->maxClients == 1) && (g_nCurrentChapterIndex >= 0) )
 	{
@@ -2935,9 +2939,20 @@ void CServerGameClients::ClientDisconnect( edict_t *pEdict )
 
 	CHL2MP_Player* pPlayer = dynamic_cast<CHL2MP_Player*>(CBaseEntity::Instance(pEdict));
 
-	if (pPlayer)
+	if ( pPlayer )
 	{
-		pPlayer->SetFirstTimeSpawned(false);
+		pPlayer->SetFirstTimeSpawned( false );
+
+		CSteamID steamID;
+		if ( pPlayer->GetSteamID( &steamID ) && // get their SteamID
+			( pPlayer->FragCount() != 0 ||
+				pPlayer->DeathCount() != 0 ) ) // no point in saving if both frag and death count == 0
+		{
+			int frags = pPlayer->FragCount();
+			int deaths = pPlayer->DeathCount();
+			g_PlayerScoreManager.SavePlayerScore( steamID, frags, deaths );
+			DevMsg( "Score information saved for player %s1\n", pPlayer->GetPlayerName() );
+		}
 	}
 
 	if ( player )
@@ -2978,6 +2993,7 @@ void CServerGameClients::ClientDisconnect( edict_t *pEdict )
 		// Make sure anything we "own" is simulated by the server from now on
 		player->ClearPlayerSimulationList();
 #endif
+
 		#if defined( TF_DLL )
 			if ( !player->IsFakeClient() )
 			{

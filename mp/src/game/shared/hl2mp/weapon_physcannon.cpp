@@ -2947,7 +2947,7 @@ CSoundPatch *CWeaponPhysCannon::GetMotorSound( void )
 {
 	if ( m_sndMotor == NULL )
 	{
-		CPASAttenuationFilter filter( this );
+		CBroadcastRecipientFilter filter;
 		
 		m_sndMotor = (CSoundEnvelopeController::GetController()).SoundCreate( filter, entindex(), CHAN_STATIC, "Weapon_PhysCannon.HoldSound", ATTN_NORM );
 	}
