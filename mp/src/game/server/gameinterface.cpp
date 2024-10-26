@@ -969,7 +969,10 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 		pItemSchema->BInitFromDelayedBuffer();
 	}
 #endif // USES_ECON_ITEMS
-	CHL2MP_Admin::InitAdminSystem();
+	// requires this launch command, setting a cvar alone will not suffice
+	if ( !CommandLine()->CheckParm( "-noadmin" ) )
+		CHL2MP_Admin::InitAdminSystem();
+
 	ResetWindspeed();
 	UpdateChapterRestrictions( pMapName );
 

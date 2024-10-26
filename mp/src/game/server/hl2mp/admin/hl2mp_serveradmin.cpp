@@ -4,17 +4,20 @@
 #include <KeyValues.h>
 #include "hl2mp_player.h"
 #include "convar.h"
+#include "tier0/icommandline.h"
+
+// always comes last
 #include "tier0/memdbgon.h"
 
 // 10/17/24
-#define SA_VERSION	"1.0.0.5"
+#define SA_VERSION	"1.0.0.9"
 #define SA_POWERED	"Server Binaries"
 CHL2MP_Admin* g_pHL2MPAdmin = NULL;
-
+bool g_bAdminSystem = false;
 // global list of admins
 CUtlVector<CHL2MP_Admin*> g_AdminList;
 
-ConVar sv_showadminpermissions( "sv_showadminpermissions", "1", 0, "If non-zero, a non-root admin will only see the commands they have acces to" );
+ConVar sv_showadminpermissions( "sv_showadminpermissions", "1", 0, "If non-zero, a non-root admin will only see the commands they have access to" );
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor/destructor
@@ -4793,6 +4796,22 @@ void UnbanPlayerCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 void AdminCommand( const CCommand& args )
 {
+	if ( !g_bAdminSystem )
+	{
+		if ( UTIL_IsCommandIssuedByServerAdmin() )
+			Msg( "Admin system disabled by the -noadmin launch command\nRemove launch command and restart the server\n" );
+		else
+		{
+			CBasePlayer* pPlayer = UTIL_GetCommandClient();
+			if ( pPlayer )
+			{
+				UTIL_PrintToClient( pPlayer, CHAT_RED "Admin system disabled by the -noadmin launch command\n" );
+				return;
+			}
+		}
+		return;
+	}
+
 	// get the subcommand
 	const char* subCommand = args.Arg( 1 );
 
@@ -5084,13 +5103,17 @@ void AdminCommand( const CCommand& args )
 	}
 }
 
-ConCommand kickCommand( "sa", AdminCommand, "Kick a player from the server.", FCVAR_NONE );
+ConCommand sa( "sa", AdminCommand, "Admin menu.", FCVAR_NONE );
 
 //-----------------------------------------------------------------------------
 // Purpose: Initialize the admin system (parse the file, add admins, register commands)
 //-----------------------------------------------------------------------------
 void CHL2MP_Admin::InitAdminSystem()
 {
+	if ( !CommandLine()->CheckParm( "-noadmin" ) )
+		return;
+
+	g_bAdminSystem = true;
 	CHL2MP_Admin::ClearAllAdmins();
 
 	// parse admins from the file
@@ -5124,6 +5147,9 @@ void CHL2MP_Admin::InitAdminSystem()
 
 void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 {
+	if ( !g_bAdminSystem )
+		return;
+
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 
 	if ( !p || bufsize <= 0 )

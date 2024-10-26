@@ -39,6 +39,7 @@
 #include "iserver.h"
 #include "hl2mp_cvars.h"
 #include "viewport_panel_names.h"
+#include "tier0/icommandline.h"
 
 #ifdef TF_DLL
 #include "tf_player.h"
@@ -366,53 +367,57 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 		bSenderDead = false;
 	}
 
-	if (sv_silence_chatcmds.GetBool())
+	if ( sv_silence_chatcmds.GetBool() )
 	{
-		if (FStrEq(p, "timeleft") ||
-			FStrEq(p, "!timeleft") ||
-			FStrEq(p, "!e") ||
-			FStrEq(p, "!eq") ||
-			FStrEq(p, "!equalizer") ||
-			FStrEq(p, "nextmap") ||
-			FStrEq(p, "!nextmap") ||
-			FStrEq(p, "!tp") ||
-			FStrEq(p, "!teamplay") ||
-			FStrEq(p, "!fov") ||
-			FStrEq(p, "!mzl") ||
-			FStrEq(p, "!czl") ||
-			FStrEq(p, "!mz") ||
-			FStrEq(p, "!cz") ||
-			FStrEq(p, "!ks") ||
-			FStrEq(p, "!hs") ||
-			FStrEq(p, "!switch") ||
-			FStrEq(p, "!cmds") ||
-			FStrEq(p, "!motd") ||
-			FStrEq(p, "!1") ||
-			FStrEq(p, "!2") ||
-			FStrEq(p, "!3") ||
-			FStrEq(p, "!spec") ||
-			FStrEq(p, "!spectate") ||
-			FStrEq(p, "!comb") ||
-			FStrEq(p, "!combine") ||
-			FStrEq(p, "!blue") ||
-			FStrEq(p, "!reb") ||
-			FStrEq(p, "!rebs") ||
-			FStrEq(p, "!rebels") ||
-			FStrEq(p, "!red") ||
-			FStrEq(p, "!rebel") || 
-			// admin commands
-			FStrEq(p, "/sa") ||
-			FStrEq(p, "/credits") || 
-			FStrEq(p, "/version") || 
-			FStrEq(p, "/help") || 
-			FStrEq(p, "/reloadadmins") )
+		if ( FStrEq( p, "timeleft" ) ||
+			FStrEq( p, "!timeleft" ) ||
+			FStrEq( p, "!e" ) ||
+			FStrEq( p, "!eq" ) ||
+			FStrEq( p, "!equalizer" ) ||
+			FStrEq( p, "nextmap" ) ||
+			FStrEq( p, "!nextmap" ) ||
+			FStrEq( p, "!tp" ) ||
+			FStrEq( p, "!teamplay" ) ||
+			FStrEq( p, "!fov" ) ||
+			FStrEq( p, "!mzl" ) ||
+			FStrEq( p, "!czl" ) ||
+			FStrEq( p, "!mz" ) ||
+			FStrEq( p, "!cz" ) ||
+			FStrEq( p, "!ks" ) ||
+			FStrEq( p, "!hs" ) ||
+			FStrEq( p, "!switch" ) ||
+			FStrEq( p, "!cmds" ) ||
+			FStrEq( p, "!motd" ) ||
+			FStrEq( p, "!1" ) ||
+			FStrEq( p, "!2" ) ||
+			FStrEq( p, "!3" ) ||
+			FStrEq( p, "!spec" ) ||
+			FStrEq( p, "!spectate" ) ||
+			FStrEq( p, "!comb" ) ||
+			FStrEq( p, "!combine" ) ||
+			FStrEq( p, "!blue" ) ||
+			FStrEq( p, "!reb" ) ||
+			FStrEq( p, "!rebs" ) ||
+			FStrEq( p, "!rebels" ) ||
+			FStrEq( p, "!red" ) ||
+			FStrEq( p, "!rebel" ) )
 			return;
 
 		if ( Q_strncmp( p, "!fov", strlen( "!fov" ) ) == 0 ||
 			Q_strncmp( p, "!mzl", strlen( "!mzl" ) ) == 0 ||
-			Q_strncmp( p, "!czl", strlen( "!czl" ) ) == 0 ||
-			// admin commands
-			Q_strncmp( p, "/kick", strlen( "/kick" ) ) == 0 ||
+			Q_strncmp( p, "!czl", strlen( "!czl" ) ) == 0 )
+		{
+			if ( args.ArgC() > 1 )
+			{
+				return;
+			}
+		}
+	}
+
+	// cause checking against a convar doesn't do anything??
+	if ( !CommandLine()->CheckParm( "-noadmin" ) )
+	{
+		if ( Q_strncmp( p, "/kick", strlen( "/kick" ) ) == 0 ||
 			Q_strncmp( p, "/ban", strlen( "/ban" ) ) == 0 ||
 			Q_strncmp( p, "/addban", strlen( "/addban" ) ) == 0 ||
 			Q_strncmp( p, "/unban", strlen( "/unban" ) ) == 0 ||
@@ -431,11 +436,18 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 			Q_strncmp( p, "/exec", strlen( "/exec" ) ) == 0 ||
 			Q_strncmp( p, "/rcon", strlen( "/rcon" ) ) == 0 )
 		{
-			if (args.ArgC() > 1)
+			if ( args.ArgC() > 1 )
 			{
 				return;
 			}
 		}
+
+		if ( FStrEq( p, "/sa" ) ||
+			FStrEq( p, "/credits" ) ||
+			FStrEq( p, "/version" ) ||
+			FStrEq( p, "/help" ) ||
+			FStrEq( p, "/reloadadmins" ) )
+			return;
 	}
 
 	if ( pPlayer->IsGagged() )
