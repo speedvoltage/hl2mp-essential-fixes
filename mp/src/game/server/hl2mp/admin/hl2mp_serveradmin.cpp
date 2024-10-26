@@ -5110,7 +5110,7 @@ ConCommand sa( "sa", AdminCommand, "Admin menu.", FCVAR_NONE );
 //-----------------------------------------------------------------------------
 void CHL2MP_Admin::InitAdminSystem()
 {
-	if ( !CommandLine()->CheckParm( "-noadmin" ) )
+	if ( CommandLine()->CheckParm( "-noadmin" ) )
 		return;
 
 	g_bAdminSystem = true;
