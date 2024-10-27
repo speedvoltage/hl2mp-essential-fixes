@@ -971,6 +971,7 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 #endif // USES_ECON_ITEMS
 	// requires this launch command, setting a cvar alone will not suffice
 	if ( !CommandLine()->CheckParm( "-noadmin" ) )
+	if ( !CommandLine()->CheckParm( "-noadmin" ) ) // don't use the admin system if this is set
 		CHL2MP_Admin::InitAdminSystem();
 
 	ResetWindspeed();
