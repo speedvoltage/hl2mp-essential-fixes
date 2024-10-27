@@ -867,10 +867,10 @@ bool CHL2MP_Player::LoadPlayerSettings()
 	m_iFOVServer = playerSettings->GetInt("FOVServer", m_iFOVServer);
 	Set357ZoomLevel(playerSettings->GetInt(".357 Zoom Level", Get357ZoomLevel()));
 	SetXbowZoomLevel(playerSettings->GetInt("Xbow Zoom Level", GetXbowZoomLevel()));
-
-	// Load hit sound and kill sound settings using GetInt(), with default values of 1 (enabled)
-	SetHitSoundsEnabled(playerSettings->GetBool("HitSoundsEnabled", AreHitSoundsEnabled()));  // Default to enabled
-	SetKillSoundsEnabled(playerSettings->GetBool("KillSoundsEnabled", AreKillSoundsEnabled())); // Default to enabled
+	SetHitSoundsEnabled(playerSettings->GetBool("HitSoundsEnabled", AreHitSoundsEnabled()));
+	SetKillSoundsEnabled(playerSettings->GetBool("KillSoundsEnabled", AreKillSoundsEnabled()));
+	Set357ZoomEnabled( playerSettings->GetBool( ".357 Zoom Enabled", Is357ZoomEnabled() ) );
+	SetXbowZoomEnabled( playerSettings->GetBool( "Crossbow Zoom Enabled", IsXbowZoomEnabled() ) );
 
 	kv->deleteThis();
 	return true;
@@ -1050,15 +1050,21 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 
 	if ( Q_stricmp( p, "!mz" ) == 0 )
 	{
+		if (IsWeaponZoomActive())
+		{
+			UTIL_PrintToClient(this, CHAT_CONTEXT "Please unzoom first.");
+			return;
+		}
+
 		bool bMagZoomEnabled = !Is357ZoomEnabled();
 		Set357ZoomEnabled( bMagZoomEnabled );
 		if ( bMagZoomEnabled )
 		{
-			UTIL_PrintToClient( this, CHAT_CONTEXT "357 zooming " CHAT_WHITE "enabled" );
+			UTIL_PrintToClient( this, CHAT_CONTEXT ".357 zooming " CHAT_WHITE "enabled" );
 		}
 		else
 		{
-			UTIL_PrintToClient( this, CHAT_CONTEXT "357 zooming " CHAT_WHITE "disabled" );
+			UTIL_PrintToClient( this, CHAT_CONTEXT ".357 zooming " CHAT_WHITE "disabled" );
 		}
 		SavePlayerSettings();
 		return;
@@ -1066,6 +1072,12 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 
 	if ( Q_stricmp( p, "!cz" ) == 0 )
 	{
+		if (IsWeaponZoomActive())
+		{
+			UTIL_PrintToClient(this, CHAT_CONTEXT "Please unzoom first.");
+			return;
+		}
+
 		bool bXbowZoomEnabled = !IsXbowZoomEnabled();
 		SetXbowZoomEnabled( bXbowZoomEnabled );
 		if ( bXbowZoomEnabled )
