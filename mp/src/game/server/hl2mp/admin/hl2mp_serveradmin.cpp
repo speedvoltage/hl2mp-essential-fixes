@@ -4372,7 +4372,33 @@ static void BanPlayerCommand( const CCommand& args )
 	}
 
 	const char* partialName = args.Arg( 2 );
-	int banTime = atoi( args.Arg( 3 ) );
+	const char* timeArg = args.Arg(3);
+
+	// only digits to avoid accidental permabans
+	bool isValidTime = true;
+	for (int i = 0; i < Q_strlen(timeArg); ++i) 
+	{
+		if (!isdigit(timeArg[i])) 
+		{
+			isValidTime = false;
+			break;
+		}
+	}
+
+	if (!isValidTime) 
+	{
+		if (isServerConsole) 
+		{
+			Msg("Invalid ban time provided.\n");
+		} 
+		else 
+		{
+			UTIL_PrintToClient(pPlayer, CHAT_RED "Invalid ban time provided.\n");
+		}
+		return;
+	}
+
+	int banTime = atoi(timeArg);
 
 	if ( banTime < 0 )
 	{

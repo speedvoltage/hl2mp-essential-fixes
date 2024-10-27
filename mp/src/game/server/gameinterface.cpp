@@ -969,8 +969,7 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 		pItemSchema->BInitFromDelayedBuffer();
 	}
 #endif // USES_ECON_ITEMS
-	// requires this launch command, setting a cvar alone will not suffice
-	if ( !CommandLine()->CheckParm( "-noadmin" ) )
+	// requires this launch command
 	if ( !CommandLine()->CheckParm( "-noadmin" ) ) // don't use the admin system if this is set
 		CHL2MP_Admin::InitAdminSystem();
 
