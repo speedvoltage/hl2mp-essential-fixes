@@ -5,6 +5,7 @@
 #include "hl2mp_player.h"
 #include "convar.h"
 #include "tier0/icommandline.h"
+#include <time.h>
 
 // always comes last
 #include "tier0/memdbgon.h"
@@ -16,6 +17,7 @@ CHL2MP_Admin* g_pHL2MPAdmin = NULL;
 bool g_bAdminSystem = false;
 // global list of admins
 CUtlVector<CHL2MP_Admin*> g_AdminList;
+FileHandle_t g_AdminLogFile = FILESYSTEM_INVALID_HANDLE;
 
 ConVar sv_showadminpermissions( "sv_showadminpermissions", "1", 0, "If non-zero, a non-root admin will only see the commands they have access to" );
 
@@ -117,7 +119,7 @@ CHL2MP_Admin* CHL2MP_Admin::GetAdmin( const char* steamID )
 //			directly get the SteamID of an active player on the
 //			the server using engine->GetPlayerNetworkIDString( edict )
 //-----------------------------------------------------------------------------
-bool IsSteamIDAdmin( const char* steamID )
+static bool IsSteamIDAdmin( const char* steamID )
 {
 	KeyValues* kv = new KeyValues( "Admins" );
 
@@ -194,7 +196,7 @@ void CHL2MP_Admin::ClearAllAdmins()
 //-----------------------------------------------------------------------------
 // Purpose: Admin say
 //-----------------------------------------------------------------------------
-void AdminSay( const CCommand& args )
+static void AdminSay( const CCommand& args )
 {
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();
@@ -252,7 +254,7 @@ void AdminSay( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Admin center say
 //-----------------------------------------------------------------------------
-void AdminCSay( const CCommand& args )
+static void AdminCSay( const CCommand& args )
 {
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();
@@ -310,7 +312,7 @@ void AdminCSay( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Admin chat (only other admins can see those messages)
 //-----------------------------------------------------------------------------
-void AdminChat( const CCommand& args )
+static void AdminChat( const CCommand& args )
 {
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();
@@ -375,7 +377,7 @@ void AdminChat( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: private messages
 //-----------------------------------------------------------------------------
-void AdminPSay( const CCommand& args )
+static void AdminPSay( const CCommand& args )
 {
 	CBasePlayer* pSender = UTIL_GetCommandClient();
 	bool isServerConsole = !pSender && UTIL_IsCommandIssuedByServerAdmin();
@@ -503,7 +505,7 @@ void AdminPSay( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Reloads the admins list
 //-----------------------------------------------------------------------------
-void ReloadAdminsCommand( const CCommand& args )
+static void ReloadAdminsCommand( const CCommand& args )
 {
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();
@@ -538,7 +540,7 @@ void ReloadAdminsCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Help commands
 //-----------------------------------------------------------------------------
-void PrintAdminHelp( CBasePlayer* pPlayer )
+static void PrintAdminHelp( CBasePlayer* pPlayer )
 {
 	if (!sv_showadminpermissions.GetBool() || CHL2MP_Admin::IsPlayerAdmin( pPlayer, "z" ) )
 	{
@@ -642,7 +644,7 @@ void PrintAdminHelp( CBasePlayer* pPlayer )
 //-----------------------------------------------------------------------------
 // Purpose: Display version
 //-----------------------------------------------------------------------------
-void VersionCommand( const CCommand& args )
+static void VersionCommand( const CCommand& args )
 {
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();
@@ -670,7 +672,7 @@ void VersionCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Static function to display credits
 //-----------------------------------------------------------------------------
-void CreditsCommand( const CCommand& args )
+static void CreditsCommand( const CCommand& args )
 {
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();
@@ -730,7 +732,7 @@ void CreditsCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Help instructions for the admin interface
 //-----------------------------------------------------------------------------
-void HelpPlayerCommand( const CCommand& args )
+static void HelpPlayerCommand( const CCommand& args )
 {
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();
@@ -909,7 +911,7 @@ bool CHL2MP_Admin::FindSpecialTargetGroup( const char* targetSpecifier )
 //-----------------------------------------------------------------------------
 // Purpose: Check for any human players
 //-----------------------------------------------------------------------------
-bool ArePlayersInGame()
+static bool ArePlayersInGame()
 {
 	// mainly for the change level admin command
 	// if no player connected to the server,
@@ -931,7 +933,7 @@ bool ArePlayersInGame()
 //-----------------------------------------------------------------------------
 // Purpose: Execute files
 //-----------------------------------------------------------------------------
-void ExecFileCommand( const CCommand& args )
+static void ExecFileCommand( const CCommand& args )
 {
 	CBasePlayer* pAdmin = UTIL_GetCommandClient();
 	bool isServerConsole = !pAdmin && UTIL_IsCommandIssuedByServerAdmin();
@@ -978,7 +980,7 @@ void ExecFileCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Toggle noclip
 //-----------------------------------------------------------------------------
-void ToggleNoClipForPlayer( CBasePlayer* pTarget, CBasePlayer* pAdmin )
+static void ToggleNoClipForPlayer( CBasePlayer* pTarget, CBasePlayer* pAdmin )
 {
 	if ( pTarget->GetMoveType() == MOVETYPE_NOCLIP )
 	{
@@ -990,7 +992,7 @@ void ToggleNoClipForPlayer( CBasePlayer* pTarget, CBasePlayer* pAdmin )
 	}
 }
 
-void NoClipPlayerCommand( const CCommand& args )
+static void NoClipPlayerCommand( const CCommand& args )
 {
 	CBasePlayer* pAdmin = UTIL_GetCommandClient();
 	bool isServerConsole = !pAdmin && UTIL_IsCommandIssuedByServerAdmin();
@@ -1262,7 +1264,7 @@ void NoClipPlayerCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Teleport to a player
 //-----------------------------------------------------------------------------
-void GotoPlayerCommand(const CCommand& args)
+static void GotoPlayerCommand(const CCommand& args)
 {
 	CBasePlayer* pAdmin = UTIL_GetCommandClient();
 
@@ -1376,7 +1378,7 @@ void GotoPlayerCommand(const CCommand& args)
 //-----------------------------------------------------------------------------
 // Purpose: Teleport players to where an admin is aiming
 //-----------------------------------------------------------------------------
-void BringPlayerCommand(const CCommand& args)
+static void BringPlayerCommand(const CCommand& args)
 {
 	CBasePlayer* pAdmin = UTIL_GetCommandClient();
 
@@ -1493,7 +1495,7 @@ void BringPlayerCommand(const CCommand& args)
 //-----------------------------------------------------------------------------
 // Purpose: Change a player's team
 //-----------------------------------------------------------------------------
-void TeamPlayerCommand( const CCommand& args )
+static void TeamPlayerCommand( const CCommand& args )
 {
 	CBasePlayer* pAdmin = UTIL_GetCommandClient();
 	bool isServerConsole = !pAdmin && UTIL_IsCommandIssuedByServerAdmin();
@@ -1810,7 +1812,7 @@ void TeamPlayerCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Unmute a player
 //-----------------------------------------------------------------------------
-void UnMutePlayerCommand( const CCommand& args )
+static void UnMutePlayerCommand( const CCommand& args )
 {
 	CBasePlayer* pAdmin = UTIL_GetCommandClient();
 	bool isServerConsole = !pAdmin && UTIL_IsCommandIssuedByServerAdmin();
@@ -2088,7 +2090,7 @@ void UnMutePlayerCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Mute player
 //-----------------------------------------------------------------------------
-void MutePlayerCommand( const CCommand& args )
+static void MutePlayerCommand( const CCommand& args )
 {
 	CBasePlayer* pAdmin = UTIL_GetCommandClient();
 	bool isServerConsole = !pAdmin && UTIL_IsCommandIssuedByServerAdmin();
@@ -2365,7 +2367,7 @@ void MutePlayerCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Ungag player
 //-----------------------------------------------------------------------------
-void UnGagPlayerCommand( const CCommand& args )
+static void UnGagPlayerCommand( const CCommand& args )
 {
 	CBasePlayer* pAdmin = UTIL_GetCommandClient();
 	bool isServerConsole = !pAdmin && UTIL_IsCommandIssuedByServerAdmin();
@@ -2642,7 +2644,7 @@ void UnGagPlayerCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Gag player
 //-----------------------------------------------------------------------------
-void GagPlayerCommand( const CCommand& args )
+static void GagPlayerCommand( const CCommand& args )
 {
 	CBasePlayer* pAdmin = UTIL_GetCommandClient();
 	bool isServerConsole = !pAdmin && UTIL_IsCommandIssuedByServerAdmin();
@@ -2919,7 +2921,7 @@ void GagPlayerCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Change map
 //-----------------------------------------------------------------------------
-void MapCommand( const CCommand& args )
+static void MapCommand( const CCommand& args )
 {
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();  // Check if command issued by server console
@@ -3083,7 +3085,7 @@ void MapCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Rcon
 //-----------------------------------------------------------------------------
-void RconCommand( const CCommand& args )
+static void RconCommand( const CCommand& args )
 {
 	// For rcon, we are only making this command available to players in-game 
 	// (meaning it will not do anything if used within the server console directly) 
@@ -3198,7 +3200,7 @@ void RconCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Cvar
 //-----------------------------------------------------------------------------
-void CVarCommand( const CCommand& args )
+static void CVarCommand( const CCommand& args )
 {
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();
@@ -3379,7 +3381,7 @@ void CVarCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: SLap player (+ damage)
 //-----------------------------------------------------------------------------
-void SlapPlayerCommand( const CCommand& args )
+static void SlapPlayerCommand( const CCommand& args )
 {
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();
@@ -3756,7 +3758,7 @@ void SlapPlayerCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Slay player
 //-----------------------------------------------------------------------------
-void SlayPlayerCommand( const CCommand& args )
+static void SlayPlayerCommand( const CCommand& args )
 {
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();
@@ -4034,7 +4036,7 @@ void SlayPlayerCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Kick player
 //-----------------------------------------------------------------------------
-void KickPlayerCommand( const CCommand& args )
+static void KickPlayerCommand( const CCommand& args )
 {
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();
@@ -4339,7 +4341,7 @@ void KickPlayerCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: bans a player
 //-----------------------------------------------------------------------------
-void BanPlayerCommand( const CCommand& args )
+static void BanPlayerCommand( const CCommand& args )
 {
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();
@@ -4566,6 +4568,17 @@ void BanPlayerCommand( const CCommand& args )
 	const static char defaultBanMsg[ 128 ] = "You have been banned from this server";
 	const static char defaultPermaBanMsg[ 128 ] = "You have been permanently banned from this server";
 
+	// LOGGING ONLY: not very clean, sorry
+	CUtlString banDuration;
+	if (banTime == 0) 
+	{
+		banDuration = "permanently";
+	} 
+	else 
+	{
+		banDuration = UTIL_VarArgs("for %d minute%s", banTime, banTime > 1 ? "s" : "");
+	}
+
 	// handle banning multiple players (target group)
 	if ( targetPlayers.Count() > 0 )
 	{
@@ -4757,11 +4770,25 @@ void BanPlayerCommand( const CCommand& args )
 				{
 					UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_ADMIN "Admin " CHAT_DEFAULT "%s " CHAT_ADMIN "banned " CHAT_DEFAULT "%s " CHAT_ADMIN "for " CHAT_DEFAULT "%d minute%s " CHAT_SPEC "(%s).\n",
 						pPlayer->GetPlayerName(), pTarget->GetPlayerName(), banTime, banTime > 1 ? "s" : "", reason.Get() ) );
+
+					CHL2MP_Admin::LogAction(
+						pPlayer,
+						pTarget,
+						"banned",
+						UTIL_VarArgs("%s (Reason: %s)", banDuration.Get(), reason.Get())
+					);
 				}
 				else
 				{
 					UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_ADMIN "Admin " CHAT_DEFAULT "%s " CHAT_ADMIN "banned " CHAT_DEFAULT "%s " CHAT_ADMIN "for " CHAT_DEFAULT "%d minute%s.\n",
 						pPlayer->GetPlayerName(), pTarget->GetPlayerName(), banTime, banTime > 1 ? "s" : "" ) );
+
+					CHL2MP_Admin::LogAction(
+						pPlayer,
+						pTarget,
+						"banned",
+						banDuration.Get()
+					);
 				}
 			}
 		}
@@ -4782,7 +4809,7 @@ void BanPlayerCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: adds a SteamID3 to the banned list
 //-----------------------------------------------------------------------------
-void AddBanCommand( const CCommand& args )
+static void AddBanCommand( const CCommand& args )
 {
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();
@@ -4996,7 +5023,7 @@ void AddBanCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: removes a ban from the banned user list
 //-----------------------------------------------------------------------------
-void UnbanPlayerCommand( const CCommand& args )
+static void UnbanPlayerCommand( const CCommand& args )
 {
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();
@@ -5111,7 +5138,7 @@ void UnbanPlayerCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Show all admin commands via "sa" main command
 //-----------------------------------------------------------------------------
-void AdminCommand( const CCommand& args )
+static void AdminCommand( const CCommand& args )
 {
 	if ( !g_bAdminSystem )
 	{
@@ -5504,6 +5531,29 @@ void CHL2MP_Admin::InitAdminSystem()
 
 	kv->deleteThis();
 	DevMsg( "Admin list loaded from admins.txt.\n" );
+
+	if (!filesystem->IsDirectory("cfg/admin/logs", "GAME"))
+	{
+		filesystem->CreateDirHierarchy("cfg/admin/logs", "GAME");
+	}
+
+	char date[9];
+	time_t now = time(0);
+	strftime(date, sizeof(date), "%Y%m%d", localtime(&now));
+
+	char logFileName[256];
+	Q_snprintf(logFileName, sizeof(logFileName), "cfg/admin/logs/ADMINLOG_%s.txt", date);
+
+	g_AdminLogFile = filesystem->Open(logFileName, "a+", "GAME");
+	if (!g_AdminLogFile)
+	{
+		Msg("Error: Unable to create admin log file.\n");
+		g_bAdminSystem = false;
+	}
+	else
+	{
+		Msg("Admin log initialized: %s\n", logFileName);
+	}
 }
 
 void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
@@ -5923,4 +5973,49 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 	}
+}
+
+void CHL2MP_Admin::LogAction(CBasePlayer* pAdmin, CBasePlayer* pTarget, const char* action, const char* details)
+{
+	if (g_AdminLogFile == FILESYSTEM_INVALID_HANDLE)
+		return;
+
+	time_t now = time(0);
+	struct tm* localTime = localtime(&now);
+	char dateString[11];
+	char timeString[9];
+	strftime(dateString, sizeof(dateString), "%Y/%m/%d", localTime);
+	strftime(timeString, sizeof(timeString), "%H:%M:%S", localTime);
+
+	const char* mapName = STRING(gpGlobals->mapname);
+
+	const char* adminName = pAdmin ? pAdmin->GetPlayerName() : "Console";
+	const char* adminSteamID = pAdmin ? engine->GetPlayerNetworkIDString(pAdmin->edict()) : "Console";
+	const char* targetName = pTarget ? pTarget->GetPlayerName() : "";
+	const char* targetSteamID = pTarget ? engine->GetPlayerNetworkIDString(pTarget->edict()) : "";
+
+	CUtlString logEntry;
+	if (pTarget)
+	{
+		if (Q_strlen(details) > 0)
+		{
+			logEntry.Format("[%s] %s @ %s => Admin %s <%s> %s %s <%s> %s\n",
+				mapName, dateString, timeString, adminName, adminSteamID,
+				action, targetName, targetSteamID, details);
+		}
+		else
+		{
+			logEntry.Format("[%s] %s @ %s => Admin %s <%s> %s %s <%s>\n",
+				mapName, dateString, timeString, adminName, adminSteamID,
+				action, targetName, targetSteamID);
+		}
+	}
+	else
+	{
+		logEntry.Format("[%s] %s @ %s => Admin %s <%s> %s\n",
+			mapName, dateString, timeString, adminName, adminSteamID, action);
+	}
+
+	filesystem->FPrintf(g_AdminLogFile, "%s", logEntry.Get());
+	filesystem->Flush(g_AdminLogFile);
 }
