@@ -434,7 +434,11 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 			Q_strncmp( p, "/map", strlen( "/map" ) ) == 0 ||
 			Q_strncmp( p, "/cvar", strlen( "/cvar" ) ) == 0 ||
 			Q_strncmp( p, "/exec", strlen( "/exec" ) ) == 0 ||
-			Q_strncmp( p, "/rcon", strlen( "/rcon" ) ) == 0 )
+			Q_strncmp( p, "/rcon", strlen( "/rcon" ) ) == 0 ||
+			Q_strncmp( p, "/say", strlen( "/say" ) ) == 0 || 
+			Q_strncmp( p, "/csay", strlen( "/csay" ) ) == 0 || 
+			Q_strncmp( p, "/psay", strlen( "/psay" ) ) == 0 ||
+			Q_strncmp( p, "/chat", strlen( "/chat" ) ) == 0)
 		{
 			if ( args.ArgC() > 1 )
 			{

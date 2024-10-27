@@ -192,6 +192,315 @@ void CHL2MP_Admin::ClearAllAdmins()
 }
 
 //-----------------------------------------------------------------------------
+// Purpose: Admin say
+//-----------------------------------------------------------------------------
+void AdminSay( const CCommand& args )
+{
+	CBasePlayer* pPlayer = UTIL_GetCommandClient();
+	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();
+
+	// only by a player or server console!!!
+	if ( !pPlayer && !isServerConsole )
+	{
+		Msg( "Command must be issued by a player or the server console.\n" );
+		return;
+	}
+
+	// check permission
+	if ( pPlayer && !CHL2MP_Admin::IsPlayerAdmin( pPlayer, "j" ) )
+	{
+		UTIL_PrintToClient( pPlayer, CHAT_ADMIN "You do not have permission to use this command.\n" );
+		return;
+	}
+
+	// ensure there's a message to send
+	if ( args.ArgC() < 3 )
+	{
+		if ( isServerConsole )
+		{
+			Msg( "Usage: sa say <message>\n" );
+		}
+		else
+		{
+			UTIL_PrintToClient( pPlayer, CHAT_ADMIN "Usage: " CHAT_ADMIN_LIGHT "sa say <message>\n" );
+		}
+		return;
+	}
+
+	// get the message text
+	CUtlString messageText;
+	for ( int i = 2; i < args.ArgC(); ++i )
+	{
+		messageText.Append( args[ i ] );
+		if ( i < args.ArgC() - 1 )
+		{
+			messageText.Append( " " );
+		}
+	}
+
+	// format and print the message
+	if ( isServerConsole )
+	{
+		UTIL_PrintToAllClients( UTIL_VarArgs( "\x04(ADMIN) Console: \x01%s\n", messageText.Get() ) );
+	}
+	else
+	{
+		UTIL_PrintToAllClients( UTIL_VarArgs( "\x04(ADMIN) %s: \x01%s\n", pPlayer->GetPlayerName(), messageText.Get() ) );
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Admin center say
+//-----------------------------------------------------------------------------
+void AdminCSay( const CCommand& args )
+{
+	CBasePlayer* pPlayer = UTIL_GetCommandClient();
+	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();
+
+	// only by a player or server console!!!
+	if ( !pPlayer && !isServerConsole )
+	{
+		Msg( "Command must be issued by a player or the server console.\n" );
+		return;
+	}
+
+	// check permission
+	if ( pPlayer && !CHL2MP_Admin::IsPlayerAdmin( pPlayer, "j" ) )
+	{
+		UTIL_PrintToClient( pPlayer, CHAT_ADMIN "You do not have permission to use this command.\n" );
+		return;
+	}
+
+	// ensure there's a message to send
+	if ( args.ArgC() < 3 )
+	{
+		if ( isServerConsole )
+		{
+			Msg( "Usage: sa csay <message>\n" );
+		}
+		else
+		{
+			UTIL_PrintToClient( pPlayer, CHAT_ADMIN "Usage: " CHAT_ADMIN_LIGHT "sa csay <message>\n" );
+		}
+		return;
+	}
+
+	// get the message text
+	CUtlString messageText;
+	for ( int i = 2; i < args.ArgC(); ++i )
+	{
+		messageText.Append( args[ i ] );
+		if ( i < args.ArgC() - 1 )
+		{
+			messageText.Append( " " );
+		}
+	}
+
+	// format and print the message
+	if ( isServerConsole )
+	{
+		UTIL_ClientPrintAll( HUD_PRINTCENTER, UTIL_VarArgs( "CONSOLE: %s\n", messageText.Get() ) );
+	}
+	else
+	{
+		UTIL_ClientPrintAll( HUD_PRINTCENTER, UTIL_VarArgs( "%s: %s\n", pPlayer->GetPlayerName(), messageText.Get() ) );
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Admin chat (only other admins can see those messages)
+//-----------------------------------------------------------------------------
+void AdminChat( const CCommand& args )
+{
+	CBasePlayer* pPlayer = UTIL_GetCommandClient();
+	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();
+
+	if ( !pPlayer && !isServerConsole )
+	{
+		Msg( "Command must be issued by a player or the server console.\n" );
+		return;
+	}
+
+	if ( pPlayer && !CHL2MP_Admin::IsPlayerAdmin( pPlayer, "j" ) )
+	{
+		UTIL_PrintToClient( pPlayer, CHAT_ADMIN "You do not have permission to use this command.\n" );
+		return;
+	}
+
+	if ( args.ArgC() < 3 )
+	{
+		if ( isServerConsole )
+		{
+			Msg( "Usage: sa chat <message>\n" );
+		}
+		else
+		{
+			UTIL_PrintToClient( pPlayer, CHAT_ADMIN "Usage: " CHAT_ADMIN_LIGHT "sa chat <message>\n" );
+		}
+		return;
+	}
+
+	CUtlString messageText;
+	for ( int i = 2; i < args.ArgC(); ++i )
+	{
+		messageText.Append( args[ i ] );
+		if ( i < args.ArgC() - 1 )
+		{
+			messageText.Append( " " );
+		}
+	}
+
+	CUtlString formattedMessage;
+	if ( isServerConsole )
+	{
+		formattedMessage = UTIL_VarArgs( "\x04(Admin Chat) Console: \x01%s\n", messageText.Get() );
+	}
+	else
+	{
+		formattedMessage = UTIL_VarArgs( "\x04(Admin Chat) %s: \x01%s\n", pPlayer->GetPlayerName(), messageText.Get() );
+	}
+
+	// send to admins only
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBasePlayer* pLoopPlayer = UTIL_PlayerByIndex( i );
+		// "b" is minimum admin flag for visibility, which is what any admin should have
+		if ( pLoopPlayer && CHL2MP_Admin::IsPlayerAdmin( pLoopPlayer, "b" ) )
+		{
+			UTIL_PrintToClient( pLoopPlayer, formattedMessage.Get() );
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: private messages
+//-----------------------------------------------------------------------------
+void AdminPSay( const CCommand& args )
+{
+	CBasePlayer* pSender = UTIL_GetCommandClient();
+	bool isServerConsole = !pSender && UTIL_IsCommandIssuedByServerAdmin();
+
+	if ( !pSender && !isServerConsole )
+	{
+		Msg( "Command must be issued by a player or the server console.\n" );
+		return;
+	}
+
+	if ( pSender && !CHL2MP_Admin::IsPlayerAdmin( pSender, "j" ) )
+	{
+		UTIL_PrintToClient( pSender, CHAT_ADMIN "You do not have permission to use this command.\n" );
+		return;
+	}
+
+	if ( args.ArgC() < 4 )
+	{
+		if ( isServerConsole )
+		{
+			Msg( "Usage: sa psay <name|#userID> <message>\n" );
+		}
+		else
+		{
+			UTIL_PrintToClient( pSender, CHAT_ADMIN "Usage: " CHAT_ADMIN_LIGHT "sa psay <name|#userID> <message>\n" );
+		}
+		return;
+	}
+
+	const char* targetPlayerInput = args.Arg( 2 );
+	CBasePlayer* pTarget = nullptr;
+
+	if ( targetPlayerInput[ 0 ] == '#' )
+	{
+		int userID = atoi( &targetPlayerInput[ 1 ] );
+		if ( userID > 0 )
+		{
+			for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+			{
+				CBasePlayer* pLoopPlayer = UTIL_PlayerByIndex( i );
+				if ( pLoopPlayer && pLoopPlayer->GetUserID() == userID )
+				{
+					pTarget = pLoopPlayer;
+					break;
+				}
+			}
+
+			if ( !pTarget )
+			{
+				UTIL_PrintToClient( pSender, CHAT_RED "No player found with that UserID.\n" );
+				return;
+			}
+		}
+		else
+		{
+			UTIL_PrintToClient( pSender, CHAT_RED "Invalid UserID provided.\n" );
+			return;
+		}
+	}
+	else
+	{
+		CUtlVector<CBasePlayer*> matchingPlayers;
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			CBasePlayer* pLoopPlayer = UTIL_PlayerByIndex( i );
+			if ( pLoopPlayer && Q_stristr( pLoopPlayer->GetPlayerName(), targetPlayerInput ) )
+			{
+				matchingPlayers.AddToTail( pLoopPlayer );
+			}
+		}
+
+		if ( matchingPlayers.Count() == 0 )
+		{
+			UTIL_PrintToClient( pSender, CHAT_RED "No players found matching that name.\n" );
+			return;
+		}
+		else if ( matchingPlayers.Count() > 1 )
+		{
+			UTIL_PrintToClient( pSender, CHAT_ADMIN "Multiple players match that partial name:\n" );
+			for ( int i = 0; i < matchingPlayers.Count(); i++ )
+			{
+				UTIL_PrintToClient( pSender, UTIL_VarArgs( CHAT_ADMIN_LIGHT "%s\n", matchingPlayers[ i ]->GetPlayerName() ) );
+			}
+			return;
+		}
+
+		pTarget = matchingPlayers[ 0 ];
+	}
+
+	CUtlString messageText;
+	for ( int i = 3; i < args.ArgC(); ++i )
+	{
+		messageText.Append( args[ i ] );
+		if ( i < args.ArgC() - 1 )
+		{
+			messageText.Append( " " );
+		}
+	}
+
+	CUtlString formattedMessage;
+	if ( isServerConsole )
+	{
+		formattedMessage = UTIL_VarArgs( "\x04[PRIVATE] Console: \x01%s\n", messageText.Get() );
+	}
+	else
+	{
+		formattedMessage = UTIL_VarArgs( "\x04[PRIVATE] %s: \x01%s\n", pSender->GetPlayerName(), messageText.Get() );
+	}
+
+	UTIL_PrintToClient( pTarget, formattedMessage.Get() );
+
+	if ( pTarget != pSender )
+	{
+		if ( isServerConsole )
+		{
+			Msg( "Private message sent to %s: %s\n", pTarget->GetPlayerName(), messageText.Get() );
+		}
+		else
+		{
+			UTIL_PrintToClient( pSender, UTIL_VarArgs( "\x04[PRIVATE] %s: \x01%s\n", pSender->GetPlayerName(), messageText.Get() ) );
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
 // Purpose: Reloads the admins list
 //-----------------------------------------------------------------------------
 void ReloadAdminsCommand( const CCommand& args )
@@ -231,10 +540,14 @@ void ReloadAdminsCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 void PrintAdminHelp( CBasePlayer* pPlayer )
 {
-	if (!sv_showadminpermissions.GetBool() )
+	if (!sv_showadminpermissions.GetBool() || CHL2MP_Admin::IsPlayerAdmin( pPlayer, "z" ) )
 	{
 		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "[Server Admin] Usage: sa <command> [argument]\n" );
 		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "===== Admin Commands =====\n" );
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "  say <message> -> Sends an admin formatted message to all players in the chat\n" );
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "  csay <message> -> Sends a centered message to all players\n" );
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "  psay <name|#userID> <message> -> Sends a private message to a player\n" );
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "  chat <message> -> Sends a chat message to connected admins only\n" );
 		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "  kick <name|#userID> [reason] -> Kick a player\n" );
 		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "  ban <name|#userID> <time> [reason] -> Ban a player\n" );
 		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "  addban <time> <SteamID3> [reason] -> Add a manual ban to banned_user.cfg\n" );
@@ -310,6 +623,10 @@ void PrintAdminHelp( CBasePlayer* pPlayer )
 				ClientPrint( pPlayer, HUD_PRINTCONSOLE, "  ungag <name|#userID> -> Ungag a player\n" );
 				ClientPrint( pPlayer, HUD_PRINTCONSOLE, "  mute <name|#userID> -> Mute a player\n" );
 				ClientPrint( pPlayer, HUD_PRINTCONSOLE, "  unmute <name|#userID> -> Unmute a player\n" );
+				ClientPrint( pPlayer, HUD_PRINTCONSOLE, "  say <message> -> Sends an admin formatted message to all players in the chat\n" );
+				ClientPrint( pPlayer, HUD_PRINTCONSOLE, "  csay <message> -> Sends a centered message to all players\n" );
+				ClientPrint( pPlayer, HUD_PRINTCONSOLE, "  psay <name|#userID> <message> -> Sends a private message to a player\n" );
+				ClientPrint( pPlayer, HUD_PRINTCONSOLE, "  chat <message> -> Sends a chat message to connected admins only\n" );
 			}
 
 			/*k permissions for voting later*/
@@ -4820,6 +5137,26 @@ void AdminCommand( const CCommand& args )
 	/****************************************/
 	if ( UTIL_IsCommandIssuedByServerAdmin() )
 	{
+		if ( Q_stricmp( subCommand, "say" ) == 0 )
+		{
+			AdminSay( args );
+			return;
+		}
+		if ( Q_stricmp( subCommand, "csay" ) == 0 )
+		{
+			AdminCSay( args );
+			return;
+		}
+		if ( Q_stricmp( subCommand, "chat" ) == 0 )
+		{
+			AdminChat( args );
+			return;
+		}
+		if ( Q_stricmp( subCommand, "psay" ) == 0 )
+		{
+			AdminPSay( args );
+			return;
+		}
 		if ( Q_stricmp( subCommand, "kick" ) == 0 )
 		{
 			KickPlayerCommand( args );
@@ -4936,6 +5273,10 @@ void AdminCommand( const CCommand& args )
 
 		Msg( "[Server Admin] Usage: sa <command> [argument]\n" );
 		Msg( "===== Root Commands =====\n" );
+		Msg( "    say <message> -> Sends an admin formatted message to all players in the chat\n" );
+		Msg( "    csay <message> -> Sends a centered message to all players\n" );
+		Msg( "    psay <name|#userID> <message> -> Sends a private message to a player\n" );
+		Msg( "    chat <message> -> Sends a chat message to connected admins only\n" );
 		Msg( "    kick <name|#userID> [reason] -> Kick a player\n" );
 		Msg( "    ban <name|#userID> <time> [reason] -> Ban a player\n" );
 		Msg( "    addban <time> <SteamID3> [reason] -> Add a manual ban to banned_user.cfg\n" );
@@ -4986,6 +5327,26 @@ void AdminCommand( const CCommand& args )
 		return;
 	}
 
+	if ( Q_stricmp( subCommand, "say" ) == 0 )
+	{
+		AdminSay( args );
+		return;
+	}
+	if ( Q_stricmp( subCommand, "csay" ) == 0 )
+	{
+		AdminCSay( args );
+		return;
+	}
+	if ( Q_stricmp( subCommand, "psay" ) == 0 )
+	{
+		AdminPSay( args );
+		return;
+	}
+	if ( Q_stricmp( subCommand, "chat" ) == 0 )
+	{
+		AdminChat( args );
+		return;
+	}
 	if ( Q_stricmp( subCommand, "kick" ) == 0 )
 	{
 		KickPlayerCommand( args );
@@ -5158,22 +5519,67 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 	// support for chat commands
 	if ( p[ 0 ] == '!' || p[ 0 ] == '/' )
 	{
-		if ( Q_strncmp( p, "!sa", 3 ) == 0 || Q_strncmp( p, "/sa", 3 ) == 0 )
+		if ( Q_strncmp( p, "!say", 4 ) == 0 || Q_strncmp( p, "/say", 4 ) == 0 )
 		{
+			const char* args = p + 4;
 			char consoleCmd[ 256 ];
 
 			// convert the chat message into a console command
-			Q_snprintf( consoleCmd, sizeof( consoleCmd ), "sa" );
+			Q_snprintf( consoleCmd, sizeof( consoleCmd ), "sa say %s", args );
 
 			if ( pPlayer )
 			{
 				engine->ClientCommand( pPlayer->edict(), consoleCmd );
-				UTIL_PrintToClient( pPlayer, CHAT_ADMIN "Check your console for output.\n" );
 			}
 			return;
 		}
 
-		if ( Q_strncmp( p, "!ban", 4 ) == 0 || Q_strncmp( p, "/ban", 4 ) == 0)
+		else if ( Q_strncmp( p, "!csay", 5 ) == 0 || Q_strncmp( p, "/csay", 5 ) == 0 )
+		{
+			const char* args = p + 5;
+			char consoleCmd[ 256 ];
+
+			// convert the chat message into a console command
+			Q_snprintf( consoleCmd, sizeof( consoleCmd ), "sa csay %s", args );
+
+			if ( pPlayer )
+			{
+				engine->ClientCommand( pPlayer->edict(), consoleCmd );
+			}
+			return;
+		}
+
+		else if ( Q_strncmp( p, "!psay", 5 ) == 0 || Q_strncmp( p, "/psay", 5 ) == 0 )
+		{
+			const char* args = p + 5;
+			char consoleCmd[ 256 ];
+
+			// convert the chat message into a console command
+			Q_snprintf( consoleCmd, sizeof( consoleCmd ), "sa psay %s", args );
+
+			if ( pPlayer )
+			{
+				engine->ClientCommand( pPlayer->edict(), consoleCmd );
+			}
+			return;
+		}
+
+		else if ( Q_strncmp( p, "!chat", 5 ) == 0 || Q_strncmp( p, "/chat", 5 ) == 0 )
+		{
+			const char* args = p + 5;
+			char consoleCmd[ 256 ];
+
+			// convert the chat message into a console command
+			Q_snprintf( consoleCmd, sizeof( consoleCmd ), "sa chat %s", args );
+
+			if ( pPlayer )
+			{
+				engine->ClientCommand( pPlayer->edict(), consoleCmd );
+			}
+			return;
+		}
+
+		else if ( Q_strncmp( p, "!ban", 4 ) == 0 || Q_strncmp( p, "/ban", 4 ) == 0 )
 		{
 			const char* args = p + 4;
 			char consoleCmd[ 256 ];
@@ -5187,7 +5593,8 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			}
 			return;
 		}
-		if ( Q_strncmp( p, "!kick", 5 ) == 0 || Q_strncmp( p, "/kick", 5 ) == 0 )
+
+		else if ( Q_strncmp( p, "!kick", 5 ) == 0 || Q_strncmp( p, "/kick", 5 ) == 0 )
 		{
 			const char* args = p + 5;
 			char consoleCmd[ 256 ];
@@ -5202,7 +5609,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!addban", 7 ) == 0 || Q_strncmp( p, "/addban", 7 ) == 0)
+		else if ( Q_strncmp( p, "!addban", 7 ) == 0 || Q_strncmp( p, "/addban", 7 ) == 0 )
 		{
 			const char* args = p + 7;
 			char consoleCmd[ 256 ];
@@ -5217,7 +5624,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!unban", 6 ) == 0 || Q_strncmp( p, "/unban", 6 ) == 0)
+		else if ( Q_strncmp( p, "!unban", 6 ) == 0 || Q_strncmp( p, "/unban", 6 ) == 0 )
 		{
 			const char* args = p + 6;
 			char consoleCmd[ 256 ];
@@ -5232,7 +5639,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!slay", 5 ) == 0 || Q_strncmp( p, "/slay", 5 ) == 0)
+		else if ( Q_strncmp( p, "!slay", 5 ) == 0 || Q_strncmp( p, "/slay", 5 ) == 0 )
 		{
 			const char* args = p + 5;
 			char consoleCmd[ 256 ];
@@ -5247,7 +5654,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!slap", 5 ) == 0 || Q_strncmp( p, "/slap", 5 ) == 0)
+		else if ( Q_strncmp( p, "!slap", 5 ) == 0 || Q_strncmp( p, "/slap", 5 ) == 0 )
 		{
 			const char* args = p + 5;
 			char consoleCmd[ 256 ];
@@ -5262,7 +5669,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!cvar", 5 ) == 0 || Q_strncmp( p, "/cvar", 5 ) == 0 )
+		else if ( Q_strncmp( p, "!cvar", 5 ) == 0 || Q_strncmp( p, "/cvar", 5 ) == 0 )
 		{
 			const char* args = p + 5;
 			char consoleCmd[ 256 ];
@@ -5277,7 +5684,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!rcon", 5 ) == 0 || Q_strncmp( p, "/rcon", 5 ) == 0 )
+		else if ( Q_strncmp( p, "!rcon", 5 ) == 0 || Q_strncmp( p, "/rcon", 5 ) == 0 )
 		{
 			const char* args = p + 5;
 			char consoleCmd[ 256 ];
@@ -5292,7 +5699,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!map", 4 ) == 0 || Q_strncmp( p, "/map", 4 ) == 0 )
+		else if ( Q_strncmp( p, "!map", 4 ) == 0 || Q_strncmp( p, "/map", 4 ) == 0 )
 		{
 			const char* args = p + 4;
 			char consoleCmd[ 256 ];
@@ -5307,7 +5714,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!gag", 4 ) == 0 || Q_strncmp( p, "/gag", 4 ) == 0 )
+		else if ( Q_strncmp( p, "!gag", 4 ) == 0 || Q_strncmp( p, "/gag", 4 ) == 0 )
 		{
 			const char* args = p + 4;
 			char consoleCmd[ 256 ];
@@ -5322,7 +5729,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!ungag", 6 ) == 0 || Q_strncmp( p, "/ungag", 6 ) == 0 )
+		else if ( Q_strncmp( p, "!ungag", 6 ) == 0 || Q_strncmp( p, "/ungag", 6 ) == 0 )
 		{
 			const char* args = p + 6;
 			char consoleCmd[ 256 ];
@@ -5337,7 +5744,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!mute", 5 ) == 0 || Q_strncmp( p, "/mute", 5 ) == 0 )
+		else if ( Q_strncmp( p, "!mute", 5 ) == 0 || Q_strncmp( p, "/mute", 5 ) == 0 )
 		{
 			const char* args = p + 5;
 			char consoleCmd[ 256 ];
@@ -5352,7 +5759,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!unmute", 7 ) == 0 || Q_strncmp( p, "/unmute", 7 ) == 0 )
+		else 	if ( Q_strncmp( p, "!unmute", 7 ) == 0 || Q_strncmp( p, "/unmute", 7 ) == 0 )
 		{
 			const char* args = p + 7;
 			char consoleCmd[ 256 ];
@@ -5367,7 +5774,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!team", 5 ) == 0 || Q_strncmp( p, "/team", 5 ) == 0 )
+		else if ( Q_strncmp( p, "!team", 5 ) == 0 || Q_strncmp( p, "/team", 5 ) == 0 )
 		{
 			const char* args = p + 5;
 			char consoleCmd[ 256 ];
@@ -5382,7 +5789,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!bring", 6 ) == 0 || Q_strncmp( p, "/bring", 6 ) == 0 )
+		else if ( Q_strncmp( p, "!bring", 6 ) == 0 || Q_strncmp( p, "/bring", 6 ) == 0 )
 		{
 			const char* args = p + 6;
 			char consoleCmd[ 256 ];
@@ -5397,7 +5804,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!goto", 5 ) == 0 || Q_strncmp( p, "/goto", 5 ) == 0 )
+		else if ( Q_strncmp( p, "!goto", 5 ) == 0 || Q_strncmp( p, "/goto", 5 ) == 0 )
 		{
 			const char* args = p + 5;
 			char consoleCmd[ 256 ];
@@ -5412,7 +5819,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!noclip", 7 ) == 0 || Q_strncmp( p, "/noclip", 7 ) == 0 )
+		else if ( Q_strncmp( p, "!noclip", 7 ) == 0 || Q_strncmp( p, "/noclip", 7 ) == 0 )
 		{
 			const char* args = p + 7;
 			char consoleCmd[ 256 ];
@@ -5427,7 +5834,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!exec", 5 ) == 0 || Q_strncmp( p, "/exec", 5 ) == 0 )
+		else if ( Q_strncmp( p, "!exec", 5 ) == 0 || Q_strncmp( p, "/exec", 5 ) == 0 )
 		{
 			const char* args = p + 5;
 			char consoleCmd[ 256 ];
@@ -5442,7 +5849,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!reloadadmins", 13 ) == 0 || Q_strncmp( p, "/reloadadmins", 13 ) == 0 )
+		else if ( Q_strncmp( p, "!reloadadmins", 13 ) == 0 || Q_strncmp( p, "/reloadadmins", 13 ) == 0 )
 		{
 			char consoleCmd[ 256 ];
 
@@ -5456,7 +5863,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!help", 5 ) == 0 || Q_strncmp( p, "/help", 5 ) == 0 )
+		else if ( Q_strncmp( p, "!help", 5 ) == 0 || Q_strncmp( p, "/help", 5 ) == 0 )
 		{
 			char consoleCmd[ 256 ];
 
@@ -5471,7 +5878,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!credits", 8 ) == 0 || Q_strncmp( p, "/credits", 8 ) == 0 )
+		else if ( Q_strncmp( p, "!credits", 8 ) == 0 || Q_strncmp( p, "/credits", 8 ) == 0 )
 		{
 			char consoleCmd[ 256 ];
 
@@ -5486,12 +5893,27 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		if ( Q_strncmp( p, "!version", 8 ) == 0 || Q_strncmp( p, "/version", 8 ) == 0 )
+		else if ( Q_strncmp( p, "!version", 8 ) == 0 || Q_strncmp( p, "/version", 8 ) == 0 )
 		{
 			char consoleCmd[ 256 ];
 
 			// convert the chat message into a console command
 			Q_snprintf( consoleCmd, sizeof( consoleCmd ), "sa version" );
+
+			if ( pPlayer )
+			{
+				engine->ClientCommand( pPlayer->edict(), consoleCmd );
+				UTIL_PrintToClient( pPlayer, CHAT_ADMIN "Check your console for output.\n" );
+			}
+			return;
+		}
+
+		else if ( Q_strncmp( p, "!sa", 3 ) == 0 || Q_strncmp( p, "/sa", 3 ) == 0 )
+		{
+			char consoleCmd[ 256 ];
+
+			// convert the chat message into a console command
+			Q_snprintf( consoleCmd, sizeof( consoleCmd ), "sa" );
 
 			if ( pPlayer )
 			{
