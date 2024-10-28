@@ -455,6 +455,7 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 	}
 
 	if ( pPlayer->IsGagged() )
+	if ( pPlayer && pPlayer->IsGagged() )
 		return;
 
 	const char* pszFormat = NULL;
