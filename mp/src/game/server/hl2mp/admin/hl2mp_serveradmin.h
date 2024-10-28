@@ -40,7 +40,7 @@ public:
     static void AddAdmin(const char* steamID, const char* permissions);
     bool FindSpecialTargetGroup( const char* targetSpecifier );
     static void CheckChatText( char* p, int bufsize );
-    static void LogAction(CBasePlayer* pAdmin, CBasePlayer* pTarget, const char* action, const char* details = "");
+    static void LogAction(CBasePlayer* pAdmin, CBasePlayer* pTarget, const char* action, const char* details = "", const char* groupTarget = nullptr);
 
     bool IsAllPlayers() const { return bAll; }
     bool IsAllBluePlayers() const { return bBlue; }
