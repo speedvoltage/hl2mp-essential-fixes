@@ -483,6 +483,22 @@ inline bool ShouldRunCommandsInContext( const CCommandContext *ctx )
 #endif
 }
 
+CBasePlayer* CBasePlayer::GetPlayerBySteamID( const CSteamID &steamID )
+{
+	CSteamID steamIDPlayer;
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+		if ( !pPlayer )
+			continue;
+
+		pPlayer->GetSteamID( &steamIDPlayer );
+
+		if ( steamIDPlayer == steamID )
+			return pPlayer;
+	}
+	return NULL;
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 

@@ -460,6 +460,8 @@ public:
 	virtual void			CheatImpulseCommands( int iImpulse );
 	virtual bool			ClientCommand( const CCommand &args );
 
+	static CBasePlayer*		GetPlayerBySteamID( const CSteamID &steamID );
+
 	void					NotifySinglePlayerGameEnding() { m_bSinglePlayerGameEnding = true; }
 	bool					IsSinglePlayerGameEnding() { return m_bSinglePlayerGameEnding == true; }
 
