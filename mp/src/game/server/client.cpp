@@ -40,6 +40,7 @@
 #include "hl2mp_cvars.h"
 #include "viewport_panel_names.h"
 #include "tier0/icommandline.h"
+#include <time.h>
 
 #ifdef TF_DLL
 #include "tf_player.h"
@@ -64,6 +65,7 @@ ConVar sv_equalizer_allow_toggle("sv_equalizer_allow_toggle", "0", FCVAR_NOTIFY,
 ConVar sv_spec_can_read_teamchat("sv_spec_can_read_teamchat", "0", FCVAR_REPLICATED | FCVAR_ARCHIVE | FCVAR_NOTIFY, "Allow spectators to read team chat from other teams.");
 ConVar sv_silence_chatcmds("sv_silence_chatcmds", "1", 0, "If non-zero, using chat commands will not display the command in chat");
 ConVar sv_chat_trigger("sv_chat_triggers", "1", FCVAR_NOTIFY);
+ConVar sv_logchat( "sv_logchat", "1", 0, "If non-zero, all player chat messages will be logged and saved" );
 
 ConVar* sv_cheats = NULL;
 
@@ -295,6 +297,71 @@ char* CheckChatText(CBasePlayer* pPlayer, char* text)
 	return p;
 }
 
+void LogPlayerChatMessage(CBasePlayer* pPlayer, const char* message, bool teamonly)
+{
+	static FileHandle_t g_ChatLogFile = nullptr;
+	static CUtlString currentLogDate;
+
+	// Get current date
+	char date[9];
+	time_t now = time(0);
+	struct tm* timeinfo = localtime(&now);
+	strftime(date, sizeof(date), "%Y%m%d", timeinfo);
+
+	if (!g_ChatLogFile || Q_stricmp(currentLogDate.Get(), date) != 0)
+	{
+		if (g_ChatLogFile)
+		{
+			filesystem->Close(g_ChatLogFile);
+			g_ChatLogFile = nullptr;
+		}
+
+		currentLogDate = date;
+
+		if (!filesystem->IsDirectory("cfg/admin/logs/chat", "GAME"))
+		{
+			filesystem->CreateDirHierarchy("cfg/admin/logs/chat", "GAME");
+		}
+
+		char logFileName[256];
+		Q_snprintf(logFileName, sizeof(logFileName), "cfg/admin/logs/chat/CHATLOG_%s.txt", date);
+
+		g_ChatLogFile = filesystem->Open(logFileName, "a+", "GAME");
+		if (!g_ChatLogFile)
+		{
+			Msg("Error: Unable to create chat log file.\n");
+			return;
+		}
+	}
+
+	const char* mapName = STRING(gpGlobals->mapname);
+
+	char dateString[11];
+	char timeString[9];
+	strftime(dateString, sizeof(dateString), "%Y/%m/%d", timeinfo);
+	strftime(timeString, sizeof(timeString), "%H:%M:%S", timeinfo);
+
+	const char* playerName = pPlayer ? pPlayer->GetPlayerName() : "Console";
+	const char* steamID = pPlayer ? pPlayer->GetNetworkIDString() : "CONSOLE";
+
+	CUtlString logEntry;
+	logEntry.Format("[%s] %s @ %s => Player %s <%s> said \"%s\"\n", 
+		mapName, dateString, timeString, playerName, steamID, message);
+
+	Msg("Saving chat contents to file\n");
+
+	if (g_ChatLogFile)
+	{
+		filesystem->Write(logEntry.Get(), logEntry.Length(), g_ChatLogFile);
+		filesystem->Flush(g_ChatLogFile);
+		Msg("Saved chat contents\n");
+	}
+	else
+	{
+		Warning("Couldn't save contents to file\n");
+	}
+}
+
 void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 {
 	CBasePlayer* client;
@@ -454,7 +521,6 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 			return;
 	}
 
-	if ( pPlayer->IsGagged() )
 	if ( pPlayer && pPlayer->IsGagged() )
 		return;
 
@@ -540,7 +606,7 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 	// Start with the first player.
 	// This may return the world in single player if the client types something between levels or during spawn
 	// so check it, or it will infinite loop
-
+	
 	client = NULL;
 	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
@@ -624,11 +690,14 @@ void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 			playerTeam = team->GetName();
 		}
 	}
-
+	
 	if (teamonly)
 		UTIL_LogPrintf("\"%s<%i><%s><%s>\" say_team \"%s\"\n", playerName, userid, networkID, playerTeam, p);
 	else
 		UTIL_LogPrintf("\"%s<%i><%s><%s>\" say \"%s\"\n", playerName, userid, networkID, playerTeam, p);
+
+	if ( sv_logchat.GetBool() )
+		LogPlayerChatMessage(pPlayer, p, teamonly);
 
 	IGameEvent* event = gameeventmanager->CreateEvent("player_say", true);
 
