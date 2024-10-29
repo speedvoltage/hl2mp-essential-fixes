@@ -443,28 +443,28 @@ bool CLagCompensationManager::BacktrackEntity ( CBaseEntity* entity, float flTar
 	}
 
 	// See if this is still a valid position for us to teleport to
-	if ( sv_unlag_fixstuck.GetBool ( ) )
+	if ( sv_unlag_fixstuck.GetBool() )
 	{
 		// Try to move to the wanted position from our current position.
 		trace_t tr;
-		UTIL_TraceEntity ( entity, org, org, MASK_PLAYERSOLID, &tr );
+		UTIL_TraceEntity( entity, org, org, MASK_PLAYERSOLID, &tr );
 		if ( tr.startsolid || tr.allsolid )
 		{
-			if ( sv_unlag_debug.GetBool ( ) )
-				DevMsg ( "WARNING: BackupPlayer trying to back player into a bad position - client %d\n", entity->entindex ( ) );
+			if ( sv_unlag_debug.GetBool() )
+				DevMsg( "WARNING: BackupPlayer trying to back player into a bad position - client %d\n", entity->entindex() );
 
-			CBaseEntity* pHitEntity = tr.m_pEnt;
+			CBaseEntity *pHitEntity = tr.m_pEnt;
 			// don't lag compensate the current player
-			if ( pHitEntity && ( pHitEntity != m_pCurrentPlayer ) )
+			if ( pHitEntity && ( pHitEntity != m_pCurrentPlayer ) )	
 			{
 				// Find it
 				EHANDLE eh;
 				eh = pHitEntity;
 
-				int slot = m_CompensatedEntities.Find ( eh );
-				if ( slot != m_CompensatedEntities.InvalidIndex ( ) )
+				int slot = m_CompensatedEntities.Find( eh );
+				if ( slot != m_CompensatedEntities.InvalidIndex() )
 				{
-					EntityLagData* ld = m_CompensatedEntities [ slot ];
+					EntityLagData *ld = m_CompensatedEntities[ slot ];
 
 					// If we haven't backtracked this player, do it now
 					// this deliberately ignores WantsLagCompensationOnEntity.
@@ -473,36 +473,36 @@ bool CLagCompensationManager::BacktrackEntity ( CBaseEntity* entity, float flTar
 						// Temp turn this flag on
 						ld->m_bRestoreEntity = true;
 
-						BacktrackEntity ( pHitEntity, flTargetTime, &ld->m_LagRecords, &ld->m_RestoreData, &ld->m_ChangeData, true );
+						BacktrackEntity( pHitEntity, flTargetTime, &ld->m_LagRecords, &ld->m_RestoreData, &ld->m_ChangeData, true );
 
 						// Remove the temp flag
 						ld->m_bRestoreEntity = false;
-					}
+					}	
 				}
 			}
 
 			// now trace us back as far as we can go
 			unsigned int mask = MASK_PLAYERSOLID;
-			UTIL_TraceEntity ( entity, entity->GetAbsOrigin ( ), org, mask, &tr );
+			UTIL_TraceEntity( entity, entity->GetAbsOrigin(), org, mask, &tr );
 
 			if ( tr.startsolid || tr.allsolid )
 			{
 				// Our starting position is bogus
 
-				if ( sv_unlag_debug.GetBool ( ) )
-					DevMsg ( "Backtrack failed completely, bad starting position\n" );
+				if ( sv_unlag_debug.GetBool() )
+					DevMsg( "Backtrack failed completely, bad starting position\n" );
 			}
 			else
 			{
 				// We can get to a valid place, but not all the way to the target
 				Vector vPos;
-				VectorLerp ( entity->GetAbsOrigin ( ), org, tr.fraction * g_flFractionScale, vPos );
+				VectorLerp( entity->GetAbsOrigin(), org, tr.fraction * g_flFractionScale, vPos );
 
 				// This is as close as we're going to get
 				org = vPos;
 
-				if ( sv_unlag_debug.GetBool ( ) )
-					DevMsg ( "Backtrack got most of the way\n" );
+				if ( sv_unlag_debug.GetBool() )
+					DevMsg( "Backtrack got most of the way\n" );
 			}
 		}
 	}
@@ -860,7 +860,7 @@ void CLagCompensationManager::RestoreEntityFromRecords ( CBaseEntity* entity, La
 		entity->SetSimulationTime ( restore->m_flSimulationTime );
 	}
 }
-#else
+#else // LEGACY LAG COMPENSATION
 #include "usercmd.h"
 #include "igamesystem.h"
 #include "ilagcompensationmanager.h"

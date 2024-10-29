@@ -753,6 +753,42 @@ int CBasePlayer::ShouldTransmit( const CCheckTransmitInfo *pInfo )
 	return BaseClass::ShouldTransmit( pInfo );
 }
 
+extern ConVar friendlyfire;
+
+#ifdef NEWLAGCOMP
+bool CBasePlayer::WantsLagCompensationOnEntity(const CBaseEntity *entity, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits) const
+{
+	// no lag compensating teammates if friendly fire is disabled
+	if (!friendlyfire.GetInt() && entity->GetTeamNumber() == GetTeamNumber())
+		return false;
+
+	if (pEntityTransmitBits && !pEntityTransmitBits->Get(entity->entindex()))
+		return false;
+
+	// calc distance between player and entity
+	const Vector &vMyOrigin = GetAbsOrigin();
+	const Vector &vHisOrigin = entity->GetAbsOrigin();
+
+	// calc the maximum distance a player could move within the lag compensation time
+	float entityMaxSpeed = ToBasePlayer(entity) ? ToBasePlayer(entity)->MaxSpeed() : 300.0f;
+	float maxDistance = 1.5f * entityMaxSpeed * sv_maxunlag.GetFloat();
+
+	// only apply lag compensation if the entity is within the maximum distance
+	if (vHisOrigin.DistTo(vMyOrigin) < maxDistance)
+		return true;
+
+	// calc a 45-degree view cone and check if the entity is within it
+	Vector vForward;
+	AngleVectors(pCmd->viewangles, &vForward);
+
+	Vector vDiff = vHisOrigin - vMyOrigin;
+	VectorNormalize(vDiff);
+
+	float flCosAngle = 0.707107f; // cos of 45 degrees
+	return vForward.Dot(vDiff) >= flCosAngle;
+}
+
+#else
 
 bool CBasePlayer::WantsLagCompensationOnEntity( const CBasePlayer*pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const
 {
@@ -793,6 +829,7 @@ bool CBasePlayer::WantsLagCompensationOnEntity( const CBasePlayer*pPlayer, const
 
 	return true;
 }
+#endif
 
 void CBasePlayer::PauseBonusProgress( bool bPause )
 {
