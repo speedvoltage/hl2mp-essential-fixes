@@ -27,10 +27,12 @@
 
 #define CLIENTNAME_TIMED_OUT "%s timed out"
 
+#define DEFAULT_TICK_INTERVAL_PC	(1.0 / 100.0) // 100 for HL2MP
+
 // This is the default, see shareddefs.h for mod-specific value, which can override this
-#define DEFAULT_TICK_INTERVAL	(0.015)				// 15 msec is the default
-#define MINIMUM_TICK_INTERVAL   (0.001)
-#define MAXIMUM_TICK_INTERVAL	(0.1)
+#define DEFAULT_TICK_INTERVAL	DEFAULT_TICK_INTERVAL_PC
+#define MINIMUM_TICK_INTERVAL   (4.0f / 512.0f)		// 128 fps
+#define MAXIMUM_TICK_INTERVAL	(25.0f / 512.0f)	// 20.48 fps
 
 // This is the max # of players the engine can handle
 #define ABSOLUTE_PLAYER_LIMIT 255  // not 256, so we can send the limit as a byte 
