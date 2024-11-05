@@ -1782,31 +1782,43 @@ void CBaseCombatCharacter::ThrowDirForWeaponStrip( CBaseCombatWeapon *pWeapon, c
 	}
 }
 
-
 //-----------------------------------------------------------------------------
 // For weapon strip
 //-----------------------------------------------------------------------------
-void CBaseCombatCharacter::DropWeaponForWeaponStrip( CBaseCombatWeapon *pWeapon, 
-	const Vector &vecForward, const QAngle &vecAngles, float flDiameter )
+void CBaseCombatCharacter::DropWeaponForWeaponStrip( CBaseCombatWeapon* pWeapon,
+	const Vector& vecForward, const QAngle& vecAngles, float flDiameter )
 {
 	Vector vecOrigin;
 	CollisionProp()->RandomPointInBounds( Vector( 0.5f, 0.5f, 0.5f ), Vector( 0.5f, 0.5f, 1.0f ), &vecOrigin );
 
-	// Nowhere in particular; just drop it.
 	Vector vecThrow;
 	ThrowDirForWeaponStrip( pWeapon, vecForward, &vecThrow );
 
 	Vector vecOffsetOrigin;
 	VectorMA( vecOrigin, flDiameter, vecThrow, vecOffsetOrigin );
 
-	trace_t	tr;
+	trace_t tr;
 	UTIL_TraceLine( vecOrigin, vecOffsetOrigin, MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr );
-		
+
 	if ( tr.startsolid || tr.allsolid || ( tr.fraction < 1.0f && tr.m_pEnt != pWeapon ) )
 	{
-		//FIXME: Throw towards a known safe spot?
-		vecThrow.Negate();
-		VectorMA( vecOrigin, flDiameter, vecThrow, vecOffsetOrigin );
+		for ( int i = 0; i < 4; ++i )
+		{
+			Vector altThrow = vecThrow;
+			altThrow.x += random->RandomFloat( -0.5f, 0.5f );
+			altThrow.y += random->RandomFloat( -0.5f, 0.5f );
+			altThrow.z = random->RandomFloat( -0.1f, 0.1f );
+			VectorNormalize( altThrow );
+
+			VectorMA( vecOrigin, flDiameter, altThrow, vecOffsetOrigin );
+			UTIL_TraceLine( vecOrigin, vecOffsetOrigin, MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr );
+
+			if ( !tr.startsolid && !tr.allsolid && ( tr.fraction == 1.0f || tr.m_pEnt == pWeapon ) )
+			{
+				vecThrow = altThrow;
+				break;
+			}
+		}
 	}
 
 	vecThrow *= random->RandomFloat( 400.0f, 600.0f );
@@ -1817,8 +1829,6 @@ void CBaseCombatCharacter::DropWeaponForWeaponStrip( CBaseCombatWeapon *pWeapon,
 	pWeapon->SetRemoveable( false );
 	Weapon_Detach( pWeapon );
 }
-
-
 
 //-----------------------------------------------------------------------------
 // For weapon strip
@@ -2141,8 +2151,9 @@ void CBaseCombatCharacter::Weapon_Equip( CBaseCombatWeapon *pWeapon )
 		if ( m_hActiveWeapon )
 		{
 			m_hActiveWeapon->Holster();
-			// FIXME: isn't this handeled by the weapon?
-			m_hActiveWeapon->AddEffects( EF_NODRAW );
+			// Peter: can't seem to see an issue removing this, 
+			// resolving the FIXME
+			// m_hActiveWeapon->AddEffects( EF_NODRAW );
 		}
 		SetActiveWeapon( pWeapon );
 		m_hActiveWeapon->RemoveEffects( EF_NODRAW );
@@ -2543,17 +2554,24 @@ Vector CBaseCombatCharacter::BodyDirection2D( void )
 	return vBodyDir;
 }
 
-
-Vector CBaseCombatCharacter::BodyDirection3D( void )
+Vector CBaseCombatCharacter::BodyDirection3D()
 {
-	QAngle angles = BodyAngles();
+	static QAngle lastBodyAngles;       // Cache for the last body angles
+	static Vector cachedBodyDirection;  // Cached direction vector
+	static bool isCacheValid = false;   // Flag to check cache validity
 
-	// FIXME: cache this
-	Vector vBodyDir;
-	AngleVectors( angles, &vBodyDir );
-	return vBodyDir;
+	QAngle currentAngles = BodyAngles();
+
+	// Recalculate only if angles have changed or cache is invalid
+	if (!isCacheValid || currentAngles != lastBodyAngles)
+	{
+		lastBodyAngles = currentAngles;
+		AngleVectors(currentAngles, &cachedBodyDirection);
+		isCacheValid = true;
+	}
+
+	return cachedBodyDirection;
 }
-
 
 void CBaseCombatCharacter::SetTransmit( CCheckTransmitInfo *pInfo, bool bAlways )
 {
