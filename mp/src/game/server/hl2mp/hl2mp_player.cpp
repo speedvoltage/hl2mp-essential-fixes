@@ -208,6 +208,7 @@ void CHL2MP_Player::Precache( void )
 	PrecacheScriptSound( "NPC_MetroPolice.Die" );
 	PrecacheScriptSound( "NPC_CombineS.Die" );
 	PrecacheScriptSound( "NPC_Citizen.die" );
+	PrecacheParticleSystem("Rocket_Smoke_Trail");
 
 	if ( sv_custom_sounds.GetBool() )
 	{
@@ -250,6 +251,29 @@ void CHL2MP_Player::Precache( void )
 		PrecacheScriptSound( "Player.SonicDamage" );
 	}
 }
+
+CON_COMMAND(testsound, "Custom precache sound test")
+{
+	CHL2MP_Player* pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
+	if (!pPlayer)
+		return;
+
+	if (args.ArgC() < 2)
+	{
+		Msg("Usage: testsound <sound_name>\n");
+		return;
+	}
+
+	const char* soundName = args[1];
+
+	CRecipientFilter filter;
+	filter.AddRecipient(pPlayer);
+
+	pPlayer->EmitSound(filter, pPlayer->entindex(), soundName);
+
+	Msg("Playing sound: %s\n", soundName);
+}
+
 
 void CHL2MP_Player::GiveAllItems( void )
 {
@@ -1311,7 +1335,6 @@ void CHL2MP_Player::FireBullets ( const FireBulletsInfo_t &info )
 #else
 	lagcompensation->StartLagCompensation(this, this->GetCurrentCommand());
 #endif
-
 	FireBulletsInfo_t modinfo = info;
 
 	CWeaponHL2MPBase *pWeapon = dynamic_cast<CWeaponHL2MPBase *>( GetActiveWeapon() );
