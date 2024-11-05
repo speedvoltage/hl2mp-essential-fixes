@@ -223,7 +223,24 @@ static ConVar *g_pcv_hideServer = NULL;
 
 ConVar sv_show_client_connect_msg("sv_show_client_connect_msg", "1", 0, "For showing a public message in chat when a player connects.");
 ConVar sv_show_client_disconnect_msg("sv_show_client_disconnect_msg", "1", 0, "For showing a public message in chat when a player disconnects.");
-ConVar sv_binaries_version("sv_version", "1.0.9", FCVAR_SPONLY, "Current version of the binaries by Peter Brev");
+CON_COMMAND( sv_version, "Binaries version" )
+{
+	if ( UTIL_IsCommandIssuedByServerAdmin() )
+	{
+		Msg( "Binaries version: 1.0.9.167-subrelease-1\n" );
+		Msg( "Author: Peter Brev\n" );
+		return;
+	}
+
+	CBasePlayer* pPlayer = UTIL_GetCommandClient();
+
+	if ( !pPlayer )
+		return;
+
+	ClientPrint(pPlayer, HUD_PRINTCONSOLE, "Binaries version: 1.0.9.167-subrelease-1\n" );
+	ClientPrint(pPlayer, HUD_PRINTCONSOLE, "Author: Peter Brev\n" );
+	return;
+}
 
 // String tables
 INetworkStringTable *g_pStringTableParticleEffectNames = NULL;
@@ -961,6 +978,7 @@ bool CServerGameDLL::IsRestoring()
 	return g_InRestore;
 }
 
+extern void AddRecentlyPlayedMap( const char* mapName );
 // Called any time a new level is started (after GameInit() also on level transitions within a game)
 bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, char const *pOldLevel, char const *pLandmarkName, bool loadGame, bool background )
 {
@@ -977,6 +995,7 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 	if ( !CommandLine()->CheckParm( "-noadmin" ) ) // don't use the admin system if this is set
 		CHL2MP_Admin::InitAdminSystem();
 
+	AddRecentlyPlayedMap( pMapName );
 	ResetWindspeed();
 	UpdateChapterRestrictions( pMapName );
 
@@ -2484,6 +2503,7 @@ public:
 	virtual edict_t*		BaseEntityToEdict( CBaseEntity *pEnt );
 	virtual CBaseEntity*	EdictToBaseEntity( edict_t *pEdict );
 	virtual void			CheckTransmit( CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts );
+	virtual void			MarkEntityForTransmit( CCheckTransmitInfo* pInfo, edict_t* pEdict, bool bIsHLTVOrReplay );
 };
 EXPOSE_SINGLE_INTERFACE(CServerGameEnts, IServerGameEnts, INTERFACEVERSION_SERVERGAMEENTS);
 
@@ -2549,199 +2569,152 @@ inline void CServerNetworkProperty::CheckTransmit( CCheckTransmitInfo *pInfo )
 	}
 } */
 
-void CServerGameEnts::CheckTransmit( CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts )
+void CServerGameEnts::CheckTransmit(CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
 {
-	// NOTE: for speed's sake, this assumes that all networkables are CBaseEntities and that the edict list
-	// is consecutive in memory. If either of these things change, then this routine needs to change, but
-	// ideally we won't be calling any virtual from this routine. This speedy routine was added as an
-	// optimization which would be nice to keep.
-	edict_t *pBaseEdict = engine->PEntityOfEntIndex( 0 );
+	edict_t *pBaseEdict = engine->PEntityOfEntIndex(0);
+	CBaseEntity *pRecipientEntity = CBaseEntity::Instance(pInfo->m_pClientEnt);
 
-	// get recipient player's skybox:
-	CBaseEntity *pRecipientEntity = CBaseEntity::Instance( pInfo->m_pClientEnt );
+	Assert(pRecipientEntity && pRecipientEntity->IsPlayer());
+	if (!pRecipientEntity) return;
 
-	Assert( pRecipientEntity && pRecipientEntity->IsPlayer() );
-	if ( !pRecipientEntity )
-		return;
-	
 	MDLCACHE_CRITICAL_SECTION();
-	CBasePlayer *pRecipientPlayer = static_cast<CBasePlayer*>( pRecipientEntity );
+	CBasePlayer *pRecipientPlayer = static_cast<CBasePlayer*>(pRecipientEntity);
 	const int skyBoxArea = pRecipientPlayer->m_Local.m_skybox3d.area;
 
 #ifndef _X360
 	const bool bIsHLTV = pRecipientPlayer->IsHLTV();
 	const bool bIsReplay = pRecipientPlayer->IsReplay();
 
-	// m_pTransmitAlways must be set if HLTV client
-	Assert( bIsHLTV == ( pInfo->m_pTransmitAlways != NULL) ||
-		    bIsReplay == ( pInfo->m_pTransmitAlways != NULL) );
+	Assert(bIsHLTV == (pInfo->m_pTransmitAlways != nullptr) ||
+		bIsReplay == (pInfo->m_pTransmitAlways != nullptr));
 #endif
 
-	for ( int i=0; i < nEdicts; i++ )
+	for (int i = 0; i < nEdicts; i++)
 	{
 		int iEdict = pEdictIndices[i];
-
 		edict_t *pEdict = &pBaseEdict[iEdict];
-		Assert( pEdict == engine->PEntityOfEntIndex( iEdict ) );
-		int nFlags = pEdict->m_fStateFlags & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK);
+		Assert(pEdict == engine->PEntityOfEntIndex(iEdict));
 
-		// entity needs no transmit
-		if ( nFlags & FL_EDICT_DONTSEND )
-			continue;
-		
-		// entity is already marked for sending
-		if ( pInfo->m_pTransmitEdict->Get( iEdict ) )
-			continue;
-		
-		if ( nFlags & FL_EDICT_ALWAYS )
+		int nFlags = pEdict->m_fStateFlags & (FL_EDICT_DONTSEND | FL_EDICT_ALWAYS | FL_EDICT_PVSCHECK | FL_EDICT_FULLCHECK);
+
+		if (nFlags & FL_EDICT_DONTSEND) continue;
+
+		if (pInfo->m_pTransmitEdict->Get(iEdict)) continue;
+
+		if (nFlags & FL_EDICT_ALWAYS)
 		{
-			// FIXME: Hey! Shouldn't this be using SetTransmit so as 
-			// to also force network down dependent entities?
-			while ( true )
-			{
-				// mark entity for sending
-				pInfo->m_pTransmitEdict->Set( iEdict );
-	
-#ifndef _X360
-				if ( bIsHLTV || bIsReplay )
-				{
-					pInfo->m_pTransmitAlways->Set( iEdict );
-				}
-#endif	
-				CServerNetworkProperty *pEnt = static_cast<CServerNetworkProperty*>( pEdict->GetNetworkable() );
-				if ( !pEnt )
-					break;
-
-				CServerNetworkProperty *pParent = pEnt->GetNetworkParent();
-				if ( !pParent )
-					break;
-
-				pEdict = pParent->edict();
-				iEdict = pParent->entindex();
-			}
+			MarkEntityForTransmit(pInfo, pEdict, bIsHLTV || bIsReplay);
 			continue;
 		}
 
-		// FIXME: Would like to remove all dependencies
-		CBaseEntity *pEnt = ( CBaseEntity * )pEdict->GetUnknown();
-		Assert( dynamic_cast< CBaseEntity* >( pEdict->GetUnknown() ) == pEnt );
+		CBaseEntity *pEnt = static_cast<CBaseEntity*>(pEdict->GetUnknown());
+		Assert(dynamic_cast<CBaseEntity*>(pEdict->GetUnknown()) == pEnt);
 
-		if ( nFlags == FL_EDICT_FULLCHECK )
+		if (nFlags == FL_EDICT_FULLCHECK)
 		{
-			// do a full ShouldTransmit() check, may return FL_EDICT_CHECKPVS
-			nFlags = pEnt->ShouldTransmit( pInfo );
+			nFlags = pEnt->ShouldTransmit(pInfo);
+			Assert(!(nFlags & FL_EDICT_FULLCHECK));
 
-			Assert( !(nFlags & FL_EDICT_FULLCHECK) );
-
-			if ( nFlags & FL_EDICT_ALWAYS )
+			if (nFlags & FL_EDICT_ALWAYS)
 			{
-				pEnt->SetTransmit( pInfo, true );
+				pEnt->SetTransmit(pInfo, true);
 				continue;
-			}	
+			}
 		}
 
-		// don't send this entity
-		if ( !( nFlags & FL_EDICT_PVSCHECK ) )
-			continue;
+		if (!(nFlags & FL_EDICT_PVSCHECK)) continue;
 
-		CServerNetworkProperty *netProp = static_cast<CServerNetworkProperty*>( pEdict->GetNetworkable() );
+		CServerNetworkProperty *netProp = static_cast<CServerNetworkProperty*>(pEdict->GetNetworkable());
 
 #ifndef _X360
-		if ( bIsHLTV || bIsReplay )
+		if (bIsHLTV || bIsReplay)
 		{
-			// for the HLTV/Replay we don't cull against PVS
-			if ( netProp->AreaNum() == skyBoxArea )
-			{
-				pEnt->SetTransmit( pInfo, true );
-			}
-			else
-			{
-				pEnt->SetTransmit( pInfo, false );
-			}
+			pEnt->SetTransmit(pInfo, netProp->AreaNum() == skyBoxArea);
 			continue;
 		}
 #endif
 
-		// Always send entities in the player's 3d skybox.
-		// Sidenote: call of AreaNum() ensures that PVS data is up to date for this entity
-		bool bSameAreaAsSky = netProp->AreaNum() == skyBoxArea;
-		if ( bSameAreaAsSky )
+		if (netProp->AreaNum() == skyBoxArea || netProp->IsInPVS(pInfo))
 		{
-			pEnt->SetTransmit( pInfo, true );
+			pEnt->SetTransmit(pInfo, true);
 			continue;
 		}
 
-		bool bInPVS = netProp->IsInPVS( pInfo );
-		if ( bInPVS || sv_force_transmit_ents.GetBool() )
-		{
-			// only send if entity is in PVS
-			pEnt->SetTransmit( pInfo, false );
-			continue;
-		}
-
-		// If the entity is marked "check PVS" but it's in hierarchy, walk up the hierarchy looking for the
-		//  for any parent which is also in the PVS.  If none are found, then we don't need to worry about sending ourself
 		CBaseEntity *orig = pEnt;
 		CServerNetworkProperty *check = netProp->GetNetworkParent();
 
-		// BUG BUG:  I think it might be better to build up a list of edict indices which "depend" on other answers and then
-		// resolve them in a second pass.  Not sure what happens if an entity has two parents who both request PVS check?
-        while ( check )
+		while (check)
 		{
 			int checkIndex = check->entindex();
 
-			// Parent already being sent
-			if ( pInfo->m_pTransmitEdict->Get( checkIndex ) )
+			if (pInfo->m_pTransmitEdict->Get(checkIndex))
 			{
-				orig->SetTransmit( pInfo, true );
+				orig->SetTransmit(pInfo, true);
 				break;
 			}
 
 			edict_t *checkEdict = check->edict();
-			int checkFlags = checkEdict->m_fStateFlags & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK);
-			if ( checkFlags & FL_EDICT_DONTSEND )
-				break;
+			int checkFlags = checkEdict->m_fStateFlags & (FL_EDICT_DONTSEND | FL_EDICT_ALWAYS | FL_EDICT_PVSCHECK | FL_EDICT_FULLCHECK);
 
-			if ( checkFlags & FL_EDICT_ALWAYS )
+			if (checkFlags & FL_EDICT_DONTSEND) break;
+
+			if (checkFlags & FL_EDICT_ALWAYS)
 			{
-				orig->SetTransmit( pInfo, true );
+				orig->SetTransmit(pInfo, true);
 				break;
 			}
 
-			if ( checkFlags == FL_EDICT_FULLCHECK )
+			if (checkFlags == FL_EDICT_FULLCHECK)
 			{
-				// do a full ShouldTransmit() check, may return FL_EDICT_CHECKPVS
 				CBaseEntity *pCheckEntity = check->GetBaseEntity();
-				nFlags = pCheckEntity->ShouldTransmit( pInfo );
-				Assert( !(nFlags & FL_EDICT_FULLCHECK) );
-				if ( nFlags & FL_EDICT_ALWAYS )
+				nFlags = pCheckEntity->ShouldTransmit(pInfo);
+				Assert(!(nFlags & FL_EDICT_FULLCHECK));
+
+				if (nFlags & FL_EDICT_ALWAYS)
 				{
-					pCheckEntity->SetTransmit( pInfo, true );
-					orig->SetTransmit( pInfo, true );
+					pCheckEntity->SetTransmit(pInfo, true);
+					orig->SetTransmit(pInfo, true);
 				}
 				break;
 			}
 
-			if ( checkFlags & FL_EDICT_PVSCHECK )
+			if (checkFlags & FL_EDICT_PVSCHECK)
 			{
-				// Check pvs
 				check->RecomputePVSInformation();
-				bool bMoveParentInPVS = check->IsInPVS( pInfo );
-				if ( bMoveParentInPVS )
+				if (check->IsInPVS(pInfo))
 				{
-					orig->SetTransmit( pInfo, true );
+					orig->SetTransmit(pInfo, true);
 					break;
 				}
 			}
 
-			// Continue up chain just in case the parent itself has a parent that's in the PVS...
 			check = check->GetNetworkParent();
 		}
 	}
-
-//	Msg("A:%i, N:%i, F: %i, P: %i\n", always, dontSend, fullCheck, PVS );
 }
 
+void CServerGameEnts::MarkEntityForTransmit(CCheckTransmitInfo *pInfo, edict_t *pEdict, bool bIsHLTVOrReplay)
+{
+	while (pEdict)
+	{
+		int iEdict = engine->IndexOfEdict(pEdict);
+		pInfo->m_pTransmitEdict->Set(iEdict);
+
+#ifndef _X360
+		if (bIsHLTVOrReplay)
+		{
+			pInfo->m_pTransmitAlways->Set(iEdict);
+		}
+#endif
+		CServerNetworkProperty *pEnt = static_cast<CServerNetworkProperty*>(pEdict->GetNetworkable());
+		if (!pEnt) break;
+
+		CServerNetworkProperty *pParent = pEnt->GetNetworkParent();
+		if (!pParent) break;
+
+		pEdict = pParent->edict();
+	}
+}
 
 CServerGameClients g_ServerGameClients;
 // INTERFACEVERSION_SERVERGAMECLIENTS_VERSION_3 is compatible with the latest since we're only adding things to the end, so expose that as well.
@@ -2938,6 +2911,13 @@ void CServerGameClients::ClientSpawned( edict_t *pPlayer )
 // Purpose: called when a player disconnects from a server
 // Input  : *pEdict - the player
 //-----------------------------------------------------------------------------
+ConVar sv_savescores( "sv_savescores", "1", 0, "If non-zero, saves the player's score on disconnect and restores it if no changelevel has occurred" );
+extern int g_voters;
+extern int g_votes;
+extern void CheckRTVThreshold(CBasePlayer* pPlayer);
+extern CUtlDict<CUtlString, unsigned short> g_nominatedMaps;
+extern CUtlDict<int, unsigned short> g_alreadyNominatedMaps;
+extern int g_nominationCount;
 void CServerGameClients::ClientDisconnect( edict_t *pEdict )
 {
 	extern bool	g_fGameOver;
@@ -2949,21 +2929,60 @@ void CServerGameClients::ClientDisconnect( edict_t *pEdict )
 	if ( pPlayer )
 	{
 		pPlayer->SetFirstTimeSpawned( false );
+		g_voters--;
+		if ( pPlayer->HasPlayerRTV() )
+		{
+			pPlayer->PlayerHasRTV( false );
+			g_votes--;
+		}
 
 		CSteamID steamID;
-		if ( pPlayer->GetSteamID( &steamID ) && // get their SteamID
-			( pPlayer->FragCount() != 0 ||
-				pPlayer->DeathCount() != 0 ) ) // no point in saving if both frag and death count == 0
+
+		if ( pPlayer->GetSteamID( &steamID ) )
 		{
-			int frags = pPlayer->FragCount();
-			int deaths = pPlayer->DeathCount();
-			g_PlayerScoreManager.SavePlayerScore( steamID, frags, deaths );
-			DevMsg( "Score information saved for player %s1\n", pPlayer->GetPlayerName() );
+			char buffer[ 32 ];
+			Q_snprintf( buffer, sizeof( buffer ), "[U:1:%u]", steamID.GetAccountID() );
+			CUtlString playerSteamID( buffer );
+
+			int playerIndex = g_nominatedMaps.Find( playerSteamID );
+			if ( playerIndex != g_nominatedMaps.InvalidIndex() )
+			{
+				const CUtlString& nominatedMap = g_nominatedMaps[ playerIndex ];
+
+				int mapIndex = g_alreadyNominatedMaps.Find( nominatedMap.Get() );
+				if ( mapIndex != g_alreadyNominatedMaps.InvalidIndex() )
+				{
+					g_alreadyNominatedMaps[ mapIndex ]--;
+					if ( g_alreadyNominatedMaps[ mapIndex ] == 0 )
+					{
+						g_alreadyNominatedMaps.RemoveAt( mapIndex );
+					}
+				}
+
+				g_nominatedMaps.RemoveAt( playerIndex );
+				g_nominationCount--;
+				// Msg("Removed nominated map for disconnected player: %s\n", playerSteamID.Get());
+			}
+			/*else
+			{
+				Msg("Couldn't remove nominated map for disconnected player: %s\n", playerSteamID.Get());
+			}*/
+
+			if ( sv_savescores.GetBool() && pPlayer->FragCount() != 0 || pPlayer->DeathCount() != 0 ) // save if there are scores
+			{
+				int frags = pPlayer->FragCount();
+				int deaths = pPlayer->DeathCount();
+				g_PlayerScoreManager.SavePlayerScore( steamID, frags, deaths );
+				DevMsg( "Score information saved for player %s1\n", pPlayer->GetPlayerName() );
+			}
 		}
 	}
 
 	if ( player )
 	{
+		if ( g_votes > 0 )
+			CheckRTVThreshold(player);
+
 		if ( !g_fGameOver )
 		{
 			player->SetMaxSpeed( 0.0f );
