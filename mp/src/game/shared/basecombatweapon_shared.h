@@ -440,7 +440,7 @@ public:
 	// Weapon dropping / destruction
 	virtual void			Delete( void );
 	void					DestroyItem( void );
-	virtual void			Kill( void );
+//	virtual void			Kill( void );
 
 	virtual int				CapabilitiesGet( void ) { return 0; }
 	virtual	int				ObjectCaps( void );
