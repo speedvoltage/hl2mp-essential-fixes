@@ -361,42 +361,31 @@ void CBaseAnimatingOverlay::DispatchAnimEvents ( CBaseAnimating *eventHandler )
 	}
 }
 
-void CAnimationLayer::DispatchAnimEvents( CBaseAnimating *eventHandler, CBaseAnimating *pOwner )
+void CAnimationLayer::DispatchAnimEvents( CBaseAnimating* eventHandler, CBaseAnimating* pOwner )
 {
-  	animevent_t	event;
+	animevent_t event;
 
-	CStudioHdr *pstudiohdr = pOwner->GetModelPtr( );
-
+	CStudioHdr* pstudiohdr = pOwner->GetModelPtr();
 	if ( !pstudiohdr )
 	{
-		Assert(!"CBaseAnimating::DispatchAnimEvents: model missing");
+		Assert( !"CBaseAnimating::DispatchAnimEvents: model missing" );
 		return;
 	}
 
-	if ( !pstudiohdr->SequencesAvailable() )
-	{
+	if ( !pstudiohdr->SequencesAvailable() || m_nSequence >= pstudiohdr->GetNumSeq() )
 		return;
-	}
 
-	if ( m_nSequence >= pstudiohdr->GetNumSeq() )
-		return;
-	
-	// don't fire if here are no events
 	if ( pstudiohdr->pSeqdesc( m_nSequence ).numevents == 0 )
-	{
 		return;
-	}
 
-	// look from when it last checked to some short time in the future	
 	float flCycleRate = pOwner->GetSequenceCycleRate( m_nSequence ) * m_flPlaybackRate;
 	float flStart = m_flLastEventCheck;
 	float flEnd = m_flCycle;
 
-	if (!m_bLooping)
+	if ( !m_bLooping )
 	{
-		// fire off events early
-		float flLastVisibleCycle = 1.0f - (pstudiohdr->pSeqdesc( m_nSequence ).fadeouttime) * flCycleRate;
-		if (flEnd >= flLastVisibleCycle || flEnd < 0.0) 
+		float flLastVisibleCycle = 1.0f - ( pstudiohdr->pSeqdesc( m_nSequence ).fadeouttime ) * fabs( flCycleRate );
+		if ( flEnd >= flLastVisibleCycle || flEnd < 0.0f )
 		{
 			m_bSequenceFinished = true;
 			flEnd = 1.0f;
@@ -404,35 +393,29 @@ void CAnimationLayer::DispatchAnimEvents( CBaseAnimating *eventHandler, CBaseAni
 	}
 	m_flLastEventCheck = flEnd;
 
-	/*
-	if (pOwner->m_debugOverlays & OVERLAY_NPC_SELECTED_BIT)
-	{
-		Msg( "%s:%s : checking %.2f %.2f (%d)\n", STRING(pOwner->GetModelName()), pstudiohdr->pSeqdesc( m_nSequence ).pszLabel(), flStart, flEnd, m_bSequenceFinished );
-	}
-	*/
-
-	// FIXME: does not handle negative framerates!
 	int index = 0;
-	while ( (index = GetAnimationEvent( pstudiohdr, m_nSequence, &event, flStart, flEnd, index ) ) != 0 )
+
+	// Handle both forward and reverse playback within the same logic
+	bool bReversePlayback = flCycleRate < 0.0f;
+	float flRealStart = bReversePlayback ? flEnd : flStart;
+	float flRealEnd = bReversePlayback ? flStart : flEnd;
+
+	while ( ( index = GetAnimationEvent( pstudiohdr, m_nSequence, &event, flRealStart, flRealEnd, index ) ) != 0 )
 	{
 		event.pSource = pOwner;
-		// calc when this event should happen
-		if (flCycleRate > 0.0)
+
+		// Inline calculation for event timing
+		float flCycle = event.cycle;
+		if ( flCycle > m_flCycle )
 		{
-			float flCycle = event.cycle;
-			if (flCycle > m_flCycle)
-			{
-				flCycle = flCycle - 1.0;
-			}
-			event.eventtime = pOwner->m_flAnimTime + (flCycle - m_flCycle) / flCycleRate + pOwner->GetAnimTimeInterval();
+			flCycle -= 1.0f;
 		}
 
-		// Msg( "dispatch %d (%d : %.2f)\n", index - 1, event.event, event.eventtime );
+		event.eventtime = pOwner->m_flAnimTime + ( flCycle - m_flCycle ) / flCycleRate + pOwner->GetAnimTimeInterval();
+
 		eventHandler->HandleAnimEvent( &event );
 	}
 }
-
-
 
 void CBaseAnimatingOverlay::GetSkeleton( CStudioHdr *pStudioHdr, Vector pos[], Quaternion q[], int boneMask )
 {
