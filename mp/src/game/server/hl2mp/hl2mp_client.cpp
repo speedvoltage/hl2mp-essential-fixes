@@ -73,6 +73,7 @@ void CHL2MP_Player::AuthenticationCheckThink()
 }
 #endif
 
+extern int g_voters;
 void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 {
 #ifndef NO_STEAM
@@ -94,6 +95,8 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 		}
 	}
 #endif
+
+	g_voters++;
 
 	pPlayer->InitialSpawn();
 

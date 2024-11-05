@@ -6,12 +6,43 @@
 #include "convar.h"
 #include "tier0/icommandline.h"
 #include <time.h>
+#include "fmtstr.h"
 
 // always comes last
 #include "tier0/memdbgon.h"
 
+//TODO: combine special group targeting into one function to save some space
+
+// rock the vote
+int g_voters = 0;
+int g_votes = 0;
+int g_votesneeded = 0;
+bool g_votebegun = false;
+bool g_votehasended = false;
+int g_votetime = 0;
+int g_timetortv = 0;
+bool g_rtvbooted = false;
+CUtlDict<int, unsigned short> g_mapVotes;
+CUtlVector<CBasePlayer*> g_playersWhoVoted;
+CUtlVector<CUtlString> g_currentVoteMaps;
+
+int g_nominatePage = 0;
+int g_nominationCount = 0;
+CUtlDict<CUtlString, unsigned short> g_nominatedMaps;
+CUtlVector<CUtlString> g_allMapsInCycle;
+CUtlDict<int, unsigned short> g_alreadyNominatedMaps;
+
+CUtlVector<CUtlString> g_recentlyPlayedMaps;
+
+const int MAX_NOMINATIONS = 5;
+
+ConVar sv_rtv_needed( "sv_rtv_needed", "0.60", 0, "Percentage of players needed to start a map vote. Range: 0.00 - 1.00" );
+ConVar sv_rtv_mintime( "sv_rtv_mintime", "30", 0, "How long to wait until players can start typing RTV (time in seconds)" );
+ConVar sv_rtv_minmaprotation( "sv_rtv_minmaprotation", "15", 0, "Minimum number of maps before allowing a previously played map in RTV or nominations" );
+ConVar sv_rtv_showmapvotes( "sv_rtv_showmapvotes", "0", 0, "If non-zero, shows what map a player has voted during RTV" );
+
 // 10/17/24
-#define SA_VERSION	"1.0.0.9"
+#define SA_VERSION	"1.0.0.16"
 #define SA_POWERED	"Server Binaries"
 CHL2MP_Admin* g_pHL2MPAdmin = NULL;
 bool g_bAdminSystem = false;
@@ -20,6 +51,217 @@ CUtlVector<CHL2MP_Admin*> g_AdminList;
 FileHandle_t g_AdminLogFile = FILESYSTEM_INVALID_HANDLE;
 
 ConVar sv_showadminpermissions( "sv_showadminpermissions", "1", 0, "If non-zero, a non-root admin will only see the commands they have access to" );
+
+extern IServerPluginHelpers* serverpluginhelpers;
+
+// no choice either here, gotta add this for menu panels
+class CAdminPluginCallback : public IServerPluginCallbacks
+{
+public:
+	virtual bool Load( CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory ) override { return true; }
+	virtual void Unload() override {}
+	virtual void Pause() override {}
+	virtual void UnPause() override {}
+	virtual const char* GetPluginDescription() override { return "Empty Plugin Callback"; }
+	virtual void LevelInit( const char* mapname ) override {}
+	virtual void LevelShutdown() override {}
+	virtual void ClientActive( edict_t* pEntity ) override {}
+	virtual void ClientDisconnect( edict_t* pEntity ) override {}
+	virtual void ClientPutInServer( edict_t* pEntity, const char* playername ) override {}
+	virtual void SetCommandClient( int index ) override {}
+	virtual void ClientSettingsChanged( edict_t* pEdict ) override {}
+	virtual PLUGIN_RESULT ClientCommand( edict_t* pEntity, const CCommand& args ) override { return PLUGIN_CONTINUE; }
+	virtual PLUGIN_RESULT NetworkIDValidated( const char* pszUserName, const char* pszNetworkID ) override { return PLUGIN_CONTINUE; }
+	virtual void OnQueryCvarValueFinished( QueryCvarCookie_t iCookie, edict_t* pPlayerEntity, EQueryCvarValueStatus eStatus, const char* pCvarName, const char* pCvarValue ) override {}
+	virtual void OnEdictAllocated( edict_t* edict ) override {}
+	virtual void OnEdictFreed( const edict_t* edict ) override {}
+	virtual void ServerActivate( edict_t* pEdictList, int edictCount, int clientMax ) override {}
+	virtual void GameFrame( bool simulating ) override {}
+	virtual PLUGIN_RESULT ClientConnect( bool* bAllowConnect, edict_t* pEntity, const char* pszName, const char* pszAddress, char* reject, int maxRejectLen ) override { return PLUGIN_CONTINUE; }
+};
+
+CAdminPluginCallback g_AdminPluginCallbacks;
+
+//-----------------------------------------------------------------------------
+// Purpose: rock the vote
+//-----------------------------------------------------------------------------
+void AddRecentlyPlayedMap( const char* mapName )
+{
+	if ( g_recentlyPlayedMaps.HasElement( mapName ) )
+		return;
+
+	g_recentlyPlayedMaps.AddToHead( mapName );
+	DevMsg( "Added map %s to recently played list\n", mapName );
+
+	int maxRecentMaps = sv_rtv_minmaprotation.GetInt();
+	if ( g_recentlyPlayedMaps.Count() > maxRecentMaps )
+	{
+		g_recentlyPlayedMaps.Remove( g_recentlyPlayedMaps.Count() - 1 );
+	}
+}
+
+void OnMapVoteSelection( const CCommand& args )
+{
+	CBasePlayer* pPlayer = UTIL_GetCommandClient();
+	if ( !pPlayer || !g_votebegun || g_votehasended )
+		return;
+
+
+	if ( g_playersWhoVoted.HasElement( pPlayer ) )
+	{
+		UTIL_PrintToClient( pPlayer, CHAT_ADMIN "You have already voted!\n" );
+		return;
+	}
+	g_playersWhoVoted.AddToTail( pPlayer );
+
+	if ( args.ArgC() < 2 )
+		return;
+
+	const char* selectedMap = args[ 1 ];
+
+	int mapIndex = g_mapVotes.Find( selectedMap );
+	if ( mapIndex == g_mapVotes.InvalidIndex() )
+	{
+		g_mapVotes.Insert( selectedMap, 1 );
+	}
+	else
+	{
+		g_mapVotes[ mapIndex ]++;
+	}
+
+	if ( sv_rtv_showmapvotes.GetBool() )
+	{
+		UTIL_PrintToAllClients( UTIL_VarArgs(
+			CHAT_ADMIN "Player %s voted for map: %s\n",
+			pPlayer->GetPlayerName(), selectedMap ) );
+	}
+}
+static ConCommand vote_map( "vote_map", OnMapVoteSelection, "Handles individual player map votes", FCVAR_NONE );
+
+void RemoveTrailingWhitespace( CUtlString& str )
+{
+	int end = str.Length() - 1;
+	while ( end >= 0 && isspace( str[ end ] ) )
+	{
+		--end;
+	}
+	str.SetLength( end + 1 );
+}
+
+void StartMapVote()
+{
+	if ( !serverpluginhelpers )
+		return;
+
+	g_votetime = gpGlobals->curtime + 20;
+	g_currentVoteMaps.RemoveAll();
+
+	CUtlVector<CUtlString> mapList;
+
+	FileHandle_t file = filesystem->Open( "cfg/mapcycle.txt", "r", "MOD" );
+	if ( !file )
+	{
+		file = filesystem->Open( "cfg/mapcycle_default.txt", "r", "MOD" );
+		if ( !file )
+		{
+			Msg( "No mapcycle file found.\n" );
+			return;
+		}
+	}
+
+	const int bufferSize = 256;
+	char buffer[ bufferSize ];
+	while ( filesystem->ReadLine( buffer, bufferSize, file ) )
+	{
+		CUtlString mapName( buffer );
+		RemoveTrailingWhitespace( mapName );
+		if ( !mapName.IsEmpty() && !g_recentlyPlayedMaps.HasElement( mapName ) )
+			mapList.AddToTail( mapName );
+	}
+	filesystem->Close( file );
+
+	if ( mapList.Count() < 5 )
+	{
+		Msg( "Not enough maps in mapcycle file for a vote.\n" );
+		return;
+	}
+
+	for ( int i = 0; i < mapList.Count(); i++ )
+	{
+		int swapIndex = RandomInt( i, mapList.Count() - 1 );
+		if ( i != swapIndex )
+		{
+			CUtlString temp = mapList[ i ];
+			mapList[ i ] = mapList[ swapIndex ];
+			mapList[ swapIndex ] = temp;
+		}
+	}
+
+	KeyValues* kv = new KeyValues( "mapvote" );
+	kv->SetString( "title", "Rock the Vote - Map Selection" );
+	kv->SetInt( "level", 1 );
+	kv->SetColor( "color", Color( 255, 128, 0, 255 ) );
+	kv->SetInt( "time", 20 );
+	kv->SetString( "msg", "Choose a map to play next:" );
+
+	CUtlVector<CUtlString> selectedMaps;
+	for ( unsigned int i = 0; i < g_nominatedMaps.Count() && selectedMaps.Count() < 5; i++ )
+	{
+		const CUtlString& nominatedMap = g_nominatedMaps.Element( i );
+		if ( !selectedMaps.HasElement( nominatedMap ) && !g_recentlyPlayedMaps.HasElement( nominatedMap ) )
+		{
+			selectedMaps.AddToTail( nominatedMap );
+		}
+	}
+
+	for ( int i = 0; i < mapList.Count() && selectedMaps.Count() < 5; i++ )
+	{
+		if ( !selectedMaps.HasElement( mapList[ i ] ) )
+		{
+			selectedMaps.AddToTail( mapList[ i ] );
+		}
+	}
+
+	for ( int i = 0; i < selectedMaps.Count(); i++ )
+	{
+		KeyValues* item = kv->FindKey( CFmtStr( "%d", i + 1 ), true );
+		item->SetString( "msg", selectedMaps[ i ].Get() );
+		item->SetString( "command", UTIL_VarArgs( "vote_map \"%s\"; play buttons/combine_button1.wav", selectedMaps[ i ].Get() ) );
+		g_currentVoteMaps.AddToTail( selectedMaps[ i ] );
+	}
+
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBasePlayer* pClient = UTIL_PlayerByIndex( i );
+		if ( pClient && pClient->IsConnected() )
+		{
+			serverpluginhelpers->CreateMessage( pClient->edict(), DIALOG_MENU, kv, &g_AdminPluginCallbacks );
+		}
+	}
+
+	kv->deleteThis();
+}
+
+void CheckRTVThreshold( CBasePlayer* pPlayer )
+{
+	g_votesneeded = static_cast< int >( sv_rtv_needed.GetFloat() * g_voters );
+
+	if ( g_votes >= g_votesneeded && !g_votebegun )
+	{
+		UTIL_PrintToAllClients( CHAT_INFO "Voting for next map has started...\n" );
+		g_votebegun = true;
+
+		StartMapVote();
+	}
+	else
+	{
+		UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_DEFAULT "%s " CHAT_ADMIN "wants to rock the vote " CHAT_INFO "(%d/%d votes needed)!\n", pPlayer->GetPlayerName(), g_votes, g_votesneeded ) );
+
+		/*UTIL_PrintToAllClients(UTIL_VarArgs(
+			CHAT_ADMIN "Rock the vote progress: " CHAT_INFO "%d/%d votes needed\n",
+			g_votes, g_votesneeded ));*/
+	}
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor/destructor
@@ -546,7 +788,7 @@ static void ReloadAdminsCommand( const CCommand& args )
 	}
 
 	// check permission
-	if ( pPlayer && !CHL2MP_Admin::IsPlayerAdmin( pPlayer, "i") )
+	if ( pPlayer && !CHL2MP_Admin::IsPlayerAdmin( pPlayer, "i" ) )
 	{
 		UTIL_PrintToClient( pPlayer, CHAT_ADMIN "You do not have permission to use this command.\n" );
 		return;
@@ -577,7 +819,7 @@ static void ReloadAdminsCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 static void PrintAdminHelp( CBasePlayer* pPlayer )
 {
-	if (!sv_showadminpermissions.GetBool() || CHL2MP_Admin::IsPlayerAdmin( pPlayer, "z" ) )
+	if ( !sv_showadminpermissions.GetBool() || CHL2MP_Admin::IsPlayerAdmin( pPlayer, "z" ) )
 	{
 		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "[Server Admin] Usage: sa <command> [argument]\n" );
 		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "===== Admin Commands =====\n" );
@@ -735,8 +977,10 @@ static void CreditsCommand( const CCommand& args )
 		Msg( "Henky\n" );
 		Msg( "Humam\n" );
 		Msg( "[MO] Kakujitsu\n" );
+		Msg( "Ribas\n" );
 		Msg( "SALO POWER\n" );
 		Msg( "Sub-Zero\n" );
+		Msg( "ONE | The Nanny\n" );
 		Msg( "Xeogin\n" );
 		Msg( "Special thanks to all the HL2DM players keeping the game alive!\n\n" );
 	}
@@ -756,9 +1000,11 @@ static void CreditsCommand( const CCommand& args )
 		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "Harper\n" );
 		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "Henky\n" );
 		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "Humam\n" );
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "Ribas\n" );
 		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "[MO] Kakujitsu\n" );
 		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "SALO POWER\n" );
 		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "Sub-Zero\n" );
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "ONE | The Nanny\n" );
 		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "Xeogin\n" );
 		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "Special thanks to all the HL2DM players keeping the game alive!\n\n" );
 	}
@@ -804,7 +1050,7 @@ static void HelpPlayerCommand( const CCommand& args )
 			"  sa ban #2 0 I banned you\n"
 			"\n"
 			"Note that special group targets take priority: \"sa ban @all 0\" will ban every player, even if a player is named @all.\n"
-			"Use their userID to target such players.\n\n");
+			"Use their userID to target such players.\n\n" );
 		Msg( "At any point in time you can type a command's name without additional arguments to view its syntax.\n"
 			"Typing \"sa ban\" will print \"Usage: sa ban <name|#userid> <time> [reason]\"\n"
 			"An argument between angled brackets means this argument is required, and an argument between square brackets it is not.\n"
@@ -1038,7 +1284,7 @@ static void NoClipPlayerCommand( const CCommand& args )
 {
 	CBasePlayer* pAdmin = UTIL_GetCommandClient();
 	bool isServerConsole = !pAdmin && UTIL_IsCommandIssuedByServerAdmin();
-	
+
 	if ( !pAdmin && !isServerConsole )
 	{
 		Msg( "Command must be issued by a player or the server console.\n" );
@@ -1245,7 +1491,7 @@ static void NoClipPlayerCommand( const CCommand& args )
 	if ( targetPlayers.Count() > 0 )
 	{
 		const char* logMessage = nullptr;
-		char logBuffer[128] = "";
+		char logBuffer[ 128 ] = "";
 
 		for ( int i = 0; i < targetPlayers.Count(); i++ )
 		{
@@ -1256,7 +1502,7 @@ static void NoClipPlayerCommand( const CCommand& args )
 		{
 			Msg( "Toggled noclip for players in group %s.\n", targetPlayerInput + 1 );  // skip the '@'
 			UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_DEFAULT "Console " CHAT_ADMIN "toggled noclip for all players in group " CHAT_DEFAULT "%s" CHAT_ADMIN ".\n", targetPlayerInput + 1 ) );
-			Q_snprintf(logBuffer, sizeof(logBuffer), "players in group %s", targetPlayerInput + 1);
+			Q_snprintf( logBuffer, sizeof( logBuffer ), "players in group %s", targetPlayerInput + 1 );
 		}
 		else
 		{
@@ -1271,9 +1517,9 @@ static void NoClipPlayerCommand( const CCommand& args )
 				logMessage = "all players except themself";
 			}
 			else
-			{		
+			{
 				UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_ADMIN "Admin " CHAT_DEFAULT "%s " CHAT_ADMIN "toggled noclip for players in group " CHAT_DEFAULT "%s" CHAT_ADMIN ".\n", pAdmin->GetPlayerName(), targetPlayerInput + 1 ) );
-				Q_snprintf(logBuffer, sizeof(logBuffer), "players in group %s", targetPlayerInput + 1);
+				Q_snprintf( logBuffer, sizeof( logBuffer ), "players in group %s", targetPlayerInput + 1 );
 				logMessage = logBuffer;
 			}
 		}
@@ -1282,14 +1528,14 @@ static void NoClipPlayerCommand( const CCommand& args )
 			pAdmin,
 			nullptr,
 			"toggled noclip",
-			UTIL_VarArgs("for %s", logMessage )
+			UTIL_VarArgs( "for %s", logMessage )
 		);
 	}
 	else if ( pTarget )
 	{
-		if (!pTarget->IsAlive())
+		if ( !pTarget->IsAlive() )
 		{
-			UTIL_PrintToClient(pAdmin, UTIL_VarArgs(CHAT_RED "This player is currently dead.\n", pTarget->GetPlayerName()));
+			UTIL_PrintToClient( pAdmin, UTIL_VarArgs( CHAT_RED "This player is currently dead.\n", pTarget->GetPlayerName() ) );
 			return;
 		}
 
@@ -1301,15 +1547,15 @@ static void NoClipPlayerCommand( const CCommand& args )
 			"toggled noclip for",
 			""
 		);
-		
+
 		if ( isServerConsole )
 		{
 			Msg( "Console toggled noclip for player %s\n", pTarget->GetPlayerName() );
-			UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_DEFAULT "Console " CHAT_ADMIN "toggled noclip for " CHAT_DEFAULT "%s\n", pTarget->GetPlayerName()));
+			UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_DEFAULT "Console " CHAT_ADMIN "toggled noclip for " CHAT_DEFAULT "%s\n", pTarget->GetPlayerName() ) );
 		}
 		else
 		{
-			UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_ADMIN "Admin " CHAT_DEFAULT "%s " CHAT_ADMIN "toggled noclip for " CHAT_DEFAULT "%s\n", pAdmin->GetPlayerName(), pTarget->GetPlayerName()));
+			UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_ADMIN "Admin " CHAT_DEFAULT "%s " CHAT_ADMIN "toggled noclip for " CHAT_DEFAULT "%s\n", pAdmin->GetPlayerName(), pTarget->GetPlayerName() ) );
 		}
 	}
 	else
@@ -1328,55 +1574,55 @@ static void NoClipPlayerCommand( const CCommand& args )
 //-----------------------------------------------------------------------------
 // Purpose: Teleport to a player
 //-----------------------------------------------------------------------------
-static void GotoPlayerCommand(const CCommand& args)
+static void GotoPlayerCommand( const CCommand& args )
 {
 	CBasePlayer* pAdmin = UTIL_GetCommandClient();
 
-	if (!pAdmin)
+	if ( !pAdmin )
 	{
-		UTIL_PrintToClient(pAdmin, CHAT_RED "Command must be issued by a player.\n");
+		UTIL_PrintToClient( pAdmin, CHAT_RED "Command must be issued by a player.\n" );
 		return;
 	}
 
-	if (!CHL2MP_Admin::IsPlayerAdmin(pAdmin, "f"))
+	if ( !CHL2MP_Admin::IsPlayerAdmin( pAdmin, "f" ) )
 	{
-		UTIL_PrintToClient(pAdmin, CHAT_ADMIN "You do not have permission to use this command.\n");
+		UTIL_PrintToClient( pAdmin, CHAT_ADMIN "You do not have permission to use this command.\n" );
 		return;
 	}
 
-	if (args.ArgC() < 3)
+	if ( args.ArgC() < 3 )
 	{
-		UTIL_PrintToClient(pAdmin, CHAT_ADMIN "Usage: " CHAT_ADMIN_LIGHT "sa goto <name|#userID>\n");
+		UTIL_PrintToClient( pAdmin, CHAT_ADMIN "Usage: " CHAT_ADMIN_LIGHT "sa goto <name|#userID>\n" );
 		return;
 	}
 
-	const char* targetPlayerInput = args.Arg(2);
+	const char* targetPlayerInput = args.Arg( 2 );
 	CBasePlayer* pTarget = nullptr;
 
-	if (targetPlayerInput[0] == '#')
+	if ( targetPlayerInput[ 0 ] == '#' )
 	{
-		int userID = atoi(&targetPlayerInput[1]);
-		if (userID > 0)
+		int userID = atoi( &targetPlayerInput[ 1 ] );
+		if ( userID > 0 )
 		{
-			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 			{
-				CBasePlayer* pLoopPlayer = UTIL_PlayerByIndex(i);
-				if (pLoopPlayer && pLoopPlayer->GetUserID() == userID)
+				CBasePlayer* pLoopPlayer = UTIL_PlayerByIndex( i );
+				if ( pLoopPlayer && pLoopPlayer->GetUserID() == userID )
 				{
 					pTarget = pLoopPlayer;
 					break;
 				}
 			}
 
-			if (!pTarget)
+			if ( !pTarget )
 			{
-				UTIL_PrintToClient(pAdmin, CHAT_RED "No player found with that UserID.\n");
+				UTIL_PrintToClient( pAdmin, CHAT_RED "No player found with that UserID.\n" );
 				return;
 			}
 		}
 		else
 		{
-			UTIL_PrintToClient(pAdmin, CHAT_RED "Invalid UserID provided.\n");
+			UTIL_PrintToClient( pAdmin, CHAT_RED "Invalid UserID provided.\n" );
 			return;
 		}
 	}
@@ -1384,47 +1630,47 @@ static void GotoPlayerCommand(const CCommand& args)
 	{
 		CUtlVector<CBasePlayer*> matchingPlayers;
 
-		for (int i = 1; i <= gpGlobals->maxClients; i++)
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 		{
-			CBasePlayer* pLoopPlayer = UTIL_PlayerByIndex(i);
-			if (pLoopPlayer && Q_stristr(pLoopPlayer->GetPlayerName(), targetPlayerInput))
+			CBasePlayer* pLoopPlayer = UTIL_PlayerByIndex( i );
+			if ( pLoopPlayer && Q_stristr( pLoopPlayer->GetPlayerName(), targetPlayerInput ) )
 			{
-				matchingPlayers.AddToTail(pLoopPlayer);
+				matchingPlayers.AddToTail( pLoopPlayer );
 			}
 		}
 
-		if (matchingPlayers.Count() == 0)
+		if ( matchingPlayers.Count() == 0 )
 		{
-			UTIL_PrintToClient(pAdmin, CHAT_RED "No players found matching that name.\n");
+			UTIL_PrintToClient( pAdmin, CHAT_RED "No players found matching that name.\n" );
 			return;
 		}
-		else if (matchingPlayers.Count() > 1)
+		else if ( matchingPlayers.Count() > 1 )
 		{
-			UTIL_PrintToClient(pAdmin, CHAT_ADMIN "Multiple players match that partial name:\n");
-			for (int i = 0; i < matchingPlayers.Count(); i++)
+			UTIL_PrintToClient( pAdmin, CHAT_ADMIN "Multiple players match that partial name:\n" );
+			for ( int i = 0; i < matchingPlayers.Count(); i++ )
 			{
-				UTIL_PrintToClient(pAdmin, UTIL_VarArgs(CHAT_ADMIN_LIGHT "%s\n", matchingPlayers[i]->GetPlayerName()));
+				UTIL_PrintToClient( pAdmin, UTIL_VarArgs( CHAT_ADMIN_LIGHT "%s\n", matchingPlayers[ i ]->GetPlayerName() ) );
 			}
 			return;
 		}
 
-		pTarget = matchingPlayers[0];
+		pTarget = matchingPlayers[ 0 ];
 	}
 
-	if (pTarget)
+	if ( pTarget )
 	{
-		if (!pTarget->IsAlive())
+		if ( !pTarget->IsAlive() )
 		{
-			UTIL_PrintToClient(pAdmin, CHAT_RED "This player is currently dead.\n");
+			UTIL_PrintToClient( pAdmin, CHAT_RED "This player is currently dead.\n" );
 			return;
 		}
 
-		if (pAdmin->IsAlive())
+		if ( pAdmin->IsAlive() )
 		{
 			Vector targetPosition = pTarget->GetAbsOrigin();
 			targetPosition.z += 80.0f;
 
-			pAdmin->SetAbsOrigin(targetPosition);
+			pAdmin->SetAbsOrigin( targetPosition );
 
 			CHL2MP_Admin::LogAction(
 				pAdmin,
@@ -1433,76 +1679,76 @@ static void GotoPlayerCommand(const CCommand& args)
 				""
 			);
 
-			UTIL_PrintToAllClients(UTIL_VarArgs(CHAT_ADMIN "Admin " CHAT_DEFAULT "%s " CHAT_ADMIN "teleported to " CHAT_DEFAULT "%s\n", pAdmin->GetPlayerName(), pTarget->GetPlayerName()));
+			UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_ADMIN "Admin " CHAT_DEFAULT "%s " CHAT_ADMIN "teleported to " CHAT_DEFAULT "%s\n", pAdmin->GetPlayerName(), pTarget->GetPlayerName() ) );
 		}
 		else
 		{
-			UTIL_PrintToClient(pAdmin, CHAT_RED "You must be alive to teleport to a player.\n");
+			UTIL_PrintToClient( pAdmin, CHAT_RED "You must be alive to teleport to a player.\n" );
 		}
 	}
 	else
 	{
-		UTIL_PrintToClient(pAdmin, CHAT_RED "Player not found.\n");
+		UTIL_PrintToClient( pAdmin, CHAT_RED "Player not found.\n" );
 	}
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: Teleport players to where an admin is aiming
 //-----------------------------------------------------------------------------
-static void BringPlayerCommand(const CCommand& args)
+static void BringPlayerCommand( const CCommand& args )
 {
 	CBasePlayer* pAdmin = UTIL_GetCommandClient();
 
-	if (!pAdmin)
+	if ( !pAdmin )
 	{
-		UTIL_PrintToClient(pAdmin, CHAT_RED "Command must be issued by a player.\n");
+		UTIL_PrintToClient( pAdmin, CHAT_RED "Command must be issued by a player.\n" );
 		return;
 	}
 
-	if (!CHL2MP_Admin::IsPlayerAdmin(pAdmin, "f"))
+	if ( !CHL2MP_Admin::IsPlayerAdmin( pAdmin, "f" ) )
 	{
-		UTIL_PrintToClient(pAdmin, CHAT_ADMIN "You do not have permission to use this command.\n");
+		UTIL_PrintToClient( pAdmin, CHAT_ADMIN "You do not have permission to use this command.\n" );
 		return;
 	}
 
-	if (args.ArgC() < 3)
+	if ( args.ArgC() < 3 )
 	{
-		UTIL_PrintToClient(pAdmin, CHAT_ADMIN "Usage: " CHAT_ADMIN_LIGHT "sa bring <name|#userID>\n");
+		UTIL_PrintToClient( pAdmin, CHAT_ADMIN "Usage: " CHAT_ADMIN_LIGHT "sa bring <name|#userID>\n" );
 		return;
 	}
 
-	const char* targetPlayerInput = args.Arg(2);
+	const char* targetPlayerInput = args.Arg( 2 );
 	CBasePlayer* pTarget = nullptr;
 
-	if (Q_stricmp(targetPlayerInput, "@me") == 0)
+	if ( Q_stricmp( targetPlayerInput, "@me" ) == 0 )
 	{
 		pTarget = pAdmin;
 	}
 
-	else if (targetPlayerInput[0] == '#')
+	else if ( targetPlayerInput[ 0 ] == '#' )
 	{
-		int userID = atoi(&targetPlayerInput[1]);
-		if (userID > 0)
+		int userID = atoi( &targetPlayerInput[ 1 ] );
+		if ( userID > 0 )
 		{
-			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 			{
-				CBasePlayer* pLoopPlayer = UTIL_PlayerByIndex(i);
-				if (pLoopPlayer && pLoopPlayer->GetUserID() == userID)
+				CBasePlayer* pLoopPlayer = UTIL_PlayerByIndex( i );
+				if ( pLoopPlayer && pLoopPlayer->GetUserID() == userID )
 				{
 					pTarget = pLoopPlayer;
 					break;
 				}
 			}
 
-			if (!pTarget)
+			if ( !pTarget )
 			{
-				UTIL_PrintToClient(pAdmin, CHAT_RED "No player found with that UserID.\n");
+				UTIL_PrintToClient( pAdmin, CHAT_RED "No player found with that UserID.\n" );
 				return;
 			}
 		}
 		else
 		{
-			UTIL_PrintToClient(pAdmin, CHAT_RED "Invalid UserID provided.\n");
+			UTIL_PrintToClient( pAdmin, CHAT_RED "Invalid UserID provided.\n" );
 			return;
 		}
 	}
@@ -1510,45 +1756,45 @@ static void BringPlayerCommand(const CCommand& args)
 	{
 		CUtlVector<CBasePlayer*> matchingPlayers;
 
-		for (int i = 1; i <= gpGlobals->maxClients; i++)
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 		{
-			CBasePlayer* pLoopPlayer = UTIL_PlayerByIndex(i);
-			if (pLoopPlayer && Q_stristr(pLoopPlayer->GetPlayerName(), targetPlayerInput))
+			CBasePlayer* pLoopPlayer = UTIL_PlayerByIndex( i );
+			if ( pLoopPlayer && Q_stristr( pLoopPlayer->GetPlayerName(), targetPlayerInput ) )
 			{
-				matchingPlayers.AddToTail(pLoopPlayer);
+				matchingPlayers.AddToTail( pLoopPlayer );
 			}
 		}
 
-		if (matchingPlayers.Count() == 0)
+		if ( matchingPlayers.Count() == 0 )
 		{
-			UTIL_PrintToClient(pAdmin, CHAT_RED "No players found matching that name.\n");
+			UTIL_PrintToClient( pAdmin, CHAT_RED "No players found matching that name.\n" );
 			return;
 		}
-		else if (matchingPlayers.Count() > 1)
+		else if ( matchingPlayers.Count() > 1 )
 		{
-			UTIL_PrintToClient(pAdmin, CHAT_ADMIN "Multiple players match that partial name:\n");
-			for (int i = 0; i < matchingPlayers.Count(); i++)
+			UTIL_PrintToClient( pAdmin, CHAT_ADMIN "Multiple players match that partial name:\n" );
+			for ( int i = 0; i < matchingPlayers.Count(); i++ )
 			{
-				UTIL_PrintToClient(pAdmin, UTIL_VarArgs(CHAT_ADMIN_LIGHT "%s\n", matchingPlayers[i]->GetPlayerName()));
+				UTIL_PrintToClient( pAdmin, UTIL_VarArgs( CHAT_ADMIN_LIGHT "%s\n", matchingPlayers[ i ]->GetPlayerName() ) );
 			}
 			return;
 		}
 
-		pTarget = matchingPlayers[0];
+		pTarget = matchingPlayers[ 0 ];
 	}
 
-	if (pTarget)
+	if ( pTarget )
 	{
-		if (pAdmin->IsAlive())
+		if ( pAdmin->IsAlive() && pAdmin->GetTeamNumber() != TEAM_SPECTATOR )
 		{
 			Vector forward;
 			trace_t tr;
 
-			pAdmin->EyeVectors(&forward);
-			UTIL_TraceLine(pAdmin->EyePosition(), pAdmin->EyePosition() + forward * MAX_COORD_RANGE, MASK_SOLID, pAdmin, COLLISION_GROUP_NONE, &tr);
+			pAdmin->EyeVectors( &forward );
+			UTIL_TraceLine( pAdmin->EyePosition(), pAdmin->EyePosition() + forward * MAX_COORD_RANGE, MASK_SOLID, pAdmin, COLLISION_GROUP_NONE, &tr );
 
 			Vector targetPosition = tr.endpos;
-			pTarget->SetAbsOrigin(targetPosition);
+			pTarget->SetAbsOrigin( targetPosition );
 
 			CHL2MP_Admin::LogAction(
 				pAdmin,
@@ -1557,16 +1803,16 @@ static void BringPlayerCommand(const CCommand& args)
 				""
 			);
 
-			UTIL_PrintToAllClients(UTIL_VarArgs(CHAT_ADMIN "Admin " CHAT_DEFAULT "%s " CHAT_ADMIN "teleported player " CHAT_DEFAULT "%s\n", pAdmin->GetPlayerName(), pTarget->GetPlayerName()));
+			UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_ADMIN "Admin " CHAT_DEFAULT "%s " CHAT_ADMIN "teleported player " CHAT_DEFAULT "%s\n", pAdmin->GetPlayerName(), pTarget->GetPlayerName() ) );
 		}
 		else
 		{
-			UTIL_PrintToClient(pAdmin, CHAT_RED "You must be alive to teleport a player.\n");
+			UTIL_PrintToClient( pAdmin, CHAT_RED "You must be alive to teleport a player.\n" );
 		}
 	}
 	else
 	{
-		UTIL_PrintToClient(pAdmin, CHAT_RED "Player not found.\n");
+		UTIL_PrintToClient( pAdmin, CHAT_RED "Player not found.\n" );
 	}
 }
 
@@ -1834,24 +2080,24 @@ static void TeamPlayerCommand( const CCommand& args )
 			pAdmin,
 			pTarget,
 			"moved",
-			UTIL_VarArgs("to team %s", teamName)
+			UTIL_VarArgs( "to team %s", teamName )
 		);
 
 		CUtlString sTeamMessage;
 
-		if (isServerConsole)
+		if ( isServerConsole )
 		{
-			Msg("Console moved player %s to team %s.\n", pTarget->GetPlayerName(), teamName);
-			sTeamMessage = UTIL_VarArgs(CHAT_DEFAULT "Console " CHAT_ADMIN "moved player " CHAT_DEFAULT "%s " CHAT_ADMIN "to team " CHAT_DEFAULT "%s.\n", pTarget->GetPlayerName(), teamName);
+			Msg( "Console moved player %s to team %s.\n", pTarget->GetPlayerName(), teamName );
+			sTeamMessage = UTIL_VarArgs( CHAT_DEFAULT "Console " CHAT_ADMIN "moved player " CHAT_DEFAULT "%s " CHAT_ADMIN "to team " CHAT_DEFAULT "%s.\n", pTarget->GetPlayerName(), teamName );
 		}
 		else
 		{
 			sTeamMessage = UTIL_VarArgs(
 				CHAT_ADMIN "Admin " CHAT_DEFAULT "%s " CHAT_ADMIN "moved player " CHAT_DEFAULT "%s " CHAT_ADMIN "to team " CHAT_DEFAULT "%s.\n",
-				pAdmin->GetPlayerName(), pTarget->GetPlayerName(), teamName);
+				pAdmin->GetPlayerName(), pTarget->GetPlayerName(), teamName );
 		}
 
-		UTIL_PrintToAllClients(sTeamMessage.Get());
+		UTIL_PrintToAllClients( sTeamMessage.Get() );
 
 	}
 	else if ( targetPlayers.Count() > 0 )
@@ -1880,7 +2126,7 @@ static void TeamPlayerCommand( const CCommand& args )
 			pAdmin,
 			nullptr,
 			"moved",
-			UTIL_VarArgs("%s to team %s", logMessage, teamName)
+			UTIL_VarArgs( "%s to team %s", logMessage, teamName )
 		);
 
 		if ( isServerConsole )
@@ -2181,7 +2427,7 @@ static void UnMutePlayerCommand( const CCommand& args )
 		}
 		else
 		{
-			logMessage = UTIL_VarArgs("players in group %s", targetPlayerInput + 1);
+			logMessage = UTIL_VarArgs( "players in group %s", targetPlayerInput + 1 );
 		}
 
 		CHL2MP_Admin::LogAction(
@@ -2487,7 +2733,7 @@ static void MutePlayerCommand( const CCommand& args )
 		}
 		else
 		{
-			logMessage = UTIL_VarArgs("players in group %s", targetPlayerInput + 1);
+			logMessage = UTIL_VarArgs( "players in group %s", targetPlayerInput + 1 );
 		}
 
 		CHL2MP_Admin::LogAction(
@@ -2793,7 +3039,7 @@ static void UnGagPlayerCommand( const CCommand& args )
 		}
 		else
 		{
-			logMessage = UTIL_VarArgs("players in group %s", targetPlayerInput + 1);
+			logMessage = UTIL_VarArgs( "players in group %s", targetPlayerInput + 1 );
 		}
 
 		CHL2MP_Admin::LogAction(
@@ -2944,7 +3190,7 @@ static void GagPlayerCommand( const CCommand& args )
 	}
 	else if ( targetPlayerInput[ 0 ] == '#' )
 	{
-		int userID = atoi( &targetPlayerInput[ 1 ] ); 
+		int userID = atoi( &targetPlayerInput[ 1 ] );
 		if ( userID > 0 )
 		{
 			for ( int i = 1; i <= gpGlobals->maxClients; i++ )
@@ -3099,7 +3345,7 @@ static void GagPlayerCommand( const CCommand& args )
 		}
 		else
 		{
-			logMessage = UTIL_VarArgs("players in group %s", targetPlayerInput + 1);
+			logMessage = UTIL_VarArgs( "players in group %s", targetPlayerInput + 1 );
 		}
 
 		CHL2MP_Admin::LogAction(
@@ -3241,16 +3487,16 @@ static void MapCommand( const CCommand& args )
 		HL2MPRules()->SetMapChangeOnGoing( true );
 
 		if ( isServerConsole )
-			UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_DEFAULT "Console " CHAT_ADMIN "is changing the map to " CHAT_DEFAULT "%s" CHAT_ADMIN " in 5 seconds...\n", exactMatchMap));
+			UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_DEFAULT "Console " CHAT_ADMIN "is changing the map to " CHAT_DEFAULT "%s" CHAT_ADMIN " in 5 seconds...\n", exactMatchMap ) );
 		else
-			UTIL_PrintToAllClients( UTIL_VarArgs(CHAT_ADMIN "Admin " CHAT_DEFAULT "%s " CHAT_ADMIN "is changing the map to " CHAT_DEFAULT "%s" CHAT_ADMIN " in 5 seconds...\n", pPlayer->GetPlayerName(), exactMatchMap));
+			UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_ADMIN "Admin " CHAT_DEFAULT "%s " CHAT_ADMIN "is changing the map to " CHAT_DEFAULT "%s" CHAT_ADMIN " in 5 seconds...\n", pPlayer->GetPlayerName(), exactMatchMap ) );
 		engine->ServerCommand( "mp_timelimit 0\n" );
 
 		CHL2MP_Admin::LogAction(
 			pPlayer,
 			nullptr,
 			"changed map",
-			UTIL_VarArgs("to %s", exactMatchMap)
+			UTIL_VarArgs( "to %s", exactMatchMap )
 		);
 
 		delete[] exactMatchMap;
@@ -3280,7 +3526,7 @@ static void MapCommand( const CCommand& args )
 				pPlayer,
 				nullptr,
 				"changed map",
-				UTIL_VarArgs("to %s", matchingMaps[0])
+				UTIL_VarArgs( "to %s", matchingMaps[ 0 ] )
 			);
 		}
 		else
@@ -3293,13 +3539,13 @@ static void MapCommand( const CCommand& args )
 				pPlayer,
 				nullptr,
 				"changed map",
-				UTIL_VarArgs("to %s", matchingMaps[0])
+				UTIL_VarArgs( "to %s", matchingMaps[ 0 ] )
 			);
 
 			if ( isServerConsole )
-				UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_DEFAULT "Console " CHAT_ADMIN "is changing the map to " CHAT_DEFAULT "%s" CHAT_ADMIN "in 5 seconds...\n", matchingMaps[0]));
+				UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_DEFAULT "Console " CHAT_ADMIN "is changing the map to " CHAT_DEFAULT "%s" CHAT_ADMIN "in 5 seconds...\n", matchingMaps[ 0 ] ) );
 			else
-				UTIL_PrintToAllClients( UTIL_VarArgs(CHAT_ADMIN "Admin " CHAT_DEFAULT "%s " CHAT_ADMIN "is changing the map to " CHAT_DEFAULT "%s" CHAT_ADMIN " in 5 seconds...\n",  pPlayer->GetPlayerName(), matchingMaps[0]));
+				UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_ADMIN "Admin " CHAT_DEFAULT "%s " CHAT_ADMIN "is changing the map to " CHAT_DEFAULT "%s" CHAT_ADMIN " in 5 seconds...\n", pPlayer->GetPlayerName(), matchingMaps[ 0 ] ) );
 		}
 	}
 	else
@@ -3369,9 +3615,9 @@ static void RconCommand( const CCommand& args )
 
 	const char* commandName = args.Arg( 2 );
 
-	if ( Q_stricmp( commandName, "sa") == 0 )
+	if ( Q_stricmp( commandName, "sa" ) == 0 )
 	{
-		UTIL_PrintToClient(pPlayer, UTIL_VarArgs(CHAT_ADMIN "No " CHAT_DEFAULT "\"sa rcon\" " CHAT_ADMIN "needed with commands starting with " CHAT_DEFAULT "\"%s\"\n", commandName));
+		UTIL_PrintToClient( pPlayer, UTIL_VarArgs( CHAT_ADMIN "No " CHAT_DEFAULT "\"sa rcon\" " CHAT_ADMIN "needed with commands starting with " CHAT_DEFAULT "\"%s\"\n", commandName ) );
 		return;
 	}
 
@@ -3501,10 +3747,10 @@ static void CVarCommand( const CCommand& args )
 
 	// if there is an sv_cheats dependency, 
 	// ensure the player has the ADMIN_CHEAT flag if necessary
-	bool requiresCheatFlag = pConVar->IsFlagSet(FCVAR_CHEAT);
-	if (requiresCheatFlag && pPlayer && !CHL2MP_Admin::IsPlayerAdmin(pPlayer, "n"))
+	bool requiresCheatFlag = pConVar->IsFlagSet( FCVAR_CHEAT );
+	if ( requiresCheatFlag && pPlayer && !CHL2MP_Admin::IsPlayerAdmin( pPlayer, "n" ) )
 	{
-		UTIL_PrintToClient(pPlayer, CHAT_RED "You do not have permission to change cheat protected cvars.\n");
+		UTIL_PrintToClient( pPlayer, CHAT_RED "You do not have permission to change cheat protected cvars.\n" );
 		return;
 	}
 
@@ -3517,7 +3763,7 @@ static void CVarCommand( const CCommand& args )
 		{
 			if ( isServerConsole )
 			{
-				Msg( "Can't print the password. Type \"sv_password\" directly\n" );		
+				Msg( "Can't print the password. Type \"sv_password\" directly\n" );
 			}
 			else
 			{
@@ -3554,18 +3800,18 @@ static void CVarCommand( const CCommand& args )
 	}
 
 	// modify or reset the value from here on out
-	const char* newValue = args.Arg(3);
+	const char* newValue = args.Arg( 3 );
 
-	if (Q_stricmp(newValue, "reset") == 0)
+	if ( Q_stricmp( newValue, "reset" ) == 0 )
 	{
 		pConVar->Revert();
-		UTIL_PrintToAllClients(UTIL_VarArgs(CHAT_ADMIN "Cvar " CHAT_DEFAULT "%s" CHAT_ADMIN " reset to default value.\n", cvarName));
-		
+		UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_ADMIN "Cvar " CHAT_DEFAULT "%s" CHAT_ADMIN " reset to default value.\n", cvarName ) );
+
 		CHL2MP_Admin::LogAction(
 			pPlayer,
 			nullptr,
 			"reset cvar",
-			UTIL_VarArgs("%s to default value", cvarName)
+			UTIL_VarArgs( "%s to default value", cvarName )
 		);
 
 		return;
@@ -3573,34 +3819,34 @@ static void CVarCommand( const CCommand& args )
 
 	// if we are trying to change the password, 
 	// make sure we have the authorizations to do so
-	if (Q_stricmp(cvarName, "sv_password") == 0)
+	if ( Q_stricmp( cvarName, "sv_password" ) == 0 )
 	{
-		if (pPlayer && !CHL2MP_Admin::IsPlayerAdmin(pPlayer, "l") && !isServerConsole)
+		if ( pPlayer && !CHL2MP_Admin::IsPlayerAdmin( pPlayer, "l" ) && !isServerConsole )
 		{
-			UTIL_PrintToClient(pPlayer, CHAT_RED "You do not have permission to add or change the server password.\n");
+			UTIL_PrintToClient( pPlayer, CHAT_RED "You do not have permission to add or change the server password.\n" );
 			return;
 		}
 
-		if (Q_stricmp(pConVar->GetString(), newValue) == 0)
+		if ( Q_stricmp( pConVar->GetString(), newValue ) == 0 )
 		{
-			if (isServerConsole)
+			if ( isServerConsole )
 			{
-				Msg("Cvar sv_password is already set to \"%s\".\n", newValue);
+				Msg( "Cvar sv_password is already set to \"%s\".\n", newValue );
 			}
 			else
 			{
-				UTIL_PrintToClient(pPlayer, UTIL_VarArgs(CHAT_ADMIN "Cvar " CHAT_DEFAULT "sv_password" CHAT_ADMIN " is already set to " CHAT_DEFAULT "\"%s\".\n", newValue));
+				UTIL_PrintToClient( pPlayer, UTIL_VarArgs( CHAT_ADMIN "Cvar " CHAT_DEFAULT "sv_password" CHAT_ADMIN " is already set to " CHAT_DEFAULT "\"%s\".\n", newValue ) );
 			}
 			return;
 		}
 
-		pConVar->SetValue(newValue);
+		pConVar->SetValue( newValue );
 
 		CHL2MP_Admin::LogAction(
 			pPlayer,
 			nullptr,
 			"changed cvar",
-			UTIL_VarArgs("sv_password to \"%s\"", newValue)
+			UTIL_VarArgs( "sv_password to \"%s\"", newValue )
 		);
 
 		return;
@@ -3653,17 +3899,17 @@ static void CVarCommand( const CCommand& args )
 		pPlayer,
 		nullptr,
 		"changed cvar",
-		UTIL_VarArgs("%s to %s", cvarName, newValue)
+		UTIL_VarArgs( "%s to %s", cvarName, newValue )
 	);
 
 	if ( isServerConsole )
 	{
 		Msg( "CVar %s set to %s.\n", cvarName, newValue );
-		UTIL_PrintToAllClients(UTIL_VarArgs(CHAT_DEFAULT "Console " CHAT_ADMIN "changed cvar " CHAT_DEFAULT "%s" CHAT_ADMIN " set to " CHAT_DEFAULT "%s.\n", cvarName, newValue));
+		UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_DEFAULT "Console " CHAT_ADMIN "changed cvar " CHAT_DEFAULT "%s" CHAT_ADMIN " set to " CHAT_DEFAULT "%s.\n", cvarName, newValue ) );
 	}
 	else
 	{
-		UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_ADMIN "Admin " CHAT_DEFAULT "%s " CHAT_ADMIN "changed cvar " CHAT_DEFAULT "%s" CHAT_ADMIN " set to " CHAT_DEFAULT "%s.\n", pPlayer->GetPlayerName(), cvarName, newValue));
+		UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_ADMIN "Admin " CHAT_DEFAULT "%s " CHAT_ADMIN "changed cvar " CHAT_DEFAULT "%s" CHAT_ADMIN " set to " CHAT_DEFAULT "%s.\n", pPlayer->GetPlayerName(), cvarName, newValue ) );
 	}
 }
 
@@ -3899,7 +4145,7 @@ static void SlapPlayerCommand( const CCommand& args )
 		}
 
 		// const char* slapDamageText = slapDamage > 0 ? UTIL_VarArgs("%d damage", slapDamage) : "No damage";
-		char slapDamageText[64];
+		char slapDamageText[ 64 ];
 		if ( slapDamage > 0 )
 		{
 			Q_snprintf( slapDamageText, sizeof( slapDamageText ), "%d damage", slapDamage );
@@ -3914,7 +4160,7 @@ static void SlapPlayerCommand( const CCommand& args )
 		slapForce.y = RandomFloat( -150, 150 );
 		slapForce.z = RandomFloat( 200, 400 );
 
-		pTarget->ApplyAbsVelocityImpulse( slapForce ); 
+		pTarget->ApplyAbsVelocityImpulse( slapForce );
 
 		if ( slapDamage > 0 )
 		{
@@ -3922,7 +4168,7 @@ static void SlapPlayerCommand( const CCommand& args )
 			pTarget->TakeDamage( damageInfo );
 		}
 
-		CBroadcastRecipientFilter filter;
+		CPASAttenuationFilter filter(pTarget);
 		filter.AddRecipient( pTarget );
 		filter.MakeReliable();
 
@@ -3931,13 +4177,13 @@ static void SlapPlayerCommand( const CCommand& args )
 		if ( iRandomSnd == 1 )
 			CBaseEntity::EmitSound( filter, pTarget->entindex(), "Player.FallDamage" );
 		else
-			CBaseEntity::EmitSound( filter, pTarget->entindex(), "Player.SonicDamage" );	
+			CBaseEntity::EmitSound( filter, pTarget->entindex(), "Player.SonicDamage" );
 
 		CHL2MP_Admin::LogAction(
 			pPlayer,
 			pTarget,
 			"slapped",
-			UTIL_VarArgs("for %s", slapDamageText)
+			UTIL_VarArgs( "for %s", slapDamageText )
 		);
 
 		if ( isServerConsole )
@@ -3978,7 +4224,7 @@ static void SlapPlayerCommand( const CCommand& args )
 		}
 
 		// const char* slapDamageText = slapDamage > 0 ? UTIL_VarArgs("%d damage", slapDamage) : "No damage";
-		char slapDamageText[64];
+		char slapDamageText[ 64 ];
 		if ( slapDamage > 0 )
 		{
 			Q_snprintf( slapDamageText, sizeof( slapDamageText ), "%d damage", slapDamage );
@@ -4016,18 +4262,18 @@ static void SlapPlayerCommand( const CCommand& args )
 		CUtlString logDetails;
 		if ( Q_stricmp( partialName, "@me" ) == 0 )
 		{
-			logDetails.Format("slapped themself (%s)", slapDamageText);
+			logDetails.Format( "slapped themself (%s)", slapDamageText );
 		}
 		else if ( Q_stricmp( partialName, "@!me" ) == 0 )
 		{
-			logDetails.Format("slapped all players but themself (%s)", slapDamageText);
+			logDetails.Format( "slapped all players but themself (%s)", slapDamageText );
 		}
 		else
 		{
-			logDetails.Format("slapped players in group %s (%s)", partialName + 1, slapDamageText);
+			logDetails.Format( "slapped players in group %s (%s)", partialName + 1, slapDamageText );
 		}
 
-		CHL2MP_Admin::LogAction(pPlayer, nullptr, "slapped", logDetails.Get(), nullptr);
+		CHL2MP_Admin::LogAction( pPlayer, nullptr, "slapped", logDetails.Get(), nullptr );
 
 		if ( isServerConsole )
 		{
@@ -4328,9 +4574,9 @@ static void SlayPlayerCommand( const CCommand& args )
 			else
 			{
 				UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_ADMIN "Admin " CHAT_DEFAULT "%s " CHAT_ADMIN "slew players in group " CHAT_DEFAULT "%s" CHAT_ADMIN ".\n", pPlayer->GetPlayerName(), partialName + 1 ) );
-				logDetails.Format("players in group %s", partialName + 1);
+				logDetails.Format( "players in group %s", partialName + 1 );
 			}
-			CHL2MP_Admin::LogAction(pPlayer, nullptr, "slew", logDetails.Get(), nullptr);
+			CHL2MP_Admin::LogAction( pPlayer, nullptr, "slew", logDetails.Get(), nullptr );
 		}
 	}
 	else if ( pTarget )
@@ -4605,18 +4851,18 @@ static void KickPlayerCommand( const CCommand& args )
 
 		if ( Q_stricmp( partialName, "@me" ) == 0 )
 		{
-			logDetails.Format("themself (%s%s)", reason.Length() > 0 ? "Reason: " : "", kickReason);
+			logDetails.Format( "themself (%s%s)", reason.Length() > 0 ? "Reason: " : "", kickReason );
 		}
 		else if ( Q_stricmp( partialName, "@!me" ) == 0 )
 		{
-			logDetails.Format("all players but themself (%s%s)", reason.Length() > 0 ? "Reason: " : "", kickReason);
+			logDetails.Format( "all players but themself (%s%s)", reason.Length() > 0 ? "Reason: " : "", kickReason );
 		}
 		else
 		{
-			logDetails.Format("players in group %s (%s%s)", partialName + 1, reason.Length() > 0 ? "Reason: " : "", kickReason);
+			logDetails.Format( "players in group %s (%s%s)", partialName + 1, reason.Length() > 0 ? "Reason: " : "", kickReason );
 		}
 
-		CHL2MP_Admin::LogAction(pPlayer, nullptr, "kicked", logDetails.Get(), nullptr);
+		CHL2MP_Admin::LogAction( pPlayer, nullptr, "kicked", logDetails.Get(), nullptr );
 
 		if ( isServerConsole )
 		{
@@ -4667,7 +4913,7 @@ static void KickPlayerCommand( const CCommand& args )
 			pTarget,
 			"kicked",
 			reason.Length() > 0 ? UTIL_VarArgs( "(Reason: %s)", reason.Get() )
-			: "(No reason provided)");
+			: "(No reason provided)" );
 
 		if ( isServerConsole )
 		{
@@ -4745,33 +4991,33 @@ static void BanPlayerCommand( const CCommand& args )
 	}
 
 	const char* partialName = args.Arg( 2 );
-	const char* timeArg = args.Arg(3);
+	const char* timeArg = args.Arg( 3 );
 
 	// only digits to avoid accidental permabans
 	bool isValidTime = true;
-	for (int i = 0; i < Q_strlen(timeArg); ++i) 
+	for ( int i = 0; i < Q_strlen( timeArg ); ++i )
 	{
-		if (!isdigit(timeArg[i])) 
+		if ( !isdigit( timeArg[ i ] ) )
 		{
 			isValidTime = false;
 			break;
 		}
 	}
 
-	if (!isValidTime) 
+	if ( !isValidTime )
 	{
-		if (isServerConsole) 
+		if ( isServerConsole )
 		{
-			Msg("Invalid ban time provided.\n");
-		} 
-		else 
+			Msg( "Invalid ban time provided.\n" );
+		}
+		else
 		{
-			UTIL_PrintToClient(pPlayer, CHAT_RED "Invalid ban time provided.\n");
+			UTIL_PrintToClient( pPlayer, CHAT_RED "Invalid ban time provided.\n" );
 		}
 		return;
 	}
 
-	int banTime = atoi(timeArg);
+	int banTime = atoi( timeArg );
 
 	if ( banTime < 0 )
 	{
@@ -4969,13 +5215,13 @@ static void BanPlayerCommand( const CCommand& args )
 
 	// LOGGING ONLY: not very clean, sorry
 	CUtlString banDuration; // string needed
-	if (banTime == 0) 
+	if ( banTime == 0 )
 	{
 		banDuration = "permanently";
-	} 
-	else 
+	}
+	else
 	{
-		banDuration = UTIL_VarArgs("for %d minute%s", banTime, banTime > 1 ? "s" : "");
+		banDuration = UTIL_VarArgs( "for %d minute%s", banTime, banTime > 1 ? "s" : "" );
 	}
 
 	// handle banning multiple players (target group)
@@ -5014,10 +5260,10 @@ static void BanPlayerCommand( const CCommand& args )
 		}
 
 		const char* logDetails = reason.Length() > 0
-			? UTIL_VarArgs("%s (Reason: %s)", banDuration.Get(), reason.Get())
+			? UTIL_VarArgs( "%s (Reason: %s)", banDuration.Get(), reason.Get() )
 			: banDuration.Get();
 
-		CHL2MP_Admin::LogAction(pPlayer, nullptr, "banned", logDetails, partialName + 1);
+		CHL2MP_Admin::LogAction( pPlayer, nullptr, "banned", logDetails, partialName + 1 );
 
 		if ( isServerConsole )
 		{
@@ -5189,7 +5435,7 @@ static void BanPlayerCommand( const CCommand& args )
 			pTarget,
 			"banned",
 			reason.Length() > 0
-			? UTIL_VarArgs("%s (Reason: %s)", banDuration.Get(), reason.Get())
+			? UTIL_VarArgs( "%s (Reason: %s)", banDuration.Get(), reason.Get() )
 			: banDuration.Get()
 		);
 	}
@@ -5372,14 +5618,14 @@ static void AddBanCommand( const CCommand& args )
 
 	engine->ServerCommand( "writeid\n" );
 
-	CUtlString banDuration = banTime == 0 ? "permanently" : UTIL_VarArgs("for %d minute%s", banTime, banTime > 1 ? "s" : "");
+	CUtlString banDuration = banTime == 0 ? "permanently" : UTIL_VarArgs( "for %d minute%s", banTime, banTime > 1 ? "s" : "" );
 	CUtlString logDetails = banDuration;
-	if ( Q_strlen(reason) > 0 )
+	if ( Q_strlen( reason ) > 0 )
 	{
-		logDetails += UTIL_VarArgs(" (Reason: %s)", reason);
+		logDetails += UTIL_VarArgs( " (Reason: %s)", reason );
 	}
 
-	CHL2MP_Admin::LogAction(pPlayer, nullptr, "added ban", UTIL_VarArgs("SteamID %s %s", steamID, logDetails.Get()));
+	CHL2MP_Admin::LogAction( pPlayer, nullptr, "added ban", UTIL_VarArgs( "SteamID %s %s", steamID, logDetails.Get() ) );
 
 	if ( isServerConsole )
 	{
@@ -5585,22 +5831,22 @@ static void AdminCommand( const CCommand& args )
 			AdminSay( args );
 			return;
 		}
-		if ( Q_stricmp( subCommand, "csay" ) == 0 )
+		else if ( Q_stricmp( subCommand, "csay" ) == 0 )
 		{
 			AdminCSay( args );
 			return;
 		}
-		if ( Q_stricmp( subCommand, "chat" ) == 0 )
+		else if ( Q_stricmp( subCommand, "chat" ) == 0 )
 		{
 			AdminChat( args );
 			return;
 		}
-		if ( Q_stricmp( subCommand, "psay" ) == 0 )
+		else if ( Q_stricmp( subCommand, "psay" ) == 0 )
 		{
 			AdminPSay( args );
 			return;
 		}
-		if ( Q_stricmp( subCommand, "kick" ) == 0 )
+		else if ( Q_stricmp( subCommand, "kick" ) == 0 )
 		{
 			KickPlayerCommand( args );
 			return;
@@ -5769,28 +6015,27 @@ static void AdminCommand( const CCommand& args )
 		PrintAdminHelp( pPlayer );
 		return;
 	}
-
-	if ( Q_stricmp( subCommand, "say" ) == 0 )
+	else if ( Q_stricmp( subCommand, "say" ) == 0 )
 	{
 		AdminSay( args );
 		return;
 	}
-	if ( Q_stricmp( subCommand, "csay" ) == 0 )
+	else if ( Q_stricmp( subCommand, "csay" ) == 0 )
 	{
 		AdminCSay( args );
 		return;
 	}
-	if ( Q_stricmp( subCommand, "psay" ) == 0 )
+	else if ( Q_stricmp( subCommand, "psay" ) == 0 )
 	{
 		AdminPSay( args );
 		return;
 	}
-	if ( Q_stricmp( subCommand, "chat" ) == 0 )
+	else if ( Q_stricmp( subCommand, "chat" ) == 0 )
 	{
 		AdminChat( args );
 		return;
 	}
-	if ( Q_stricmp( subCommand, "kick" ) == 0 )
+	else if ( Q_stricmp( subCommand, "kick" ) == 0 )
 	{
 		KickPlayerCommand( args );
 		return;
@@ -5906,7 +6151,6 @@ static void AdminCommand( const CCommand& args )
 		PrintAdminHelp( pPlayer );
 	}
 }
-
 ConCommand sa( "sa", AdminCommand, "Admin menu.", FCVAR_NONE );
 
 //-----------------------------------------------------------------------------
@@ -5948,30 +6192,254 @@ void CHL2MP_Admin::InitAdminSystem()
 	kv->deleteThis();
 	DevMsg( "Admin list loaded from admins.txt.\n" );
 
-	if (!filesystem->IsDirectory("cfg/admin/logs", "GAME"))
+	if ( !filesystem->IsDirectory( "cfg/admin/logs", "GAME" ) )
 	{
-		filesystem->CreateDirHierarchy("cfg/admin/logs", "GAME");
+		filesystem->CreateDirHierarchy( "cfg/admin/logs", "GAME" );
 	}
 
-	char date[9];
-	time_t now = time(0);
-	strftime(date, sizeof(date), "%Y%m%d", localtime(&now));
+	char date[ 9 ];
+	time_t now = time( 0 );
+	strftime( date, sizeof( date ), "%Y%m%d", localtime( &now ) );
 
-	char logFileName[256];
-	Q_snprintf(logFileName, sizeof(logFileName), "cfg/admin/logs/ADMINLOG_%s.txt", date);
+	char logFileName[ 256 ];
+	Q_snprintf( logFileName, sizeof( logFileName ), "cfg/admin/logs/ADMINLOG_%s.txt", date );
 
-	g_AdminLogFile = filesystem->Open(logFileName, "a+", "GAME");
-	if (!g_AdminLogFile)
+	g_AdminLogFile = filesystem->Open( logFileName, "a+", "GAME" );
+	if ( !g_AdminLogFile )
 	{
-		Msg("Error: Unable to create admin log file.\n");
+		Msg( "Error: Unable to create admin log file.\n" );
 		g_bAdminSystem = false;
 	}
 	else
 	{
-		Msg("Admin log initialized: %s\n", logFileName);
+		Msg( "Admin log initialized: %s\n", logFileName );
 	}
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: Nominate a map for rock the vote
+//-----------------------------------------------------------------------------
+void OpenNominateMenu( int currentPage = 0 )
+{
+	CBasePlayer* pPlayer = UTIL_GetCommandClient();
+	if ( !pPlayer || !serverpluginhelpers )
+		return;
+
+	g_nominatePage = currentPage;
+
+	const char* currentMapName = STRING( gpGlobals->mapname );
+
+	if ( g_allMapsInCycle.Count() == 0 )
+	{
+		FileHandle_t file = filesystem->Open( "cfg/mapcycle.txt", "r", "MOD" );
+		if ( !file )
+		{
+			file = filesystem->Open( "cfg/mapcycle_default.txt", "r", "MOD" );
+			if ( !file )
+			{
+				Msg( "No mapcycle file found.\n" );
+				return;
+			}
+		}
+
+		const int bufferSize = 256;
+		char buffer[ bufferSize ];
+		while ( filesystem->ReadLine( buffer, bufferSize, file ) )
+		{
+			CUtlString mapName( buffer );
+			RemoveTrailingWhitespace( mapName );
+
+			if ( !mapName.IsEmpty() && mapName != currentMapName &&
+				!g_recentlyPlayedMaps.HasElement( mapName ) &&
+				g_alreadyNominatedMaps.Find( mapName ) == g_alreadyNominatedMaps.InvalidIndex() )
+			{
+				g_allMapsInCycle.AddToTail( mapName );
+			}
+		}
+		filesystem->Close( file );
+	}
+
+	CUtlVector<CUtlString> availableMaps;
+	for ( int i = 0; i < g_allMapsInCycle.Count(); i++ )
+	{
+		const CUtlString& map = g_allMapsInCycle[ i ];
+		if ( !g_recentlyPlayedMaps.HasElement( map ) && g_alreadyNominatedMaps.Find( map ) == g_alreadyNominatedMaps.InvalidIndex() )
+		{
+			availableMaps.AddToTail( map );
+		}
+	}
+
+	int totalPages = ( availableMaps.Count() + 7 ) / 8;
+
+	if ( currentPage < 0 ) currentPage = 0;
+	else if ( currentPage >= totalPages ) currentPage = totalPages - 1;
+
+	KeyValues* kv = new KeyValues( "nominate_menu" );
+	kv->SetString( "title", CFmtStr( "Nominate a Map - Page %d/%d", currentPage + 1, totalPages ) );
+	kv->SetInt( "level", 1 );
+	kv->SetColor( "color", Color( 255, 128, 0, 255 ) );
+	kv->SetInt( "time", 20 );
+	kv->SetString( "msg", "Map Nomination" );
+
+	int startIdx = currentPage * 8;
+	int endIdx = startIdx + 8;
+	for ( int i = startIdx; i < endIdx && i < availableMaps.Count(); i++ )
+	{
+		CUtlString mapName = availableMaps[ i ];
+		KeyValues* item = kv->FindKey( CFmtStr( "%d", i - startIdx + 1 ), true );
+		item->SetString( "msg", mapName.Get() );
+		item->SetString( "command", UTIL_VarArgs( "nominate_map \"%s\"; play buttons/combine_button1.wav", mapName.Get() ) );
+	}
+
+	if ( currentPage > 0 )
+	{
+		KeyValues* prevItem = kv->FindKey( "7", true );
+		prevItem->SetString( "msg", "Previous" );
+		prevItem->SetString( "command", UTIL_VarArgs( "nominate_page %d; play buttons/combine_button1.wav", currentPage - 1 ) );
+	}
+	if ( ( currentPage + 1 ) < totalPages )
+	{
+		KeyValues* nextItem = kv->FindKey( "8", true );
+		nextItem->SetString( "msg", "Next" );
+		nextItem->SetString( "command", UTIL_VarArgs( "nominate_page %d; play buttons/combine_button1.wav", currentPage + 1 ) );
+	}
+
+	serverpluginhelpers->CreateMessage( pPlayer->edict(), DIALOG_MENU, kv, &g_AdminPluginCallbacks );
+	kv->deleteThis();
+}
+
+void NominatePageCommand( const CCommand& args )
+{
+	if ( args.ArgC() < 2 )
+		return;
+
+	int page = atoi( args[ 1 ] );
+
+	OpenNominateMenu( page );
+}
+static ConCommand nominate_page( "nominate_page", NominatePageCommand, "Navigates through nominate menu pages", FCVAR_NONE );
+
+void NominateMapCommand( const CCommand& args )
+{
+	CBasePlayer* pPlayer = UTIL_GetCommandClient();
+	if ( !pPlayer )
+		return;
+
+	if ( g_nominationCount >= MAX_NOMINATIONS )
+	{
+		UTIL_PrintToClient( pPlayer, CHAT_ADMIN "The maximum of 5 map nominations has already been reached.\n" );
+		return;
+	}
+
+	if ( args.ArgC() < 2 )
+		return;
+
+	const char* selectedMap = args[ 1 ];
+	const char* playerSteamID = engine->GetPlayerNetworkIDString( pPlayer->edict() );
+
+	if ( g_alreadyNominatedMaps.Find( selectedMap ) != g_alreadyNominatedMaps.InvalidIndex() )
+	{
+		UTIL_PrintToClient( pPlayer, CHAT_ADMIN "This map has already been nominated by another player.\n" );
+		return;
+	}
+
+	int playerIndex = g_nominatedMaps.Find( playerSteamID );
+
+	if ( playerIndex == g_nominatedMaps.InvalidIndex() )
+	{
+		g_nominatedMaps.Insert( playerSteamID, selectedMap );
+		g_alreadyNominatedMaps.Insert( selectedMap, 1 );
+		g_nominationCount++;
+		UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_DEFAULT "%s " CHAT_ADMIN "has nominated map " CHAT_INFO "%s\n",  pPlayer->GetPlayerName(), selectedMap ) );
+	}
+	else
+	{
+		const CUtlString& previouslyNominatedMap = g_nominatedMaps[ playerIndex ];
+
+		if ( previouslyNominatedMap != selectedMap )
+		{
+			int previousMapIndex = g_alreadyNominatedMaps.Find( previouslyNominatedMap.Get() );
+			if ( previousMapIndex != g_alreadyNominatedMaps.InvalidIndex() )
+			{
+				g_alreadyNominatedMaps[ previousMapIndex ]--;
+				if ( g_alreadyNominatedMaps[ previousMapIndex ] == 0 )
+				{
+					g_alreadyNominatedMaps.Remove( previouslyNominatedMap.Get() );
+				}
+			}
+
+			int newMapIndex = g_alreadyNominatedMaps.Find( selectedMap );
+			if ( newMapIndex == g_alreadyNominatedMaps.InvalidIndex() )
+			{
+				g_alreadyNominatedMaps.Insert( selectedMap, 1 );
+			}
+			else
+			{
+				g_alreadyNominatedMaps[ newMapIndex ]++;
+			}
+
+			g_nominatedMaps[ playerIndex ] = selectedMap;
+			UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_DEFAULT "%s" CHAT_ADMIN "'s map nomination has been updated to " CHAT_INFO "%s\n", pPlayer->GetPlayerName(), selectedMap ) );
+		}
+		else
+		{
+			UTIL_PrintToClient( pPlayer, CHAT_ADMIN "You have already nominated this map.\n" );
+		}
+	}
+}
+static ConCommand nominate_map( "nominate_map", NominateMapCommand, "Nominates a map for the next RTV vote", FCVAR_NONE );
+
+void RtvCommand( const CCommand& args )
+{
+	CBasePlayer* pPlayer = UTIL_GetCommandClient();
+	if ( !pPlayer )
+		return;
+
+	if ( gpGlobals->curtime < g_timetortv )
+	{
+		UTIL_PrintToClient( pPlayer, CHAT_ADMIN "Rock the vote is not available yet.\n" );
+		return;
+	}
+	else if ( g_votehasended )
+	{
+		UTIL_PrintToClient( pPlayer, CHAT_ADMIN "A map change is in progress...\n" );
+		return;
+	}
+	else if ( g_votebegun )
+	{
+		UTIL_PrintToClient( pPlayer, CHAT_ADMIN "A map vote is already in progress!\n" );
+		return;
+	}
+	else if ( pPlayer->HasPlayerRTV() )
+	{
+		UTIL_PrintToClient( pPlayer, CHAT_ADMIN "You have already rocked the vote!\n" );
+		return;
+	}
+
+	g_votes++;
+	pPlayer->PlayerHasRTV( true );
+
+	CheckRTVThreshold( pPlayer );
+}
+
+// Nominate Command
+void NominateCommand( const CCommand& args )
+{
+	CBasePlayer* pPlayer = UTIL_GetCommandClient();
+	if ( !pPlayer )
+		return;
+
+	if ( g_votebegun || g_votehasended )
+	{
+		UTIL_PrintToClient( pPlayer, CHAT_ADMIN "A map vote is already in progress!\n" );
+		return;
+	}
+
+	OpenNominateMenu();
+}
+
+static ConCommand rtv( "rtv", RtvCommand, "Rock the vote to initiate a map vote", FCVAR_NONE );
+static ConCommand nominate( "nominate", NominateCommand, "Open the map nomination menu", FCVAR_NONE );
 //-----------------------------------------------------------------------------
 // Purpose: Checks chat for certain strings (chat commands)
 //-----------------------------------------------------------------------------
@@ -5984,6 +6452,17 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 
 	if ( !p || bufsize <= 0 )
 		return;
+
+	if ( Q_strncmp( p, "rtv", 3 ) == 0 || Q_strncmp( p, "!rtv", 4 ) == 0 || Q_strncmp( p, "rockthevote", 11 ) == 0 )
+	{
+		RtvCommand( CCommand() );
+		return;
+	}
+	else if ( Q_strncmp( p, "nominate", 8 ) == 0 || Q_strncmp( p, "!nominate", 9 ) == 0 )
+	{
+		NominateCommand( CCommand() );
+		return;
+	}
 
 	// support for chat commands
 	if ( p[ 0 ] == '!' || p[ 0 ] == '/' )
@@ -6228,7 +6707,7 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 			return;
 		}
 
-		else 	if ( Q_strncmp( p, "!unmute", 7 ) == 0 || Q_strncmp( p, "/unmute", 7 ) == 0 )
+		else if ( Q_strncmp( p, "!unmute", 7 ) == 0 || Q_strncmp( p, "/unmute", 7 ) == 0 )
 		{
 			const char* args = p + 7;
 			char consoleCmd[ 256 ];
@@ -6397,62 +6876,62 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 //-----------------------------------------------------------------------------
 // Purpose: Action log
 //-----------------------------------------------------------------------------
-void CHL2MP_Admin::LogAction(CBasePlayer* pAdmin, CBasePlayer* pTarget, const char* action, const char* details, const char* groupTarget)
+void CHL2MP_Admin::LogAction( CBasePlayer* pAdmin, CBasePlayer* pTarget, const char* action, const char* details, const char* groupTarget )
 {
-	if (g_AdminLogFile == FILESYSTEM_INVALID_HANDLE)
+	if ( g_AdminLogFile == FILESYSTEM_INVALID_HANDLE )
 		return;
 
-	time_t now = time(0);
-	struct tm* localTime = localtime(&now);
-	char dateString[11];
-	char timeString[9];
-	strftime(dateString, sizeof(dateString), "%Y/%m/%d", localTime);
-	strftime(timeString, sizeof(timeString), "%H:%M:%S", localTime);
+	time_t now = time( 0 );
+	struct tm* localTime = localtime( &now );
+	char dateString[ 11 ];
+	char timeString[ 9 ];
+	strftime( dateString, sizeof( dateString ), "%Y/%m/%d", localTime );
+	strftime( timeString, sizeof( timeString ), "%H:%M:%S", localTime );
 
-	const char* mapName = STRING(gpGlobals->mapname);
+	const char* mapName = STRING( gpGlobals->mapname );
 
 	const char* adminName = pAdmin ? pAdmin->GetPlayerName() : "Console";
-	const char* adminSteamID = pAdmin ? engine->GetPlayerNetworkIDString(pAdmin->edict()) : "Console";
+	const char* adminSteamID = pAdmin ? engine->GetPlayerNetworkIDString( pAdmin->edict() ) : "Console";
 	const char* targetName = pTarget ? pTarget->GetPlayerName() : "";
-	const char* targetSteamID = pTarget ? engine->GetPlayerNetworkIDString(pTarget->edict()) : "";
+	const char* targetSteamID = pTarget ? engine->GetPlayerNetworkIDString( pTarget->edict() ) : "";
 
 	CUtlString logEntry;
-	if (pTarget)  // Action with a target player
+	if ( pTarget )  // Action with a target player
 	{
-		if (Q_strlen(details) > 0)
+		if ( Q_strlen( details ) > 0 )
 		{
-			logEntry.Format("[%s] %s @ %s => Admin %s <%s> %s %s <%s> %s\n",
+			logEntry.Format( "[%s] %s @ %s => Admin %s <%s> %s %s <%s> %s\n",
 				mapName, dateString, timeString, adminName, adminSteamID,
-				action, targetName, targetSteamID, details);
+				action, targetName, targetSteamID, details );
 		}
 		else
 		{
-			logEntry.Format("[%s] %s @ %s => Admin %s <%s> %s %s <%s>\n",
+			logEntry.Format( "[%s] %s @ %s => Admin %s <%s> %s %s <%s>\n",
 				mapName, dateString, timeString, adminName, adminSteamID,
-				action, targetName, targetSteamID);
+				action, targetName, targetSteamID );
 		}
 	}
-	else if (groupTarget)  // Action on a group of players
+	else if ( groupTarget )  // Action on a group of players
 	{
-		logEntry.Format("[%s] %s @ %s => Admin %s <%s> %s players in group %s %s\n",
+		logEntry.Format( "[%s] %s @ %s => Admin %s <%s> %s players in group %s %s\n",
 			mapName, dateString, timeString, adminName, adminSteamID,
-			action, groupTarget, details);
+			action, groupTarget, details );
 	}
 	else  // Action on a SteamID or with no target
 	{
-		if (Q_strlen(details) > 0)
+		if ( Q_strlen( details ) > 0 )
 		{
-			logEntry.Format("[%s] %s @ %s => Admin %s <%s> %s %s\n",
+			logEntry.Format( "[%s] %s @ %s => Admin %s <%s> %s %s\n",
 				mapName, dateString, timeString, adminName, adminSteamID,
-				action, details);
+				action, details );
 		}
 		else
 		{
-			logEntry.Format("[%s] %s @ %s => Admin %s <%s> %s\n",
-				mapName, dateString, timeString, adminName, adminSteamID, action);
+			logEntry.Format( "[%s] %s @ %s => Admin %s <%s> %s\n",
+				mapName, dateString, timeString, adminName, adminSteamID, action );
 		}
 	}
 
-	filesystem->FPrintf(g_AdminLogFile, "%s", logEntry.Get());
-	filesystem->Flush(g_AdminLogFile);
+	filesystem->FPrintf( g_AdminLogFile, "%s", logEntry.Get() );
+	filesystem->Flush( g_AdminLogFile );
 }

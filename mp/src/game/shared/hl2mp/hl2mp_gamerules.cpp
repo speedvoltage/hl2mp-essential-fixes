@@ -10,7 +10,7 @@
 #include "gameeventdefs.h"
 #include <KeyValues.h>
 #include "ammodef.h"
-// #include <time.h>
+#include "fmtstr.h"
 
 #ifdef CLIENT_DLL
 #include "c_hl2mp_player.h"
@@ -89,7 +89,9 @@ ConVar sv_overtime("sv_overtime", "1", FCVAR_NOTIFY, "If non-zero, additional ti
 ConVar sv_overtime_limit("sv_overtime_limit", "0", 0, "The number of times the game adds time", true, 0.0, true, 10.0);
 ConVar sv_overtime_time("sv_overtime_time", "1", 0, "The amount of time to add in minutes", true, 1.0, true, 5.0);
 
+ConVar sv_hudtargetid( "sv_hudtargetid", "1", 0, "Use the new HUD target ID\nNOTE: Turning it off does note restore the default HUD target ID!" );
 ConVar sv_hudtargetid_channel("sv_hudtargetid_channel", "2", 0, "Text channel (0-5). Use this if text channels conflict in-game", true, 0.0, true, 5.0);
+ConVar sv_hudtargetid_delay( "sv_hudtargetid_delay", "1", 0, "How long it takes for the HUD target ID to show on screen", true, 0.1, true, 3.0 );
 
 ConVar mp_noblock("mp_noblock", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "If non-zero, disable collisions between players");
 
@@ -189,7 +191,18 @@ static const char* s_PreserveEnts[] =
 	"", // END Marker
 };
 
-
+extern int g_voters;
+extern int g_votes;
+extern int g_votesneeded;
+extern bool g_votebegun;
+extern bool g_votehasended;
+extern int g_votetime;
+extern int g_timetortv;
+extern bool g_rtvbooted;
+extern CUtlDict<int, unsigned short> g_mapVotes;
+extern CUtlVector<CBasePlayer*> g_playersWhoVoted;
+extern CUtlVector<CUtlString> g_currentVoteMaps;
+extern CUtlDict<CUtlString, unsigned short> g_nominatedMaps;
 
 #ifdef CLIENT_DLL
 void RecvProxy_HL2MPRules(const RecvProp* pProp, void** pOut, void* pData, int objectID)
@@ -283,7 +296,6 @@ ConVar sv_equalizer("sv_equalizer", "0", 0, "If non-zero, increase player visibi
 
 CUtlVector<const char*> mExcludedUploadExts;
 
-// Example function to add extensions to the list
 void CHL2MPRules::InitExcludedExtensions()
 {
 	mExcludedUploadExts.AddToTail("bz2");
@@ -291,7 +303,6 @@ void CHL2MPRules::InitExcludedExtensions()
 	mExcludedUploadExts.AddToTail("ztmp");
 }
 
-// Checking if an extension is excluded
 bool IsExtensionExcluded(const char* ext)
 {
 	for (int i = 0; i < mExcludedUploadExts.Count(); ++i)
@@ -309,43 +320,34 @@ void CHL2MPRules::RegisterDownloadableFiles(char* path, FileFindHandle_t findHan
 {
 	int dirLen = strlen(path);
 
-	// Modify the path to include a wildcard for files (e.g., *.wav)
 	char searchPattern[MAX_PATH];
 	Q_snprintf(searchPattern, sizeof(searchPattern), "%s*.*", path);
 
-	// Iterate over files in the directory
 	for (const char* pNextFileName = filesystem->FindFirstEx(searchPattern, "GAME", &findHandle);
 		pNextFileName != NULL; pNextFileName = filesystem->FindNext(findHandle))
 	{
-		path[dirLen] = '\0';  // Reset path length to directory length
+		path[dirLen] = '\0';
 
-		// Check if it's a directory
 		if (filesystem->FindIsDirectory(findHandle))
 		{
 			if (*pNextFileName != '.')
 			{
-				// Append the directory to the path
 				Q_snprintf(path + dirLen, MAX_PATH - dirLen, "%s%c", pNextFileName, CORRECT_PATH_SEPARATOR);
 
-				// Recursively search in subdirectories
 				RegisterDownloadableFiles(path, findHandle, pDownloadables);
-#ifdef _DEBUG
-				// Debug for directories
+#if 0
 				Msg("Entering directory: %s\n", path);
 #endif
 			}
 		}
 		else
 		{
-#ifdef _DEBUG
-			// Debug for found files
+#if 0
 			Msg("Found file: %s\n", pNextFileName);
 #endif
-			// Only add files that are not in the excluded list
 			const char* extension = Q_GetFileExtension(pNextFileName);
 			if (!mExcludedUploadExts.HasElement(extension))
 			{
-				// Add the file to the downloadable table
 				Q_snprintf(path + dirLen, MAX_PATH - dirLen, "%s", pNextFileName);
 
 				Msg("Registering file: %s\n", path);
@@ -353,10 +355,10 @@ void CHL2MPRules::RegisterDownloadableFiles(char* path, FileFindHandle_t findHan
 				if (pDownloadables->AddString(true, path) == INVALID_STRING_INDEX)
 				{
 					Msg("Failed to register file: %s\n", path);
-					break; // Stop if we can't register more files
+					break;
 				}
 			}
-#ifdef _DEBUG
+#if 0
 			else
 			{
 				Msg("File extension excluded: %s\n", pNextFileName);
@@ -379,15 +381,12 @@ CHL2MPRules::CHL2MPRules()
 #endif
 		if (sv_custom_sounds.GetBool())
 		{
-			// Get the downloadables string table
 			InitExcludedExtensions();
 
-			// Get the downloadables string table
 			INetworkStringTable* pDownloadables = networkstringtable->FindTable(DOWNLOADABLE_FILE_TABLENAME);
 
 			if (pDownloadables)
 			{
-				// Path to your custom sounds using a char array
 				char path[MAX_PATH] = "sound/server_sounds/";
 				RegisterDownloadableFiles(path, FILESYSTEM_INVALID_FIND_HANDLE, pDownloadables);
 			}
@@ -434,6 +433,18 @@ CHL2MPRules::CHL2MPRules()
 	bMapChange = false;
 	m_flMapChangeTime = 0.0f;
 	Q_strncpy(m_scheduledMapName, "", sizeof(m_scheduledMapName));
+
+	g_voters = 0;
+	g_votes = 0;
+	g_votesneeded = 0;
+	g_votetime = 0;
+	g_timetortv = 0;
+	g_votebegun = false;
+	g_votehasended = false;
+	g_rtvbooted = false;
+	g_mapVotes.RemoveAll();
+	g_playersWhoVoted.RemoveAll();
+	g_nominatedMaps.RemoveAll();
 
 #endif
 }
@@ -1563,6 +1574,7 @@ void ReadWhitelistFile()
 #endif
 #endif
 
+extern ConVar sv_rtv_mintime;
 void CHL2MPRules::Think( void )
 {
 
@@ -1570,10 +1582,10 @@ void CHL2MPRules::Think( void )
 
 	CGameRules::Think();
 
-	// Clean up the think function to save some space
 #if 0
 	HandlePlayerWhitelisting();
-#endif
+#endif	
+
 	HandleTimeleft();
 	HandleAFK();
 	HandleExploit();
@@ -1584,24 +1596,7 @@ void CHL2MPRules::Think( void )
 	HandleNewTargetID();
 	HandleTeamAutobalance();
 	HandleGameOver();
-
-	// TODO: move this to a separate function
-	if (IsMapChangeOnGoing() && IsMapChange())
-	{
-		SetMapChange(false);
-		m_flMapChangeTime = gpGlobals->curtime + 5.0f;
-	}
-
-	if (IsMapChangeOnGoing() && gpGlobals->curtime > m_flMapChangeTime)
-	{
-		SetMapChange(false);
-		SetMapChangeOnGoing(false);
-
-		if (Q_strlen(m_scheduledMapName) > 0)
-		{
-			engine->ServerCommand(UTIL_VarArgs("changelevel %s\n", m_scheduledMapName));
-		}
-	}
+	HandleMapVotes();
 
 	if ( gpGlobals->curtime > m_flBalanceTeamsTime )
 	{
@@ -1655,6 +1650,90 @@ void CHL2MPRules::HandlePlayerWhitelisting()
 	}
 }
 #endif
+
+void CHL2MPRules::HandleMapVotes()
+{
+	if ( !g_rtvbooted )
+	{
+		g_timetortv = gpGlobals->curtime + sv_rtv_mintime.GetInt();
+		g_rtvbooted = true;
+	}
+
+	if ( g_votebegun && !g_votehasended && ( gpGlobals->curtime >= g_votetime ) )
+	{
+		CUtlString winningMap;
+
+		if ( g_playersWhoVoted.Count() == 0 )
+		{
+			if ( g_currentVoteMaps.Count() > 0 )
+			{
+				winningMap = g_currentVoteMaps[ RandomInt( 0, g_currentVoteMaps.Count() - 1 ) ];
+				UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_ADMIN "No votes were cast. Randomly selecting map: " CHAT_INFO "%s\n", winningMap.Get() ) );
+			}
+			else
+			{
+				UTIL_PrintToAllClients( CHAT_RED "No maps available for random selection.\n" );
+				return;
+			}
+		}
+		else
+		{
+			CUtlVector<CUtlString> tiedMaps;
+			int highestVotes = 0;
+
+			for ( unsigned int i = 0; i < g_mapVotes.Count(); i++ )
+			{
+				int votes = g_mapVotes[ i ];
+				const char* mapName = g_mapVotes.GetElementName( i );
+
+				if ( votes > highestVotes )
+				{
+					highestVotes = votes;
+					winningMap = mapName;
+					tiedMaps.RemoveAll();
+					tiedMaps.AddToTail( mapName );
+				}
+				else if ( votes == highestVotes )
+				{
+					tiedMaps.AddToTail( mapName );
+				}
+			}
+
+			if ( tiedMaps.Count() > 1 )
+			{
+				winningMap = tiedMaps[ RandomInt( 0, tiedMaps.Count() - 1 ) ];
+			}
+
+			UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_ADMIN "Players have spoken! Winning map is " CHAT_INFO "%s\n", winningMap.Get() ) );
+		}
+
+		engine->ServerCommand( CFmtStr( "sa map %s\n", winningMap.Get() ) );
+
+		g_votebegun = false;
+		g_votehasended = true;
+		g_mapVotes.RemoveAll();
+		g_playersWhoVoted.RemoveAll();
+		g_currentVoteMaps.RemoveAll();
+	}
+
+	if ( IsMapChangeOnGoing() && IsMapChange() )
+	{
+		SetMapChange( false );
+		m_flMapChangeTime = gpGlobals->curtime + 5.0f;
+	}
+
+	if ( IsMapChangeOnGoing() && gpGlobals->curtime > m_flMapChangeTime )
+	{
+		SetMapChange( false );
+		SetMapChangeOnGoing( false );
+
+		if ( Q_strlen( m_scheduledMapName ) > 0 )
+		{
+			engine->ServerCommand( UTIL_VarArgs( "changelevel %s\n", m_scheduledMapName ) );
+		}
+	}
+}
+
 void CHL2MPRules::HandleTimeleft()
 {
 	if ( GetMapRemainingTime() > 0 )
@@ -1864,11 +1943,47 @@ void CHL2MPRules::HandleExploit()
 			engine->GetIServer()->SetPaused( false );
 	}
 
-	// Remove pause if sv_pausable becomes 0
+	// has no effect for some reason in either here or in GameStats.cpp
+	// so we are going to set pausable back to 1 in GameStats.cpp instead
+	/*
 	ConVar* sv_pausable = cvar->FindVar( "sv_pausable" );
 
 	if ( sv_pausable->GetBool() == false && engine->IsPaused() )
 		engine->GetIServer()->SetPaused( false );
+		*/
+
+	// don't spec a spec?
+	for (int i = 1; i <= gpGlobals->maxClients; ++i)
+	{
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+		if (!pPlayer || !pPlayer->IsConnected())
+			continue;
+
+		if (pPlayer->GetObserverMode() == OBS_MODE_CHASE || pPlayer->GetObserverMode() == OBS_MODE_IN_EYE)
+		{
+			CBasePlayer* pTarget = ToBasePlayer(pPlayer->GetObserverTarget());
+
+			if (pTarget && pTarget->GetTeamNumber() == TEAM_SPECTATOR)
+			{
+				pPlayer->SetObserverMode(OBS_MODE_ROAMING);
+				pPlayer->SetObserverTarget(nullptr);
+			}
+			else if (pTarget) // don't show view model when zoomed in
+			{
+				bool isZooming = pTarget->IsWeaponZoomActive() || pTarget->IsSuitZoomActive();
+
+				if (isZooming)
+				{
+					pPlayer->ShowViewModel(false);
+				}
+				else
+				{
+					pPlayer->ShowViewModel(true);
+				}
+			}
+		}
+	}
 }
 
 void CHL2MPRules::HandlePlayerNetworkCheck()
@@ -2084,71 +2199,73 @@ void CHL2MPRules::HandleNoBlock()
 
 void CHL2MPRules::HandleNewTargetID()
 {
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	if ( sv_hudtargetid.GetBool() )
 	{
-		CHL2MP_Player* pPlayer = dynamic_cast< CHL2MP_Player* >( UTIL_PlayerByIndex( i ) );
-
-		if ( pPlayer && pPlayer->IsAlive() )
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 		{
-			// Limit HUD updates to once per second
-			if ( gpGlobals->curtime > pPlayer->GetNextHudUpdate() )
+			CHL2MP_Player* pPlayer = dynamic_cast< CHL2MP_Player* >( UTIL_PlayerByIndex( i ) );
+
+			if ( pPlayer && pPlayer->IsAlive() )
 			{
-				Vector vecDir;
-				AngleVectors( pPlayer->EyeAngles(), &vecDir );
-
-				Vector vecAbsStart = pPlayer->EyePosition();
-				Vector vecAbsEnd = vecAbsStart + ( vecDir * 2048 );
-
-				trace_t tr;
-				UTIL_TraceLine( vecAbsStart, vecAbsEnd, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &tr );
-
-				CBasePlayer* pPlayerEntity = dynamic_cast< CBasePlayer* >( tr.m_pEnt );
-
-				if ( pPlayerEntity && pPlayerEntity->IsPlayer() && pPlayerEntity->IsAlive() )
+				if ( gpGlobals->curtime > pPlayer->GetNextHudUpdate() )
 				{
-					char entity[ 256 ];
+					Vector vecDir;
+					AngleVectors( pPlayer->EyeAngles(), &vecDir );
 
-					if ( IsTeamplay() )
+					Vector vecAbsStart = pPlayer->EyePosition();
+					Vector vecAbsEnd = vecAbsStart + ( vecDir * 2048 );
+
+					trace_t tr;
+					UTIL_TraceLine( vecAbsStart, vecAbsEnd, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &tr );
+
+					CBasePlayer* pPlayerEntity = dynamic_cast< CBasePlayer* >( tr.m_pEnt );
+
+					if ( pPlayerEntity && pPlayerEntity->IsPlayer() && pPlayerEntity->IsAlive() )
 					{
-						if ( pPlayerEntity->GetTeamNumber() == pPlayer->GetTeamNumber() )
+						char entity[ 256 ];
+
+						if ( IsTeamplay() )
 						{
-							if ( pPlayerEntity->ArmorValue() )
-								Q_snprintf( entity, sizeof( entity ), "%s\nHP: %.0i\nAP: %.0i\n", pPlayerEntity->GetPlayerName(), pPlayerEntity->GetHealth(), pPlayerEntity->ArmorValue() );
+							if ( pPlayerEntity->GetTeamNumber() == pPlayer->GetTeamNumber() )
+							{
+								if ( pPlayerEntity->ArmorValue() )
+									Q_snprintf( entity, sizeof( entity ), "%s\nHP: %.0i\nAP: %.0i\n", pPlayerEntity->GetPlayerName(), pPlayerEntity->GetHealth(), pPlayerEntity->ArmorValue() );
+								else
+									Q_snprintf( entity, sizeof( entity ), "%s\nHP: %.0i\n", pPlayerEntity->GetPlayerName(), pPlayerEntity->GetHealth() );
+							}
 							else
-								Q_snprintf( entity, sizeof( entity ), "%s\nHP: %.0i\n", pPlayerEntity->GetPlayerName(), pPlayerEntity->GetHealth() );
+							{
+								Q_snprintf( entity, sizeof( entity ), "%s", pPlayerEntity->GetPlayerName() );
+							}
 						}
 						else
 						{
 							Q_snprintf( entity, sizeof( entity ), "%s", pPlayerEntity->GetPlayerName() );
 						}
-					}
-					else
-					{
-						Q_snprintf( entity, sizeof( entity ), "%s", pPlayerEntity->GetPlayerName() );
-					}
 
-					// HUD message setup
-					hudtextparms_s tTextParam;
-					tTextParam.x = 0.45;
-					tTextParam.y = 0.63;
-					tTextParam.effect = 0;
-					tTextParam.r1 = 255;
-					tTextParam.g1 = 128;
-					tTextParam.b1 = 0;
-					tTextParam.a1 = 255;
-					tTextParam.r2 = 255;
-					tTextParam.g2 = 128;
-					tTextParam.b2 = 0;
-					tTextParam.a2 = 255;
-					tTextParam.fadeinTime = 0.008;
-					tTextParam.fadeoutTime = 0.008;
-					tTextParam.holdTime = 1.0;
-					tTextParam.fxTime = 0;
-					tTextParam.channel = sv_hudtargetid_channel.GetInt();
+						// HUD message setup
+						hudtextparms_s tTextParam;
+						tTextParam.x = 0.45;
+						tTextParam.y = 0.63;
+						tTextParam.effect = 0;
+						tTextParam.r1 = 255;
+						tTextParam.g1 = 128;
+						tTextParam.b1 = 0;
+						tTextParam.a1 = 255;
+						tTextParam.r2 = 255;
+						tTextParam.g2 = 128;
+						tTextParam.b2 = 0;
+						tTextParam.a2 = 255;
+						tTextParam.fadeinTime = 0.008;
+						tTextParam.fadeoutTime = 0.008;
+						tTextParam.holdTime = sv_hudtargetid_delay.GetFloat() + 0.1;
+						tTextParam.fxTime = 0;
+						tTextParam.channel = sv_hudtargetid_channel.GetInt();
 
-					UTIL_HudMessage( pPlayer, tTextParam, entity );
+						UTIL_HudMessage( pPlayer, tTextParam, entity );
+					}
+					pPlayer->SetNextHudUpdate( gpGlobals->curtime + sv_hudtargetid_delay.GetFloat() );
 				}
-				pPlayer->SetNextHudUpdate( gpGlobals->curtime + 1.0f ); // Limit HUD updates to once per second
 			}
 		}
 	}
@@ -3171,7 +3288,6 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 		}
 
 		ResetKillStreaks(pKillerPlayer);
-		Msg("Killstreak reset for player %s\n", pKillerPlayer->GetPlayerName());
 	}
 	else
 	{
@@ -3213,7 +3329,6 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 	if (pVictim)
 	{
 		ResetKillStreaks(pVictim);
-		Msg("Killstreak reset for %s\n", pVictim->GetPlayerName());
 	}
 
 	if (pKiller && pKiller != pVictim && pVictim && pKiller->GetTeamNumber() == pVictim->GetTeamNumber() && IsTeamplay())
@@ -3322,67 +3437,80 @@ void CHL2MPRules::ResetKillStreaks(CBasePlayer* pPlayer)
 }
 #endif
 
-void CHL2MPRules::ClientSettingsChanged(CBasePlayer* pPlayer)
+void CHL2MPRules::ClientSettingsChanged( CBasePlayer* pPlayer )
 {
 #ifndef CLIENT_DLL
 
-	CHL2MP_Player* pHL2Player = ToHL2MPPlayer(pPlayer);
+	CHL2MP_Player* pHL2Player = ToHL2MPPlayer( pPlayer );
 
-	if (pHL2Player == NULL)
+	if ( pHL2Player == NULL )
 		return;
 
-	const char* pCurrentModel = modelinfo->GetModelName(pPlayer->GetModel());
-	const char* szModelName = engine->GetClientConVarValue(engine->IndexOfEdict(pPlayer->edict()), "cl_playermodel");
+	const char* pCurrentModel = modelinfo->GetModelName( pPlayer->GetModel() );
+	const char* szModelName = engine->GetClientConVarValue( engine->IndexOfEdict( pPlayer->edict() ), "cl_playermodel" );
 
-	//If we're different.
-	if (stricmp(szModelName, pCurrentModel))
+	if ( stricmp( szModelName, pCurrentModel ) )
 	{
-		//Too soon, set the cvar back to what it was.
-		//Note: this will make this function be called again
-		//but since our models will match it'll just skip this whole dealio.
-		if (pHL2Player->GetNextModelChangeTime() >= gpGlobals->curtime)
+		if ( pHL2Player->GetNextModelChangeTime() >= gpGlobals->curtime )
 		{
-			char szReturnString[512];
-
-			Q_snprintf(szReturnString, sizeof(szReturnString), "cl_playermodel %s\n", pCurrentModel);
-			engine->ClientCommand(pHL2Player->edict(), szReturnString);
+			char szReturnString[ 512 ];
+			Q_snprintf( szReturnString, sizeof( szReturnString ), "cl_playermodel %s\n", pCurrentModel );
+			engine->ClientCommand( pHL2Player->edict(), szReturnString );
 			return;
 		}
 
-		if (HL2MPRules()->IsTeamplay() == false)
+		if ( sv_lockteams.GetInt() == 1 )
 		{
-			pHL2Player->SetPlayerTeamModel();
+			if ( pHL2Player->GetTeamNumber() == TEAM_REBELS )
+			{
+				if ( Q_stristr( szModelName, "models/human" ) )
+				{
+					pHL2Player->SetPlayerTeamModel();
+				}
+				else
+				{
+					char szReturnString[ 512 ];
+					Q_snprintf( szReturnString, sizeof( szReturnString ), "cl_playermodel %s\n", pCurrentModel );
+					engine->ClientCommand( pHL2Player->edict(), szReturnString );
+					return;
+				}
+			}
+			else if ( pHL2Player->GetTeamNumber() == TEAM_COMBINE )
+			{
+				if ( !Q_stristr( szModelName, "models/human" ) )
+				{
+					pHL2Player->SetPlayerTeamModel();
+				}
+				else
+				{
+					char szReturnString[ 512 ];
+					Q_snprintf( szReturnString, sizeof( szReturnString ), "cl_playermodel %s\n", pCurrentModel );
+					engine->ClientCommand( pHL2Player->edict(), szReturnString );
+					return;
+				}
+			}
 		}
 		else
 		{
-			if (Q_stristr(szModelName, "models/human"))
+			if ( Q_stristr( szModelName, "models/human" ) )
 			{
-				pHL2Player->ChangeTeam(TEAM_REBELS);
-				bSwitchCombinePlayer = false;
-				bSwitchRebelPlayer = false;
-#if _DEBUG
-				Msg("Clients settings updated: auto balance ignored!\n");
-#endif
+				pHL2Player->ChangeTeam( TEAM_REBELS );
 			}
 			else
 			{
-				pHL2Player->SetPlayerTeamModel();
-				bSwitchCombinePlayer = false;
-				bSwitchRebelPlayer = false;
-#if _DEBUG
-				Msg("Clients settings updated: auto balance ignored!\n");
-#endif
+				pHL2Player->ChangeTeam( TEAM_COMBINE );
 			}
+			pHL2Player->SetPlayerTeamModel();
 		}
 	}
-	if (sv_report_client_settings.GetInt() == 1)
+
+	if ( sv_report_client_settings.GetInt() == 1 )
 	{
-		UTIL_LogPrintf("\"%s\" cl_cmdrate = \"%s\"\n", pHL2Player->GetPlayerName(), engine->GetClientConVarValue(pHL2Player->entindex(), "cl_cmdrate"));
+		UTIL_LogPrintf( "\"%s\" cl_cmdrate = \"%s\"\n", pHL2Player->GetPlayerName(), engine->GetClientConVarValue( pHL2Player->entindex(), "cl_cmdrate" ) );
 	}
 
-	BaseClass::ClientSettingsChanged(pPlayer);
+	BaseClass::ClientSettingsChanged( pPlayer );
 #endif
-
 }
 
 int CHL2MPRules::PlayerRelationship(CBaseEntity* pPlayer, CBaseEntity* pTarget)

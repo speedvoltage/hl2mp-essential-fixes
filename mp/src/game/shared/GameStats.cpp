@@ -1407,7 +1407,14 @@ void CBaseGameStats_Driver::FrameUpdatePostEntityThink()
 		}
 #endif
 	}
+#ifndef CLIENT_DLL
+	ConVar* sv_pausable = cvar->FindVar( "sv_pausable" );
 
+	if ( sv_pausable->GetBool() == false && engine->IsPaused() )
+	{
+		sv_pausable->SetValue( 1 );
+	}
+#endif
 	if (engine->IsPaused() && !g_bUnpausing)
 	{
 		m_iCount++;

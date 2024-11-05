@@ -1728,7 +1728,6 @@ int CBasePlayer::OnTakeDamage_Alive(const CTakeDamageInfo& info)
 			{
 				soundToPlay = "server_sounds_hitbody";
 			}
-
 			else if (FClassnameIs(pWeapon, "weapon_stunstick"))
 			{
 				soundToPlay = "server_sounds_hitbody";
@@ -1736,17 +1735,20 @@ int CBasePlayer::OnTakeDamage_Alive(const CTakeDamageInfo& info)
 
 			if (soundToPlay)
 			{
-
-				CPASAttenuationFilter filter(this);
+				CRecipientFilter filter;
+				filter.AddRecipient(pAttacker);
+				filter.MakeReliable();
 
 				EmitSound_t params;
 				params.m_pSoundName = soundToPlay;
 				params.m_flSoundTime = 0;
 				params.m_pOrigin = &GetAbsOrigin();
+
 				EmitSound(filter, entindex(), params);
 			}
 		}
 	}
+
 
 	if (ArmorValue() > 5 && mp_armor_sparks.GetBool())
 	{
@@ -7827,8 +7829,7 @@ void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent)
 		{
 			/*CRecipientFilter filter;
 			filter.AddRecipient(this);
-			EmitSound(filter, entindex(), "server_sounds_red_team");  // Play the red team sound
-			Msg("Playing red_team sound for Rebels.\n");*/
+			EmitSound(filter, entindex(), "server_sounds_blue_team");*/
 
 			engine->ClientCommand(edict(), "play server_sounds/red_team.wav\n");
 		}
@@ -7838,7 +7839,6 @@ void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent)
 			filter.AddRecipient(this);
 			EmitSound(filter, entindex(), "server_sounds_blue_team");  // Play the blue team sound
 			Msg("Playing blue_team sound for Combine.\n");*/
-
 
 			engine->ClientCommand(edict(), "play server_sounds/blue_team.wav\n");
 

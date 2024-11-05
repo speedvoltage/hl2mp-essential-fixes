@@ -788,6 +788,9 @@ public:
 	void SetAirControlSuppression( float flDuration );
 	bool IsAirControlSuppressed() const;
 
+	bool UsingGameUI() const { return m_bIsUsingGameUI; }
+	void IsUsingGameUI( bool enabled ) { m_bIsUsingGameUI = enabled; }
+
 	int		GetImpulse( void ) const { return m_nImpulse; }
 
 	// Movement constraints
@@ -844,7 +847,11 @@ public:
 			return flTimeNeeded;
 		}
 	}
-
+/*=====ROCK THE VOTE SYSTEM=====*/
+	// has the player typed rtv?
+	bool HasPlayerRTV() const { return m_bHasPlayerRTV; }
+	void PlayerHasRTV( bool PlayerHasVoted ) { m_bHasPlayerRTV = PlayerHasVoted; }
+/*=====ROCK THE VOTE SYSTEM=====*/
 private:
 	// How much of a movement time buffer can we process from this user?
 	float				m_flMovementTimeForUserCmdProcessingRemaining;
@@ -875,6 +882,10 @@ private:
 	bool m_bHitSoundsEnabled;  // Hit sound toggle
 	bool m_bKillSoundsEnabled; // Kill sound toggle
 
+	/*=====ROCK THE VOTE SYSTEM=====*/
+	bool m_bHasPlayerRTV;
+	/*=====ROCK THE VOTE SYSTEM=====*/
+
 	// trigger_catapult air control
 	float m_flAirControlSuppressionTime;  // How long air control is suppressed
 	bool m_bAirControlSuppressed;         // Is air control currently suppressed?
@@ -882,6 +893,8 @@ private:
 	// Gagged and muted
 	bool m_bIsGagged;
 	bool m_bIsMuted;
+
+	bool m_bIsUsingGameUI;
 
 public:
 	

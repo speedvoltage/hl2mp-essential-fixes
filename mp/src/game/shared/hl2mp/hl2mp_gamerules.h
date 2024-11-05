@@ -152,6 +152,7 @@ public:
 	void HandleNewTargetID();
 	void HandleTeamAutobalance();
 	void HandleGameOver();
+	void HandleMapVotes();
 
 	// Server Admin Map Change
 	void SetMapChangeOnGoing( bool enabled ) { bMapChangeOnGoing = enabled; }
