@@ -691,6 +691,7 @@ const char *CItem_AmmoCrate::m_lpzModelNames[NUM_AMMO_CRATE_TYPES] =
 	"models/items/ammocrate_smg1.mdl",	// Crossbow
 	
 	//FIXME: This model is incorrect!
+	// Potential solution: does Episode 2 have these fixed?
 	"models/items/ammocrate_ar2.mdl",		// Combine Ball 
 	"models/items/ammocrate_smg2.mdl",	    // smg grenade
 };
