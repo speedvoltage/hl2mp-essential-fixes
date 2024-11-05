@@ -354,7 +354,6 @@ void LogPlayerChatMessage(CBasePlayer* pPlayer, const char* message, bool teamon
 	{
 		filesystem->Write(logEntry.Get(), logEntry.Length(), g_ChatLogFile);
 		filesystem->Flush(g_ChatLogFile);
-		Msg("Saved chat contents\n");
 	}
 	else
 	{
