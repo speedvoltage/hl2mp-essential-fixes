@@ -446,6 +446,8 @@ void CBaseCombatWeapon::Delete( void )
 {
 	SetTouch( NULL );
 	// FIXME: why doesn't this just remove itself now?
+	// FIXME NOTE: Gonna leave it as it is, just as a precaution
+	// I'll remove the Kill() code since it is in fact redundant
 	SetThink(&CBaseCombatWeapon::SUB_Remove);
 	SetNextThink( gpGlobals->curtime + 0.1f );
 }
@@ -460,9 +462,9 @@ void CBaseCombatWeapon::DestroyItem( void )
 		pOwner->RemovePlayerItem( this );
 	}
 
-	Kill( );
+	Delete( );
 }
-
+/*
 void CBaseCombatWeapon::Kill( void )
 {
 	SetTouch( NULL );
@@ -471,7 +473,7 @@ void CBaseCombatWeapon::Kill( void )
 	SetThink(&CBaseCombatWeapon::SUB_Remove);
 	SetNextThink( gpGlobals->curtime + 0.1f );
 }
-
+*/
 //====================================================================================
 // FALL TO GROUND
 //====================================================================================
