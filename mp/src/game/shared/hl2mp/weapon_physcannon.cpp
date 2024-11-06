@@ -67,7 +67,7 @@ ConVar player_throwforce( "player_throwforce", "1000", FCVAR_REPLICATED | FCVAR_
 ConVar mp_held_fragnade_punt("mp_held_fragnade_punt", "0", FCVAR_REPLICATED, "If non-zero, held grenade frags in another player's physcannon will not be puntable");
 ConVar sv_physcannon_default_pollrate("sv_physcannon_default_pollrate", "1", FCVAR_REPLICATED, "If non-zero, it will use the default poll rate of 0.1 second");
 ConVar physcannon_secondaryrefire_instantaneous("physcannon_secondaryrefire_instantaneous", "0", FCVAR_REPLICATED, "If non-zero, the secondary attack can be used instantly again");
-
+ConVar sv_physcannon_obstructiondrop( "sv_physcannon_obstructiondrop", "0", 0, "If non-zero, drops objects if there is an obstruction between the player and the object" );
 #ifndef CLIENT_DLL
 extern ConVar hl2_normspeed;
 extern ConVar hl2_walkspeed;
@@ -1255,6 +1255,13 @@ protected:
 
 private:
 	CWeaponPhysCannon( const CWeaponPhysCannon & );
+	CBaseEntity *m_pHeldObject;
+	float m_fObstructionTime;
+	bool m_bObstructed;
+
+	void CheckForObstruction();
+
+	void ReleaseObject();
 
 #ifndef CLIENT_DLL
 	DECLARE_ACTTABLE();
@@ -2087,6 +2094,7 @@ bool CWeaponPhysCannon::AttachObject( CBaseEntity *pObject, const Vector &vPosit
 	// NOTE :This must happen after OnPhysGunPickup because that can change the mass
 	m_grabController.AttachEntity( pOwner, pObject, pPhysics, false, vPosition, false );
 	m_hAttachedObject = pObject;
+	m_pHeldObject = pObject;
 	m_attachedPositionObjectSpace = m_grabController.m_attachedPositionObjectSpace;
 	m_attachedAnglesPlayerSpace = m_grabController.m_attachedAnglesPlayerSpace;
 
@@ -2449,6 +2457,7 @@ void CWeaponPhysCannon::DetachObject( bool playSound, bool wasLaunched )
 		pObject->SetOwnerEntity( NULL );
 	}
 
+	m_pHeldObject = nullptr;
 	m_bActive = false;
 	m_hAttachedObject = NULL;
 	
@@ -2702,6 +2711,48 @@ void CWeaponPhysCannon::DoEffectIdle( void )
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+void CWeaponPhysCannon::CheckForObstruction()
+{
+	trace_t tr;
+	Vector vecCannonPos = GetAbsOrigin();
+	Vector vecHeldPos = m_pHeldObject->GetAbsOrigin();
+
+	Vector hullMin(-2, -2, -2);
+	Vector hullMax(2, 2, 2);
+
+	UTIL_TraceHull(vecCannonPos, vecHeldPos, hullMin, hullMax, MASK_SOLID, this, COLLISION_GROUP_NONE, &tr);
+
+	if (tr.fraction < 0.5f)
+	{
+		if (!m_bObstructed)
+		{
+			m_bObstructed = true;
+			m_fObstructionTime = gpGlobals->curtime;
+		}
+		else if (gpGlobals->curtime - m_fObstructionTime > 0.3f)
+		{
+			DetachObject();
+		}
+	}
+	else
+	{
+		m_bObstructed = false;
+		m_fObstructionTime = 0;
+	}
+}
+
+
+void CWeaponPhysCannon::ReleaseObject()
+{
+	if (m_pHeldObject)
+	{
+		DetachObject();
+		m_pHeldObject = nullptr;
+		m_bObstructed = false;
+		m_fObstructionTime = 0;
+	}
+}
+
 void CWeaponPhysCannon::ItemPostFrame()
 {
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
@@ -2710,6 +2761,11 @@ void CWeaponPhysCannon::ItemPostFrame()
 		// We found an object. Debounce the button
 		m_nAttack2Debounce = 0;
 		return;
+	}
+
+	if (sv_physcannon_obstructiondrop.GetBool() && m_pHeldObject)
+	{
+		CheckForObstruction();
 	}
 
 	//Check for object in pickup range
