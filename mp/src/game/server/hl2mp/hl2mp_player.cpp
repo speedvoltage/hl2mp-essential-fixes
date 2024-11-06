@@ -2011,6 +2011,7 @@ void CHL2MP_Player::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecT
 	if (pWeapon && pWeapon->Clip1() <= 0 && !FClassnameIs(pWeapon, "weapon_rpg") && 
 		!FClassnameIs(pWeapon, "weapon_physcannon") &&
 		!FClassnameIs(pWeapon, "weapon_crowbar") &&
+		!FClassnameIs(pWeapon, "weapon_stunstick") &&
 		!FClassnameIs(pWeapon, "weapon_frag")) // don't account for weapons that don't fill that criteria
 	{
 		// Msg("Weapon was out of ammo, removed\n");
