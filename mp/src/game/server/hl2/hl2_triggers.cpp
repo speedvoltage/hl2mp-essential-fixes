@@ -236,9 +236,6 @@ Vector CTriggerWeaponDissolve::GetConduitPoint( CBaseEntity *pTarget )
 void CTriggerWeaponDissolve::DissolveThink(void)
 {
 	// In a multiplayer environment, dissolve all weapons at once
-	int numWeapons = m_pWeapons.Count();
-	// Warning("DissolveThink called with %d weapons in queue.\n", numWeapons);
-
 	for (int i = 0; i < m_pWeapons.Count();)
 	{
 		CBaseCombatWeapon *pWeapon = m_pWeapons[i];
@@ -316,6 +313,14 @@ END_DATADESC()
 //-----------------------------------------------------------------------------
 // Drops all weapons, marks the character as not being able to pick up weapons
 //-----------------------------------------------------------------------------
+// Peter: FIXME: Although minor, if you use console commands to give yourself weapons like for e.g. 
+// impulse 101 while standing in a weapon strip volume that doesn't kill weapons, 
+// the player is never set as the owner of those weapons because the strip happens faster than setting 
+// the new owner for those guns, causing a number of issues such as: 
+// 1) trigger_weapon_dissolve not doing anything because essentially the guns don't have an owner, 
+// 2) weapons being invisible, 
+// 3) weapons can be picked up if outside the volume because no owner is set. 
+// I have not been able to find a fix for this yet, so this will need to be revisited in the future.
 void CTriggerWeaponStrip::StartTouch(CBaseEntity *pOther)
 {
 	BaseClass::StartTouch( pOther );
