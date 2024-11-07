@@ -1099,11 +1099,14 @@ void CHL2_Player::PlayerRunCommand(CUserCmd *ucmd, IMoveHelper *moveHelper)
 		}
 	}
 
+	float currentTime = gpGlobals->curtime;
+
 	if (pHL2MPPlayer)
 	{
-		if (pHL2MPPlayer->IsSpawnProtected() &&
+		if (pHL2MPPlayer->IsSpawnProtected() && 
+			(currentTime - pHL2MPPlayer->GetAliveTime() >= 0.5f) &&
 			(ucmd->forwardmove != 0 || ucmd->sidemove != 0 || ucmd->upmove != 0 ||
-				ucmd->buttons & IN_ATTACK || ucmd->buttons & IN_ATTACK2))
+				m_afButtonPressed & IN_ATTACK || m_afButtonPressed & IN_ATTACK2))
 		{
 			pHL2MPPlayer->DisableSpawnProtection();
 		}

@@ -487,6 +487,8 @@ void CHL2MP_Player::Spawn(void)
 	SetNextThink(gpGlobals->curtime + 0.1f);
 	SetThink(&CHL2MP_Player::FirstThinkAfterSpawn);
 
+	SetAliveTime( gpGlobals->curtime );
+
 	if (mp_spawnprotection.GetBool())
 		EnableSpawnProtection();
 
