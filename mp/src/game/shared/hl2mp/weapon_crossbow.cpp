@@ -258,7 +258,7 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 	{
 		CBasePlayer* pShooter = ToBasePlayer( GetOwnerEntity() );
 
-		if ( pShooter )
+		if ( pShooter && pShooter->AreHitSoundsEnabled() )
 		{
 			CRecipientFilter filter;
 			filter.AddRecipient( pShooter );
