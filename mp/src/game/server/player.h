@@ -791,6 +791,9 @@ public:
 	bool UsingGameUI() const { return m_bIsUsingGameUI; }
 	void IsUsingGameUI( bool enabled ) { m_bIsUsingGameUI = enabled; }
 
+	void SetAliveTime(float currenttime) { m_flAlive = currenttime; }
+	float GetAliveTime() const { return m_flAlive; }
+
 	int		GetImpulse( void ) const { return m_nImpulse; }
 
 	// Movement constraints
@@ -881,6 +884,8 @@ private:
 	bool m_bWeaponZoomActive;
 	bool m_bHitSoundsEnabled;  // Hit sound toggle
 	bool m_bKillSoundsEnabled; // Kill sound toggle
+
+	float m_flAlive;
 
 	/*=====ROCK THE VOTE SYSTEM=====*/
 	bool m_bHasPlayerRTV;
