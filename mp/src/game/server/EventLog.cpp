@@ -264,7 +264,33 @@ bool CEventLog::PrintPlayerEvent( IGameEvent *event )
 					);
 		return true;
 	}
-				   
+			
+	else if ( !Q_strncmp( eventName, "player_hurt", Q_strlen( "player_hurt" ) ) )
+	{
+		const int attackerid = event->GetInt("attacker");
+		const int dmgType = event->GetInt("dmgtype");
+
+		CBasePlayer* pAttacker = UTIL_PlayerByUserId(attackerid);
+
+		if ( pAttacker &&
+			pAttacker != pPlayer &&
+			pAttacker->AreHitSoundsEnabled() &&
+			( dmgType & ( DMG_BLAST | DMG_CLUB | DMG_CRUSH ) ) )
+		{
+			CRecipientFilter filter;
+			filter.AddRecipient( pAttacker );
+			filter.MakeReliable();
+
+			EmitSound_t params;
+			params.m_pSoundName = "server_sounds_hitbody";
+			params.m_flSoundTime = 0;
+			params.m_pOrigin = &pPlayer->GetAbsOrigin();
+
+			pPlayer->EmitSound( filter, pAttacker->entindex(), params );
+		}
+
+		return true;
+	}
 // ignored events
 //player_hurt
 	return false;
@@ -288,10 +314,11 @@ bool CEventLog::Init()
 	ListenForGameEvent( "player_changename" );
 	ListenForGameEvent( "player_activate" );
 	ListenForGameEvent( "player_death" );
+	ListenForGameEvent( "player_hurt" );
 	ListenForGameEvent( "player_team" );
 	ListenForGameEvent( "player_disconnect" );
 	ListenForGameEvent( "player_connect" );
-	ListenForGameEvent("player_connect_client");
+	ListenForGameEvent( "player_connect_client" );
 
 	return true;
 }

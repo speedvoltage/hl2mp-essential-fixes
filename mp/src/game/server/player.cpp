@@ -1710,46 +1710,6 @@ int CBasePlayer::OnTakeDamage_Alive(const CTakeDamageInfo& info)
 		ApplyAbsVelocityImpulse(force);
 	}
 
-	// Since we are sending a FSOLID_NOT_SOLID to hide the HUD target ID, 
-	// the body hit sounds with the crowbar and stunstick no longer happen, 
-	// so we are compensating this with the custom hit sounds
-	if (attacker->IsPlayer())
-	{
-		CBasePlayer* pAttacker = ToBasePlayer(attacker);
-
-		// Check the weapon used for the hit
-		CBaseCombatWeapon* pWeapon = pAttacker->GetActiveWeapon();
-
-		if (pWeapon)
-		{
-			const char* soundToPlay = nullptr;
-
-			if (FClassnameIs(pWeapon, "weapon_crowbar"))
-			{
-				soundToPlay = "server_sounds_hitbody";
-			}
-			else if (FClassnameIs(pWeapon, "weapon_stunstick"))
-			{
-				soundToPlay = "server_sounds_hitbody";
-			}
-
-			if (soundToPlay)
-			{
-				CRecipientFilter filter;
-				filter.AddRecipient(pAttacker);
-				filter.MakeReliable();
-
-				EmitSound_t params;
-				params.m_pSoundName = soundToPlay;
-				params.m_flSoundTime = 0;
-				params.m_pOrigin = &GetAbsOrigin();
-
-				EmitSound(filter, entindex(), params);
-			}
-		}
-	}
-
-
 	if (ArmorValue() > 5 && mp_armor_sparks.GetBool())
 	{
 		Vector vecDamagePos = info.GetDamagePosition();
@@ -1788,6 +1748,7 @@ int CBasePlayer::OnTakeDamage_Alive(const CTakeDamageInfo& info)
 		event->SetInt("userid", GetUserID());
 		event->SetInt("health", MAX(0, m_iHealth));
 		event->SetInt("priority", 5);    // HLTV event priority, not transmitted
+		event->SetInt("dmgtype", info.GetDamageType());
 
 		if (attacker->IsPlayer())
 		{
