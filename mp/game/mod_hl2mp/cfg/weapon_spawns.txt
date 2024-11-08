@@ -1,0 +1,27 @@
+"Spawn"
+{
+	"Weapons"
+	{
+		"Crowbar"		"1"
+		"Physcannon"	"1"
+		"Pistol"		"1"
+		"357"			"0"
+		"SMG1"			"1"
+		"AR2"			"0"
+		"Shotgun"		"0"
+		"Crossbow"		"0"
+		"Frag"			"1"
+		"RPG"			"0"
+	}
+	
+	"Ammo"
+	{
+		"Pistol"		"150"
+		"357"			"6"
+		"SMG1"			"45"
+		"AR2"			"30"
+		"Shotgun"		"6"
+		"Crossbow"		"0"
+		"Frag"			"1"
+	}
+}
