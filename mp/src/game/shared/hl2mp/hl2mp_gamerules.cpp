@@ -1662,8 +1662,9 @@ void CHL2MPRules::HandleMapVotes()
 	if ( g_votebegun && !g_votehasended && ( gpGlobals->curtime >= g_votetime ) )
 	{
 		CUtlString winningMap;
+		int totalVotes = g_playersWhoVoted.Count();
 
-		if ( g_playersWhoVoted.Count() == 0 )
+		if ( totalVotes == 0 )
 		{
 			if ( g_currentVoteMaps.Count() > 0 )
 			{
@@ -1704,7 +1705,11 @@ void CHL2MPRules::HandleMapVotes()
 				winningMap = tiedMaps[ RandomInt( 0, tiedMaps.Count() - 1 ) ];
 			}
 
-			UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_ADMIN "Players have spoken! Winning map is " CHAT_INFO "%s\n", winningMap.Get() ) );
+			float winningPercentage = ( static_cast< float >( highestVotes ) / totalVotes ) * 100.0f;
+
+			UTIL_PrintToAllClients( UTIL_VarArgs(
+				CHAT_ADMIN "Players have spoken! Winning map is " CHAT_INFO "%s " CHAT_DEFAULT "(%.2f%% of %d vote%s).\n",
+				winningMap.Get(), winningPercentage, totalVotes, totalVotes < 2 ? "" : "s" ) );
 		}
 
 		engine->ServerCommand( CFmtStr( "sa map %s\n", winningMap.Get() ) );

@@ -106,18 +106,33 @@ void OnMapVoteSelection( const CCommand& args )
 	if ( !pPlayer || !g_votebegun || g_votehasended )
 		return;
 
-
 	if ( g_playersWhoVoted.HasElement( pPlayer ) )
 	{
 		UTIL_PrintToClient( pPlayer, CHAT_ADMIN "You have already voted!\n" );
 		return;
 	}
-	g_playersWhoVoted.AddToTail( pPlayer );
 
 	if ( args.ArgC() < 2 )
 		return;
 
 	const char* selectedMap = args[ 1 ];
+
+	// don't let people vote for maps outside the menu
+	bool isValidMap = false;
+	for ( int i = 0; i < g_currentVoteMaps.Count(); i++ )
+	{
+		if ( FStrEq( g_currentVoteMaps[ i ].Get(), selectedMap ) )
+		{
+			isValidMap = true;
+			break;
+		}
+	}
+
+	if ( !isValidMap )
+	{
+		UTIL_PrintToClient( pPlayer, CHAT_ADMIN "Invalid map selection. Please select a map from the current vote menu.\n" );
+		return;
+	}
 
 	int mapIndex = g_mapVotes.Find( selectedMap );
 	if ( mapIndex == g_mapVotes.InvalidIndex() )
@@ -135,6 +150,8 @@ void OnMapVoteSelection( const CCommand& args )
 			CHAT_ADMIN "Player %s voted for map: %s\n",
 			pPlayer->GetPlayerName(), selectedMap ) );
 	}
+
+	g_playersWhoVoted.AddToTail( pPlayer );
 }
 static ConCommand vote_map( "vote_map", OnMapVoteSelection, "Handles individual player map votes", FCVAR_NONE );
 
@@ -6337,6 +6354,23 @@ void NominateMapCommand( const CCommand& args )
 	const char* selectedMap = args[ 1 ];
 	const char* playerSteamID = engine->GetPlayerNetworkIDString( pPlayer->edict() );
 
+	bool isValidMap = false;
+	for ( int i = 0; i < g_allMapsInCycle.Count(); i++ )
+	{
+		if ( FStrEq( g_allMapsInCycle[ i ].Get(), selectedMap ) )
+		{
+			isValidMap = true;
+			break;
+		}
+	}
+
+	// If the map is not valid, notify the player and ignore the nomination
+	if ( !isValidMap )
+	{
+		UTIL_PrintToClient( pPlayer, CHAT_ADMIN "Invalid map selection. Please nominate a map from the cycle list.\n" );
+		return;
+	}
+
 	if ( g_alreadyNominatedMaps.Find( selectedMap ) != g_alreadyNominatedMaps.InvalidIndex() )
 	{
 		UTIL_PrintToClient( pPlayer, CHAT_ADMIN "This map has already been nominated by another player.\n" );
@@ -6453,12 +6487,12 @@ void CHL2MP_Admin::CheckChatText( char* p, int bufsize )
 	if ( !p || bufsize <= 0 )
 		return;
 
-	if ( Q_strncmp( p, "rtv", 3 ) == 0 || Q_strncmp( p, "!rtv", 4 ) == 0 || Q_strncmp( p, "rockthevote", 11 ) == 0 )
+	if ( ( Q_strcmp( p, "rtv" ) == 0 ) || ( Q_strcmp( p, "!rtv" ) == 0 ) || ( Q_strcmp( p, "rockthevote" ) == 0 ) )
 	{
 		RtvCommand( CCommand() );
 		return;
 	}
-	else if ( Q_strncmp( p, "nominate", 8 ) == 0 || Q_strncmp( p, "!nominate", 9 ) == 0 )
+	else if ( ( Q_strcmp( p, "nominate" ) == 0 ) || ( Q_strcmp( p, "!nominate" ) == 0 ) )
 	{
 		NominateCommand( CCommand() );
 		return;
