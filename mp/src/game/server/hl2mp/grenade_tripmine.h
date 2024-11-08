@@ -34,7 +34,6 @@ public:
 
 	void MakeBeam( void );
 	void KillBeam( void );
-	void Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType, float value);
 	void OnPhysGunPickup(CBasePlayer* pPhysGunUser, PhysGunPickup_t reason);
 
 public:

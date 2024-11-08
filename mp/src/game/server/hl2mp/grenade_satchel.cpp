@@ -129,29 +129,6 @@ void CSatchelCharge::InputExplode( inputdata_t &inputdata )
 	UTIL_Remove( this );
 }
 
-void CSatchelCharge::Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType, float value)
-{
-	if (sv_thrown_mines_pickup.GetBool())
-	{
-		if (useType == USE_TOGGLE)
-		{
-			CBasePlayer* pPlayer = ToBasePlayer(pActivator);
-
-			if (pPlayer)
-			{
-				if (pPlayer->GetAmmoCount("SLAM") < sk_max_slam.GetInt())
-				{
-					pPlayer->GiveAmmo(1, "SLAM");
-					UTIL_Remove(this);
-					return;
-				}
-			}
-		}
-	}
-
-	BaseClass::Use(pActivator, pCaller, useType, value);
-}
-
 void CSatchelCharge::SatchelThink( void )
 {
 	// If attached resize so player can pick up off wall
