@@ -398,7 +398,7 @@ Additionally, you can silence chat commands by using a forward slash: **/map dm_
 
 > Targeting<br>
 Multiple options are available to target a player or a group:<br>
-NOTE: Not all commands may support this:<br>
+**NOTE**: Not all commands may support this:<br>
 
 | General Targets | Purpose                                                                                                                          |
 |-----------------|----------------------------------------------------------------------------------------------------------------------------------|
