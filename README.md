@@ -1,3 +1,5 @@
+![Server Binaries](https://i.imgur.com/xP3IFZh.jpeg)
+
 # Preamble
 You **must** apply the loose fixes explained here by Adrian: https://gist.github.com/Adrianilloo/6359896e79b6b135d3c925c627c9554b#loose-fixes
 This is to stop a crash from happening on server boot up. The following is the gist of it to at least get the server to boot. Again, fixes provided by Adrian.
