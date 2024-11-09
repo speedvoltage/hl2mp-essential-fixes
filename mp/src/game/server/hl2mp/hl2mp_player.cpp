@@ -566,6 +566,8 @@ bool CHL2MP_Player::ValidatePlayerModel( const char *pModel )
 	return false;
 }
 
+ConVar sv_showplayermodel( "sv_showplayermodel_message", "1", 0, "If non-zero, shows the updated player model name to the player" );
+
 void CHL2MP_Player::SetPlayerTeamModel( void )
 {
 	const char *szModelName = NULL;
@@ -618,7 +620,7 @@ void CHL2MP_Player::SetPlayerTeamModel( void )
 	V_FileBase(szModelName, szModelFileName, sizeof(szModelFileName));
 
 	// Print the model name to the client
-	if (GetTeamNumber() != TEAM_SPECTATOR)
+	if ( sv_showplayermodel.GetBool() && GetTeamNumber() != TEAM_SPECTATOR )
 		UTIL_PrintToClient(this, UTIL_VarArgs(CHAT_CONTEXT "Your player model is: " CHAT_INFO "%s\n", szModelFileName));
 }
 
