@@ -301,7 +301,7 @@ These existing commands, previously restricted to Debug mode, are now accessible
 - `mp_spawnweapons*`
 - `mp_suitvoice`
 - `mp_ear_ringing`
-- `sv_custom_sounds`
+- `sv_custom_sounds**`
 - `sv_lockteams`
 - `sv_teamsmenu`
 - `sv_propflying`
@@ -338,7 +338,7 @@ These existing commands, previously restricted to Debug mode, are now accessible
 - `sv_physcannon_obstructiondrop`
 
 > *To use `mp_spawnweapons`, set your weapon spawns in `weapon_spawns.txt` and set `mp_skipdefaults` to `1`.*
-
+> *This command must be added in the server command line!*
 ---
 
 # Chat Commands
