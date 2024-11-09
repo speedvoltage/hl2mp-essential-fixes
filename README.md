@@ -451,19 +451,22 @@ Please note that more commands will be added as new versions come out.
 ### Admin Levels
 Different commands require different levels. It is up to the server owner to define what an admin has access to.
 
-| Name        | Flag | Purpose                                                                                          |
-|-------------|------|--------------------------------------------------------------------------------------------------|
-| Generic     | `b`  | Provides basic admin functionalities such as accessing help, credits, and version information.   |
-| Kick        | `c`  | Allows the admin to kick players from the server.                                                |
-| Ban         | `d`  | Allows the admin to ban players temporarily or permanently.                                     |
-| Unban       | `e`  | Allows the admin to unban players by removing their SteamID from the banned list.                |
-| Slay        | `f`  | Grants the ability to manage player actions, including slapping, slaying, moving teams, and noclip mode. |
-| Change Map  | `g`  | Allows the admin to change the current map in the game.                                         |
-| CVAR        | `h`  | Allows modification of server variables (cvars) for configuring server settings.                 |
-| Config      | `i`  | Grants permission to execute configuration files and refresh the admin cache.                    |
-| Chat        | `j`  | Provides chat-related controls, such as sending messages, muting, gagging, and private messaging. |
-| RCON        | `m`  | Allows execution of console commands without needing an rcon password, acting as server console access. |
-| Root        | `z`  | Grants full permissions and immunity from restrictions such as kicks, bans, gags, and mutes.     |
+| Name        | Flag | Description                                          |
+|-------------|------|------------------------------------------------------|
+| Generic     | b    | Basic admin functions (help, credits, version).      |
+| Kick        | c    | Permission to kick players.                          |
+| Ban         | d    | Permission to ban players.                           |
+| Unban       | e    | Permission to unban players.                         |
+| Slay        | f    | Player management (slap, slay, noclip).              |
+| Change Map  | g    | Permission to change the map.                        |
+| CVAR        | h    | Permission to modify server variables (cvars).       |
+| Config      | i    | Permission to execute configuration files and refresh the admin cache. |
+| Chat        | j    | Chat functions (gag, mute, psay).                    |
+| Vote        | k    | Start or create votes.                               |
+| Password    | l    | Set a password on the server.                        |
+| RCON        | m    | Server console access without password.              |
+| Root        | z    | Full permissions and immunity.                       |
+
 
 There is no notion of immunity. It is expected and assumed that selected admins are fit for the job they were assigned. Only root admins are protected from being kicked, banned, gagged and muted.
 Finally, there is no admin menus available. After surveying a number of people, it is clear the admin menu has absolutely no use and therefore was not included.
