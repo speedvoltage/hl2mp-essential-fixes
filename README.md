@@ -312,6 +312,7 @@ Not all fixes and updates are listed here, only the most important ones.
 | `mp_held_fragnade_punt`                      | Prevents players from punting a live grenade being held in physcannon                               |
 | `sv_physcannon_default_pollrate`             | Uses default physcannon poll rate (0.1 second); otherwise, uses per-tick poll rate                 |
 | `sv_physcannon_obstructiondrop`              | Drops object if wall or obstruction is between it and the physcannon                                |
+| `sv_showplayermodel_message`                 | Shows player model name when updated with cl_playermodel			                                 |
 
 ---
 
