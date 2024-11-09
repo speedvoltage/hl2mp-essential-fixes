@@ -36,6 +36,7 @@ CUtlVector<CUtlString> g_recentlyPlayedMaps;
 
 const int MAX_NOMINATIONS = 5;
 
+ConVar sv_rtv_enabled( "sv_rtv_enabled", "0", 0 );
 ConVar sv_rtv_needed( "sv_rtv_needed", "0.60", 0, "Percentage of players needed to start a map vote. Range: 0.00 - 1.00" );
 ConVar sv_rtv_mintime( "sv_rtv_mintime", "30", 0, "How long to wait until players can start typing RTV (time in seconds)" );
 ConVar sv_rtv_minmaprotation( "sv_rtv_minmaprotation", "15", 0, "Minimum number of maps before allowing a previously played map in RTV or nominations" );
@@ -6014,9 +6015,14 @@ static void AdminCommand( const CCommand& args )
 		return;
 	}
 
-	if ( Q_stricmp( subCommand, "credits" ) == 0 )
+	else if ( Q_stricmp( subCommand, "credits" ) == 0 )
 	{
 		CreditsCommand( args );
+		return;
+	}
+	else if ( Q_stricmp( subCommand, "version" ) == 0 )
+	{
+		VersionCommand( args );
 		return;
 	}
 
@@ -6150,16 +6156,6 @@ static void AdminCommand( const CCommand& args )
 	else if ( Q_stricmp( subCommand, "help" ) == 0 )
 	{
 		HelpPlayerCommand( args );
-		return;
-	}
-	else if ( Q_stricmp( subCommand, "credits" ) == 0 )
-	{
-		CreditsCommand( args );
-		return;
-	}
-	else if ( Q_stricmp( subCommand, "version" ) == 0 )
-	{
-		VersionCommand( args );
 		return;
 	}
 	else
@@ -6425,6 +6421,9 @@ static ConCommand nominate_map( "nominate_map", NominateMapCommand, "Nominates a
 
 void RtvCommand( const CCommand& args )
 {
+	if ( sv_rtv_enabled.GetBool() )
+		return;
+
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 	if ( !pPlayer )
 		return;
@@ -6459,6 +6458,9 @@ void RtvCommand( const CCommand& args )
 // Nominate Command
 void NominateCommand( const CCommand& args )
 {
+	if ( sv_rtv_enabled.GetBool() )
+		return;
+
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
 	if ( !pPlayer )
 		return;
