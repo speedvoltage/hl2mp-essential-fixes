@@ -384,7 +384,7 @@ As of version 1.1.0, a new server administration interface was implemented to pr
 
 ## Admin Commands & Levels
 ### Admin Commands
-> Usage
+> Usage<br>
 The server admin interface comes with a number of commands, all of which used to keep players in line with your rules or to maintain your server.
 
 To use an admin command, you must follow the following syntax:
@@ -394,9 +394,9 @@ If you use the console to input commands, you must always prepend **sa** before 
 If you use the chat to input commands, you do <ins>_not</ins> need **sa** at all: **!map dm_lockdown**
 Additionally, you can silence chat commands by using a forward slash: **/map dm_lockdown**
 
-> Targeting
-Multiple options are available to target a player or a group:
-NOTE: Not all commands may support this:
+> Targeting<br>
+Multiple options are available to target a player or a group:<br>
+NOTE: Not all commands may support this:<br>
 
 | General Targets | Purpose                                                                                                                          |
 |-----------------|----------------------------------------------------------------------------------------------------------------------------------|
@@ -469,20 +469,21 @@ Finally, there is no admin menus available. After surveying a number of people, 
 ## Adding Admins
 Adding admins is straightforward. All admin data is handled in a single file called *admins.txt*. Navigate to `hl2mp\cfg\admin` and open `admins.txt`. This file also includes instructions on adding admins in case you need a reminder. At the bottom of the file, use the KeyValues format to add your admins:
 
+```
 "Admins"
 {
     "STEAMID3" "ACCESS"
 }
-
+```
 > **Note:** You must use the SteamID3 format. Any other format will be ignored.
 
 **Example:**
-
+```
 "Admins"
 {
     "[U:1:400275221]" "z" // Full root access for this SteamID
 }
-
+```
 Admin data loads on every level initialization. You can also use `sa reloadadmins` to manually refresh the admin cache.
 
 ---
