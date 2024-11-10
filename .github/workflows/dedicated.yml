@@ -1,0 +1,32 @@
+name: Dedicated
+
+on: [push, pull_request]
+
+jobs:
+  linux:
+    name: Linux-x86
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Create bin folder
+        run: mkdir -p mp/game/mod_hl2mp/bin
+      - name: Run VPC
+        run: mp/src/creatededicatedprojects
+      - name: Sanitize paths in Makefiles
+        run: |
+          sed -e "s|${{ github.workspace }}/||g" -i mp/src/dedicated.mak
+          sed -e "s|${{ github.workspace }}/||g" -i mp/src/game/server/server_linux32_hl2mp.mak
+          sed -e "s|${{ github.workspace }}/||g" -i mp/src/mathlib/mathlib_linux32.mak
+          sed -e "s|${{ github.workspace }}/||g" -i mp/src/tier1/tier1_linux32.mak
+      - name: Build
+        uses: docker://registry.gitlab.steamos.cloud/steamrt/scout/sdk/i386:latest
+        with:
+          args: make CFG=release GITHUB_ACTIONS=1 -f mp/src/dedicated.mak
+      - name: Rename server binary
+        run: mv mp/game/mod_hl2mp/bin/server.so mp/game/mod_hl2mp/bin/server_srv.so
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Linux-x86
+          path: mp/game/mod_hl2mp/bin/server_srv.so
