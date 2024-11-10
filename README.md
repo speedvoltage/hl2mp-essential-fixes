@@ -4,7 +4,7 @@
 
 ## Custom sounds are not working.
 
-If you are using sv_pure 1 or above, make sure you have whitelisted the sounds by adding **sound\server_sounds\... any** in your **pure_server_whitelist.txt**
+If you are using sv_pure 1 or above, make sure you have whitelisted the sounds by adding `sound\server_sounds\... any` in your **pure_server_whitelist.txt**
 
 ## Will Sourcemod work with the binaries?
 
