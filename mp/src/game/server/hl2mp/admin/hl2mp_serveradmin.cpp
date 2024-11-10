@@ -254,11 +254,6 @@ void StartMapVote()
 		if ( pClient && pClient->IsConnected() )
 		{
 			serverpluginhelpers->CreateMessage( pClient->edict(), DIALOG_MENU, kv, &g_AdminPluginCallbacks );
-			ClientPrint( pClient, HUD_PRINTTALK, "Opening the RTV menu\n" );
-		}
-		else
-		{
-			ClientPrint( pClient, HUD_PRINTTALK, "Couldn't RTV menu\n" );
 		}
 	}
 
