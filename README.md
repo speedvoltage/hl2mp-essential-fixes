@@ -1,5 +1,19 @@
 ![Server Binaries](https://i.imgur.com/xP3IFZh.jpeg)
 
+### Frequently Asked Questions
+
+## Will Sourcemod work with the binaries?
+
+To some extent, but due to virtual tables being shifted, a lot of Sourcemod functions are no longer working and require new signatures. I will not be providing support for Sourcemod issues since this is beyond the scope of those binaries.
+
+## Will the server administration tools conflict with SM?
+
+Only the chat commands are identical between SM and my interface. If you must use Sourcemod, then use `-noadmin` in your SRCDS command line or batch file.
+
+## How do I raise an issue?
+
+Use the **Issues** tab above to help me keep tabs of ongoing issues.
+
 # Preamble
 You **must** apply the loose fixes explained here by Adrian: https://gist.github.com/Adrianilloo/6359896e79b6b135d3c925c627c9554b#loose-fixes
 This is to stop a crash from happening on server boot up. The following is the gist of it to at least get the server to boot. Again, fixes provided by Adrian.
