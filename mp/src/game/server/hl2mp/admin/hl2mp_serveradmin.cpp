@@ -43,7 +43,7 @@ ConVar sv_rtv_minmaprotation( "sv_rtv_minmaprotation", "15", 0, "Minimum number 
 ConVar sv_rtv_showmapvotes( "sv_rtv_showmapvotes", "0", 0, "If non-zero, shows what map a player has voted during RTV" );
 
 // 10/17/24
-#define SA_VERSION	"1.0.0.16"
+#define SA_VERSION	"1.0.0.24"
 #define SA_POWERED	"Server Binaries"
 CHL2MP_Admin* g_pHL2MPAdmin = NULL;
 bool g_bAdminSystem = false;
@@ -193,8 +193,16 @@ void StartMapVote()
 	{
 		CUtlString mapName( buffer );
 		RemoveTrailingWhitespace( mapName );
-		if ( !mapName.IsEmpty() && !g_recentlyPlayedMaps.HasElement( mapName ) )
+
+		if ( !Q_strncmp( mapName.Get(), "//", 2 ) || mapName.IsEmpty() )
+		{
+			continue;
+		}
+
+		if ( !g_recentlyPlayedMaps.HasElement( mapName ) )
+		{
 			mapList.AddToTail( mapName );
+		}
 	}
 	filesystem->Close( file );
 
@@ -6261,6 +6269,11 @@ void OpenNominateMenu( int currentPage = 0 )
 		{
 			CUtlString mapName( buffer );
 			RemoveTrailingWhitespace( mapName );
+
+			if ( !Q_strncmp( mapName.Get(), "//", 2 ) || mapName.IsEmpty() )
+			{
+				continue;
+			}
 
 			if ( !mapName.IsEmpty() && mapName != currentMapName &&
 				!g_recentlyPlayedMaps.HasElement( mapName ) &&
