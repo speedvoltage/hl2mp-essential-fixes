@@ -2,6 +2,10 @@
 
 ### Frequently Asked Questions
 
+## Custom sounds are not working.
+
+If you are using sv_pure 1 or above, make sure you have whitelisted the sounds by adding **sound\server_sounds\... any** in your **pure_server_whitelist.txt**
+
 ## Will Sourcemod work with the binaries?
 
 To some extent, but due to virtual tables being shifted, a lot of Sourcemod functions are no longer working and require new signatures. I will not be providing support for Sourcemod issues since this is beyond the scope of those binaries.
@@ -150,6 +154,7 @@ Not all fixes and updates are listed here, only the most important ones.
 - Fixed game unpause issue when `sv_pausable` is set to 0.
 - Fixed spectator mode within spectators.
 - Fixed physcannon interaction with objects behind walls.
+- Fixed a server crash caused by respawnable breakable objects touching a trigger_hurt brush.
 
 ---
 
