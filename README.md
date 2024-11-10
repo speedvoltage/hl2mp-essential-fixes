@@ -8,7 +8,7 @@ If you are using sv_pure 1 or above, make sure you have whitelisted the sounds b
 
 ## Will Sourcemod work with the binaries?
 
-To some extent, but due to virtual tables being shifted, a lot of Sourcemod functions are no longer working and require new signatures. I will not be providing support for Sourcemod issues since this is beyond the scope of those binaries.
+To some extent, but due to virtual table offsets being shifted, a lot of Sourcemod functions are no longer working and require new signatures. I will not be providing support for Sourcemod issues since this is beyond the scope of those binaries.
 
 ## Will the server administration tools conflict with SM?
 
