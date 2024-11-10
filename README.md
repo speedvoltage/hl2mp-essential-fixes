@@ -154,6 +154,7 @@ Not all fixes and updates are listed here, only the most important ones.
 - Fixed game unpause issue when `sv_pausable` is set to 0.
 - Fixed spectator mode within spectators.
 - Fixed physcannon interaction with objects behind walls.
+- Fixed a server crash caused by respawnable breakable objects touching a trigger_hurt brush.
 
 ---
 
