@@ -1156,6 +1156,12 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 
 	if (Q_stricmp(p, "!switch") == 0 && sv_teamsmenu.GetBool())
 	{
+		if (!serverpluginhelpers) 
+		{
+			Msg("serverpluginhelpers is not initialized on Linux!\n");
+			return;
+		}
+
 		if (serverpluginhelpers)
 		{
 			KeyValues* kv = new KeyValues("menu");
