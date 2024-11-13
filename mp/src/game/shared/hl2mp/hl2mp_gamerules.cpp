@@ -1575,6 +1575,7 @@ void ReadWhitelistFile()
 #endif
 
 extern ConVar sv_rtv_mintime;
+extern ConVar sv_rtv_enabled;
 extern void StartMapVote();
 void CHL2MPRules::Think( void )
 {
@@ -1599,7 +1600,7 @@ void CHL2MPRules::Think( void )
 	HandleGameOver();
 	HandleMapVotes();
 
-	if ( GetMapRemainingTime() <= 20 && !g_votebegun && !g_votehasended)
+	if ( sv_rtv_enabled.GetBool() && GetMapRemainingTime() <= 20 && !g_votebegun && !g_votehasended)
 	{
 		g_votebegun = true;
 
