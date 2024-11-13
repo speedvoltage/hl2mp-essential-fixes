@@ -97,17 +97,17 @@ void CEnvFade::InputFade( inputdata_t &inputdata )
 	{
 		if ( inputdata.pActivator && inputdata.pActivator->IsNetClient() )
 		{
-			UTIL_ScreenFade( inputdata.pActivator, m_clrRender, Duration(), HoldTime(), fadeFlags );
+			// Contains FFADE_PURGE which allows you to do fade in if you've done fade out with stayout flag enabled.
+			UTIL_ScreenFade( inputdata.pActivator, m_clrRender, Duration(), HoldTime(), fadeFlags | FFADE_PURGE );
 		}
 	}
 	else
 	{
-		UTIL_ScreenFadeAll( m_clrRender, Duration(), HoldTime(), fadeFlags|FFADE_PURGE );
+		UTIL_ScreenFadeAll( m_clrRender, Duration(), HoldTime(), fadeFlags | FFADE_PURGE);
 	}
 
 	m_OnBeginFade.FireOutput( inputdata.pActivator, this );
 }
-
 
 //-----------------------------------------------------------------------------
 // Purpose: Fetches the arguments from the command line for the fadein and fadeout
