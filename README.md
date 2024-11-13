@@ -386,7 +386,7 @@ To use an admin command, you must follow the following syntax:
 - **[Server Admin] Usage: sa \<command\> [argument]**
 
 If you use the console to input commands, you must always prepend **sa** before the command: **sa map dm_lockdown**
-If you use the chat to input commands, you do <ins>_not</ins> need **sa** at all: **!map dm_lockdown**
+If you use the chat to input commands, you do <ins>not</ins> need **sa** at all: **!map dm_lockdown**
 Additionally, you can silence chat commands by using a forward slash: **/map dm_lockdown**
 
 > Targeting<br>
