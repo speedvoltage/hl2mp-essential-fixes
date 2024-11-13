@@ -6457,7 +6457,7 @@ static ConCommand nominate_map( "nominate_map", NominateMapCommand, "Nominates a
 
 void RtvCommand( const CCommand& args )
 {
-	if ( sv_rtv_enabled.GetBool() )
+	if ( !sv_rtv_enabled.GetBool() )
 		return;
 
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
@@ -6494,7 +6494,7 @@ void RtvCommand( const CCommand& args )
 // Nominate Command
 void NominateCommand( const CCommand& args )
 {
-	if ( sv_rtv_enabled.GetBool() )
+	if ( !sv_rtv_enabled.GetBool() )
 		return;
 
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
