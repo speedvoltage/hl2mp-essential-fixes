@@ -3731,7 +3731,7 @@ void CHL2MPRules::RestartGame()
 	// Allow restarting of a game without resetting the time limit 
 	// Useful for game modes that require restarting the game, 
 	// but without resetting the clock (e.g. Deathrun, minigame, etc.)
-	if (mp_restartgame_notimelimitreset.GetBool())
+	if (!mp_restartgame_notimelimitreset.GetBool())
 	{
 		m_flGameStartTime = gpGlobals->curtime;
 		if (!IsFinite(m_flGameStartTime.Get()))
