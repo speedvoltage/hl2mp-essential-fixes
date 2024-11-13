@@ -227,7 +227,7 @@ CON_COMMAND( sv_version, "Binaries version" )
 {
 	if ( UTIL_IsCommandIssuedByServerAdmin() )
 	{
-		Msg( "Binaries version: 1.1.1.175-subrelease-2\n" ); // May 19 2024
+		Msg( "Binaries version: 1.1.2.178\n" ); // May 19 2024
 		Msg( "Author: Peter Brev\n" );
 		return;
 	}
