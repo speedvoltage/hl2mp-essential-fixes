@@ -194,15 +194,26 @@ void StartMapVote()
 		CUtlString mapName( buffer );
 		RemoveTrailingWhitespace( mapName );
 
-		if ( !Q_strncmp( mapName.Get(), "//", 2 ) || mapName.IsEmpty() )
+		int commentPos = -1;
+		for ( int i = 0; i < mapName.Length() - 1; i++ )
 		{
-			continue;
+			if ( mapName[ i ] == '/' && mapName[ i + 1 ] == '/' )
+			{
+				commentPos = i;
+				break;
+			}
 		}
 
-		if ( !g_recentlyPlayedMaps.HasElement( mapName ) )
+		if ( commentPos != -1 )
 		{
-			mapList.AddToTail( mapName );
+			mapName = mapName.Left( commentPos );
+			RemoveTrailingWhitespace( mapName );
 		}
+
+		if ( mapName.IsEmpty() || g_recentlyPlayedMaps.HasElement( mapName ) )
+			continue;
+
+		mapList.AddToTail( mapName );
 	}
 	filesystem->Close( file );
 
@@ -6270,17 +6281,30 @@ void OpenNominateMenu( int currentPage = 0 )
 			CUtlString mapName( buffer );
 			RemoveTrailingWhitespace( mapName );
 
-			if ( !Q_strncmp( mapName.Get(), "//", 2 ) || mapName.IsEmpty() )
+			int commentPos = -1;
+			for ( int i = 0; i < mapName.Length() - 1; i++ )
+			{
+				if ( mapName[i] == '/' && mapName[i + 1] == '/' )
+				{
+					commentPos = i;
+					break;
+				}
+			}
+
+			if ( commentPos != -1 )
+			{
+				mapName = mapName.Left( commentPos );
+				RemoveTrailingWhitespace( mapName );
+			}
+
+			if ( mapName.IsEmpty() || mapName == currentMapName ||
+				g_recentlyPlayedMaps.HasElement( mapName ) ||
+				g_alreadyNominatedMaps.Find( mapName ) != g_alreadyNominatedMaps.InvalidIndex() )
 			{
 				continue;
 			}
 
-			if ( !mapName.IsEmpty() && mapName != currentMapName &&
-				!g_recentlyPlayedMaps.HasElement( mapName ) &&
-				g_alreadyNominatedMaps.Find( mapName ) == g_alreadyNominatedMaps.InvalidIndex() )
-			{
-				g_allMapsInCycle.AddToTail( mapName );
-			}
+			g_allMapsInCycle.AddToTail( mapName );
 		}
 		filesystem->Close( file );
 	}
@@ -6373,7 +6397,6 @@ void NominateMapCommand( const CCommand& args )
 		}
 	}
 
-	// If the map is not valid, notify the player and ignore the nomination
 	if ( !isValidMap )
 	{
 		UTIL_PrintToClient( pPlayer, CHAT_ADMIN "Invalid map selection. Please nominate a map from the cycle list.\n" );

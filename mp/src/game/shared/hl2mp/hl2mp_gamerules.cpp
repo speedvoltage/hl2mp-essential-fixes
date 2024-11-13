@@ -1575,6 +1575,7 @@ void ReadWhitelistFile()
 #endif
 
 extern ConVar sv_rtv_mintime;
+extern void StartMapVote();
 void CHL2MPRules::Think( void )
 {
 
@@ -1597,6 +1598,14 @@ void CHL2MPRules::Think( void )
 	HandleTeamAutobalance();
 	HandleGameOver();
 	HandleMapVotes();
+
+	if ( GetMapRemainingTime() <= 20 && !g_votebegun && !g_votehasended)
+	{
+		g_votebegun = true;
+
+		UTIL_PrintToAllClients( CHAT_INFO "Voting for next map has started...\n" );
+		StartMapVote();
+	}
 
 	if ( gpGlobals->curtime > m_flBalanceTeamsTime )
 	{
