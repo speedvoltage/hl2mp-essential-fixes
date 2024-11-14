@@ -58,14 +58,7 @@ CEntityFlame::CEntityFlame( void )
 
 void CEntityFlame::UpdateOnRemove()
 {
-	// Sometimes the entity I'm burning gets destroyed by other means,
-	// which kills me. Make sure to stop the burning sound.
-	if ( m_bPlayingSound )
-	{
-		EmitSound( "General.StopBurning" );
-		m_bPlayingSound = false;
-	}
-
+	StopFlameSound();
 	BaseClass::UpdateOnRemove();
 }
 
@@ -76,6 +69,17 @@ void CEntityFlame::Precache()
 	PrecacheScriptSound( "General.StopBurning" );
 	PrecacheScriptSound( "General.BurningFlesh" );
 	PrecacheScriptSound( "General.BurningObject" );
+}
+
+void CEntityFlame::StopFlameSound()
+{
+	if ( m_bPlayingSound )
+	{
+		StopSound( "General.BurningFlesh" );
+		StopSound( "General.BurningObject" );
+		StopSound( "General.StopBurning" );
+		m_bPlayingSound = false;
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -156,26 +160,25 @@ CEntityFlame *CEntityFlame::Create( CBaseEntity *pTarget, bool useHitboxes )
 // Purpose: Attaches the flame to an entity and moves with it
 // Input  : pTarget - target entity to attach to
 //-----------------------------------------------------------------------------
-void CEntityFlame::AttachToEntity( CBaseEntity *pTarget )
+void CEntityFlame::AttachToEntity( CBaseEntity* pTarget )
 {
-	// For networking to the client.
 	m_hEntAttached = pTarget;
 
-	if( pTarget->IsNPC() )
+	if ( !m_bPlayingSound )
 	{
-		EmitSound( "General.BurningFlesh" );
-	}
-	else
-	{
-		EmitSound( "General.BurningObject" );
+		if ( pTarget->IsNPC() )
+		{
+			EmitSound( "General.BurningFlesh" );
+		}
+		else
+		{
+			EmitSound( "General.BurningObject" );
+		}
+		m_bPlayingSound = true;
 	}
 
-	m_bPlayingSound = true;
-
-	// So our heat emitter follows the entity around on the server.
 	SetParent( pTarget );
 }
-
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -241,54 +244,54 @@ void CEntityFlame::FlameThink( void )
 		if ( m_hEntAttached->GetFlags() & FL_TRANSRAGDOLL )
 		{
 			SetRenderColorA( 0 );
+			StopFlameSound();
 			return;
 		}
-	
-		CAI_BaseNPC *pNPC = m_hEntAttached->MyNPCPointer();
+
+		CAI_BaseNPC* pNPC = m_hEntAttached->MyNPCPointer();
 		if ( pNPC && !pNPC->IsAlive() )
 		{
+			StopFlameSound();
 			UTIL_Remove( this );
-			// Notify the NPC that it's no longer burning!
 			pNPC->Extinguish();
 			return;
 		}
 
-		CBaseCombatCharacter *pAttachedCC = m_hEntAttached->MyCombatCharacterPointer();
-
-		if (m_hEntAttached->IsPlayer() && !m_hEntAttached->IsAlive())
+		if ( m_hEntAttached->IsPlayer() && !m_hEntAttached->IsAlive() )
 		{
-			UTIL_Remove(this);
-			pAttachedCC->Extinguish();
+			StopFlameSound();
+			UTIL_Remove( this );
+			m_hEntAttached->MyCombatCharacterPointer()->Extinguish();
 			return;
-
 		}
 
-		if (m_hEntAttached->GetWaterLevel() >= 1)
+		if ( m_hEntAttached->GetWaterLevel() >= 1 )
 		{
 			Vector mins, maxs;
-
 			mins = m_hEntAttached->WorldSpaceCenter();
 			maxs = mins;
 
 			maxs.z = m_hEntAttached->WorldSpaceCenter().z;
 			maxs.x += 32;
 			maxs.y += 32;
-			
+
 			mins.z -= 32;
 			mins.x -= 32;
 			mins.y -= 32;
 
 			UTIL_Bubbles( mins, maxs, 12 );
 
-			if (m_flLifetime > 4)
+			if ( m_flLifetime > 4 )
 			{
 				m_flLifetime -= 4;
 			}
 
-			if (m_flLifetime > 60)
+			if ( m_flLifetime > 60 )
 			{
 				m_flLifetime = 60;
 			}
+
+			StopFlameSound();
 		}
 	}
 	else
