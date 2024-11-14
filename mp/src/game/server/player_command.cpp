@@ -14,6 +14,7 @@
 #include "movehelper_server.h"
 #include "iservervehicle.h"
 #include "tier0/vprof.h"
+#include "engine/IEngineSound.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -298,6 +299,12 @@ void CPlayerMove::RunThink (CBasePlayer *player, double frametime )
 void CPlayerMove::RunPostThink( CBasePlayer *player )
 {
 	VPROF( "CPlayerMove::RunPostThink" );
+	CSingleUserRecipientFilter user( player );
+
+	if ( gpGlobals->curtime >= player->iDamageTime + 3 )
+	{
+		enginesound->SetPlayerDSP( user, 0, false );
+	}
 
 	// Run post-think
 	player->PostThink();

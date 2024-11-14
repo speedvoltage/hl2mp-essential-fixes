@@ -1534,6 +1534,7 @@ void CBasePlayer::OnDamagedByExplosion( const CTakeDamageInfo &info )
 	if (mp_ear_ringing.GetBool())
 	{
 		enginesound->SetPlayerDSP(user, effect, false);
+		iDamageTime = gpGlobals->curtime;
 	}
 }
 

@@ -43,7 +43,7 @@ ConVar mp_suitvoice(
 
 ConVar mp_ear_ringing(
 	"mp_ear_ringing",
-	"0",
+	"1",
 	FCVAR_GAMEDLL | FCVAR_NOTIFY,
 	"If non-zero, produce ringing sound caused by explosion/blast damage" );
 

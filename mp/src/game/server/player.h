@@ -885,6 +885,8 @@ private:
 	bool m_bHitSoundsEnabled;  // Hit sound toggle
 	bool m_bKillSoundsEnabled; // Kill sound toggle
 
+	int iDamageTime;
+
 	float m_flAlive;
 
 	/*=====ROCK THE VOTE SYSTEM=====*/
