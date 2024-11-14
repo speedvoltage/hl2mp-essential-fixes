@@ -37,6 +37,7 @@
 #include "iserver.h"
 #include "filesystem.h"
 #include "networkstringtabledefs.h"
+#include "weapon_rpg.h"
 
 #define DOWNLOADABLE_FILE_TABLENAME "downloadables"
 
@@ -1577,6 +1578,7 @@ void ReadWhitelistFile()
 extern ConVar sv_rtv_mintime;
 extern ConVar sv_rtv_enabled;
 extern void StartMapVote();
+
 void CHL2MPRules::Think( void )
 {
 
@@ -1617,6 +1619,24 @@ void CHL2MPRules::Think( void )
 	{
 		CheckRestartGame();
 		m_tmNextPeriodicThink = gpGlobals->curtime + 1.0;
+	}
+
+	// Peter: I can't seem to get the rocket sounds to stop when the game restarts with StopSound(), 
+	// gotta blow them up 0.1 second before
+	if (m_flRestartGameTime > 0.0f && m_flRestartGameTime <= gpGlobals->curtime + 0.1f)
+	{
+		CBaseEntity* pEntity = NULL;
+		while ((pEntity = gEntList.FindEntityByClassname(pEntity, "rpg_missile")) != NULL)
+		{
+			if (pEntity && pEntity->IsAlive())
+			{
+				CMissile* pMissile = dynamic_cast<CMissile*>(pEntity);
+				if (pMissile)
+				{
+					pMissile->Explode();
+				}
+			}
+		}
 	}
 
 	if ( m_flRestartGameTime > 0.0f && m_flRestartGameTime <= gpGlobals->curtime )
