@@ -1150,7 +1150,7 @@ protected:
 	friend class CPortalGameMovement;
 	
 	// Accessors for gamemovement
-	bool IsDucked( void ) const { return m_Local.m_bDucked; }
+	bool IsDucked( void ) const { return (m_Local.m_bDucked && FBitSet(GetFlags(), FL_ANIMDUCKING)); }
 	bool IsDucking( void ) const { return m_Local.m_bDucking; }
 	float GetStepSize( void ) const { return m_Local.m_flStepSize; }
 

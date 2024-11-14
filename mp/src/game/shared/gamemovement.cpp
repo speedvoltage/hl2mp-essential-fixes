@@ -4292,8 +4292,15 @@ void CGameMovement::SetDuckedEyeOffset( float duckFraction )
 //-----------------------------------------------------------------------------
 void CGameMovement::HandleDuckingSpeedCrop( void )
 {
+	CHLMoveData *pMoveData = (CHLMoveData*)mv;
+
 	if ( !( m_iSpeedCropped & SPEED_CROPPED_DUCK ) && ( player->GetFlags() & FL_DUCKING ) && ( player->GetGroundEntity() != NULL ) )
 	{
+		if (pMoveData->m_bIsSprinting)
+		{
+			return;
+		}
+
 		float frac = 0.33333333f;
 		mv->m_flForwardMove	*= frac;
 		mv->m_flSideMove	*= frac;

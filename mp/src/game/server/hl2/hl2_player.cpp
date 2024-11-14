@@ -480,16 +480,22 @@ void CHL2_Player::RemoveSuit( void )
 
 void CHL2_Player::HandleSpeedChanges( void )
 {
-	int buttonsChanged = m_afButtonPressed | m_afButtonReleased;
-
 	bool bCanSprint = CanSprint();
 	bool bIsSprinting = IsSprinting();
 	bool bWantSprint = ( bCanSprint && IsSuitEquipped() && (m_nButtons & IN_SPEED) );
-	if ( bIsSprinting != bWantSprint && (buttonsChanged & IN_SPEED) )
+	// If a player ducks during the unduck animation, m_bDucking stays true when it shouldn't. 
+	// Attempt to rectify this wrong behavior.
+	if ( ( GetFlags() & FL_DUCKING ) && ( GetFlags() & FL_ANIMDUCKING ) )
 	{
-		// If someone wants to sprint, make sure they've pressed the button to do so. We want to prevent the
-		// case where a player can hold down the sprint key and burn tiny bursts of sprint as the suit recharges
-		// We want a full debounce of the key to resume sprinting after the suit is completely drained
+		m_Local.m_bDucking = false;
+	}
+	else if ( ( GetFlags() & FL_DUCKING ) && !( GetFlags() & FL_ANIMDUCKING ) )
+	{
+		m_Local.m_bDucking = true;
+	}
+
+	if ( bIsSprinting != bWantSprint )
+	{
 		if ( bWantSprint )
 		{
 			if ( sv_stickysprint.GetBool() )
@@ -1168,7 +1174,7 @@ bool CHL2_Player::CanSprint()
 {
 	return ( m_bSprintEnabled &&										// Only if sprint is enabled 
 			!IsWalking() &&												// Not if we're walking
-			!( m_Local.m_bDucked && !m_Local.m_bDucking ) &&			// Nor if we're ducking
+			!IsDucked()  &&												// Nor if we're ducked
 			(GetWaterLevel() != 3) &&									// Certainly not underwater
 			(GlobalEntity_GetState("suit_no_sprint") != GLOBAL_ON) );	// Out of the question without the sprint module
 }
