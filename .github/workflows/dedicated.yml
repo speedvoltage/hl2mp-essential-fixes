@@ -30,3 +30,6 @@ jobs:
         with:
           name: Linux-x86
           path: mp/game/mod_hl2mp/bin/server_srv.so
+      - name: Clean workflow runs
+        uses: dmvict/clean-workflow-runs@v1
+            
