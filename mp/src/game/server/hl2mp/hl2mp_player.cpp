@@ -509,15 +509,14 @@ void CHL2MP_Player::ResetAnimation( void )
 {
 	if ( IsAlive() )
 	{
-		SetSequence ( -1 );
-		SetActivity( ACT_INVALID );
+		const Vector& absVelocity = GetAbsVelocity();
 
-		if (!GetAbsVelocity().x && !GetAbsVelocity().y)
-			SetAnimation( PLAYER_IDLE );
-		else if ((GetAbsVelocity().x || GetAbsVelocity().y) && ( GetFlags() & FL_ONGROUND ))
-			SetAnimation( PLAYER_WALK );
-		else if (GetWaterLevel() > 1)
-			SetAnimation( PLAYER_WALK );
+		if ( ( absVelocity.x != 0.0f || absVelocity.y != 0.0f )
+			&& ( FBitSet( GetFlags(), FL_ONGROUND ) || GetWaterLevel() > WL_Feet ) )
+		{
+			return SetAnimation( PLAYER_WALK );
+		}
+		SetAnimation( PLAYER_IDLE );
 	}
 }
 
