@@ -25,6 +25,7 @@ bool g_rtvbooted = false;
 CUtlDict<int, unsigned short> g_mapVotes;
 CUtlVector<CBasePlayer*> g_playersWhoVoted;
 CUtlVector<CUtlString> g_currentVoteMaps;
+extern bool bAdminMapChange;
 
 int g_nominatePage = 0;
 int g_nominationCount = 0;
@@ -3522,6 +3523,7 @@ static void MapCommand( const CCommand& args )
 		HL2MPRules()->SetScheduledMapName( exactMatchMap );  // change map in 5 seconds
 		HL2MPRules()->SetMapChange( true );
 		HL2MPRules()->SetMapChangeOnGoing( true );
+		bAdminMapChange = true;
 
 		if ( isServerConsole )
 			UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_DEFAULT "Console " CHAT_ADMIN "is changing the map to " CHAT_DEFAULT "%s" CHAT_ADMIN " in 5 seconds...\n", exactMatchMap ) );
@@ -3571,6 +3573,7 @@ static void MapCommand( const CCommand& args )
 			HL2MPRules()->SetScheduledMapName( matchingMaps[ 0 ] );
 			HL2MPRules()->SetMapChange( true );
 			HL2MPRules()->SetMapChangeOnGoing( true );
+			bAdminMapChange = true;
 
 			CHL2MP_Admin::LogAction(
 				pPlayer,

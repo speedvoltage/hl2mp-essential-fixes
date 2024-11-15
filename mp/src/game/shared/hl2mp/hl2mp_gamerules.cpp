@@ -96,6 +96,7 @@ ConVar sv_hudtargetid_delay( "sv_hudtargetid_delay", "1", 0, "How long it takes 
 
 ConVar mp_noblock("mp_noblock", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "If non-zero, disable collisions between players");
 
+bool bAdminMapChange = false;
 
 extern ConVar mp_chattime;
 extern ConVar mp_autoteambalance;
@@ -430,6 +431,7 @@ CHL2MPRules::CHL2MPRules()
 
 	iOvertimeLimit = 0;
 
+	bAdminMapChange = false;
 	bMapChangeOnGoing = false;
 	bMapChange = false;
 	m_flMapChangeTime = 0.0f;
@@ -1602,7 +1604,7 @@ void CHL2MPRules::Think( void )
 	HandleGameOver();
 	HandleMapVotes();
 
-	if ( sv_rtv_enabled.GetBool() && GetMapRemainingTime() <= 20 && !g_votebegun && !g_votehasended)
+	if ( sv_rtv_enabled.GetBool() && GetMapRemainingTime() <= 20 && !g_votebegun && !g_votehasended && !bAdminMapChange)
 	{
 		g_votebegun = true;
 
@@ -1740,6 +1742,13 @@ void CHL2MPRules::HandleMapVotes()
 			UTIL_PrintToAllClients( UTIL_VarArgs(
 				CHAT_ADMIN "Players have spoken! Winning map is " CHAT_INFO "%s " CHAT_DEFAULT "(%.2f%% of %d vote%s).\n",
 				winningMap.Get(), winningPercentage, totalVotes, totalVotes < 2 ? "" : "s" ) );
+
+			if ( mp_chattime.GetInt() <= 5 )
+			{
+				mp_chattime.SetValue( 10 );
+			}
+
+			GoToIntermission();
 		}
 
 		engine->ServerCommand( CFmtStr( "sa map %s\n", winningMap.Get() ) );
