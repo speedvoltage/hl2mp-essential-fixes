@@ -93,7 +93,6 @@ Not all fixes and updates are listed here, only the most important ones.
 - Fixed SLAMs remaining in the level if the thrower disconnected or switched to Spectator.
 - Fixed sprint delay, allowing immediate sprinting.
 - Fixed an exploit allowing `impulse 51` use without `sv_cheats`.
-- Fixed `sv_autojump` (renamed to `sv_autobhop`).
 - Fixed missing weapon sounds due to prediction errors.
 - Fixed floating guns around a player when observed by a spectator in IN_EYE mode.
 - Fixed guidance issues for the third rocket.
@@ -144,7 +143,6 @@ Not all fixes and updates are listed here, only the most important ones.
 - Fixed tank train damage issues.
 - Fixed `func_rot_button` “Start locked” setting.
 - Fixed `mp_flashlight` enforcement settings.
-- Fixed various NPC-related issues.
 - Fixed bypassing of forced respawn.
 - Fixed items flipping on the Z-axis when punted while looking down.
 - Fixed collision issues for props held in the physcannon by players who switch to Spectator.
@@ -153,10 +151,8 @@ Not all fixes and updates are listed here, only the most important ones.
 - Fixed bolt-related issues when jumping onto a landed bolt.
 - Fixed sound precaching issues for physcannon on Debian systems.
 - Fixed missing footstep sounds when another player was within PVS due to prediction.
-- Deprecated `mp_footsteps` in favor of `sv_footsteps`.
 - Fixed attacker not being properly updated in specific circumstances.
 - Fixed rocket damage across ceilings.
-- Fixed immediate game restart with `mp_restartgame_immediate`.
 - Fixed numerous team scoring bugs.
 - Fixed `joingame` console command functionality.
 - Fixed team auto-balance functionality.
