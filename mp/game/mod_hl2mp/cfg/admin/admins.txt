@@ -1,0 +1,34 @@
+// Adding an admin is very easy. You must use the SteamID3 format [U:1:12345]. The SteamID2 format will not work.
+// Example below:
+// 
+// "Admins"
+// {
+// 		"[U:1:400275221]"	"z" // full root admin, immunity to kick, ban, addban
+// 		"[U:1:1709771203]"	"bcd" // generic admin, kick and ban
+// 		"[U:1:25752761]"	"bcdfgjk" // generic admin, kick, ban, slap and slay, change levels, chat say and votes
+// }
+// 
+// Admin permission flags:
+// 
+// ADMIN_GENERIC        'b' // minimum flag required for admin detection
+// ADMIN_KICK           'c' // kicking function
+// ADMIN_BAN            'd' // banning function -- DOES NOT INCLUDE ADDBAN, WHICH NEEDS RCON
+// ADMIN_UNBAN          'e' // to remove a ban in banned_user.cfg -- only is useful for permanent bans
+// ADMIN_SLAY           'f' // to slap and slay
+// ADMIN_CHANGEMAP      'g' // to change levels
+// ADMIN_CVAR           'h' // for sa cvar, accessing any cvar, even those behind FCVAR_DEVELOPMENTONLY
+// ADMIN_CONFIG         'i' // for executing cfg files
+// ADMIN_CHAT           'j' // for chat specific commands (say, gag, mute, etc.)
+// ADMIN_VOTE           'k' // for votes (votekick, voteban, votemute, votespec, etc.)
+// ADMIN_PASSWORD       'l' // for sv_password
+// ADMIN_RCON           'm' // bypasses the need for an rcon password, 
+                                 // use in-game for issuing commands 
+                                 // as if they were typed in the server console
+// ADMIN_CHEATS         'n' // primarily for sv_cheats
+// ADMIN_ROOT           'z' // all permissions, immunity for kick, ban, gag & mute
+
+// PUT YOUR ADMINS BELOW HERE
+"Admins"
+{
+
+}

@@ -1,0 +1,426 @@
+"server_sounds_hitbody"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/hitbody.wav"
+}
+
+"server_sounds_hithead"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/hithead.wav"
+}
+
+"headshot_kill_snd"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/headshot_kill_snd.wav"
+}
+
+"frag_snd"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/frag_snd.wav"
+}
+
+"kevlar1"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/kevlar1.wav"
+}
+
+"kevlar2"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/kevlar2.wav"
+}
+
+"kevlar3"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/kevlar3.wav"
+}
+
+"kevlar4"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/kevlar4.wav"
+}
+
+"kevlar5"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/kevlar5.wav"
+}
+
+"server_sounds_red_wins"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/red_wins.wav"
+}
+
+"server_sounds_blue_wins"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/blue_wins.wav"
+}
+
+"server_sounds_red_team"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/red_team.wav"
+}
+
+"server_sounds_blue_team"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/blue_team.wav"
+}
+
+"server_sounds_blue_leads"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/blue_leads.wav"
+}
+
+"server_sounds_red_leads"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/red_leads.wav"
+}
+
+"server_sounds_draw"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/draw.wav"
+}
+
+"server_sounds_five"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/five.wav"
+}
+
+"server_sounds_four"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/four.wav"
+}
+
+"server_sounds_three"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/three.wav"
+}
+
+"server_sounds_two"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/two.wav"
+}
+
+"server_sounds_one"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/one.wav"
+}
+
+"server_sounds_gameover"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/gameover.wav"
+}
+
+"server_sounds_gamepaused"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/gamepaused.wav"
+}
+
+"server_sounds_go1"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/go1.wav"
+}
+
+"server_sounds_go2"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/go2.wav"
+}
+
+"server_sounds_go3"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/go3.wav"
+}
+
+"server_sounds_matchcancel"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/matchcancel.wav"
+}
+
+"server_sounds_overtime"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/overtime.wav"
+}
+
+"server_sounds_rankdown"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/rankdown.wav"
+}
+
+"server_sounds_rankup"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/rankup.wav"
+}
+
+"server_sounds_tie"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/tie.wav"
+}
+
+"server_sounds_youlead"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/youlead.wav"
+}
+
+"server_sounds_youlost"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/youlost.wav"
+}
+
+"server_sounds_younolead"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/younolead.wav"
+}
+
+"server_sounds_youwin"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/youwin.wav"
+}
+
+"server_sounds_bhit_helmet-1"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/bhit_helmet-1.wav"
+}
+
+"server_sounds_tkill"
+{
+	"channel"   "CHAN_AUTO"
+	"volume"    "1.0"
+	"soundlevel"    "SNDLVL_NORM"
+	"pitch"     "100"
+	"wave"      "server_sounds/tkill.wav"
+}
+
+"HL2Player.FootstepsRight"
+{
+    "channel"   "CHAN_BODY"
+    "volume"    "0.7"
+    "soundlevel" "SNDLVL_NORM"
+    "pitch"     "95, 99"
+    "rndwave"
+	{
+		"wave"	"npc/footsteps/hardboot_generic1.wav"
+		"wave"	"npc/footsteps/hardboot_generic3.wav"
+		"wave"	"npc/footsteps/hardboot_generic5.wav"
+	}
+}
+
+"HL2Player.FootstepsLeft"
+{
+    "channel"   "CHAN_BODY"
+    "volume"    "0.7"
+    "soundlevel" "SNDLVL_NORM"
+    "pitch"     "101, 105"
+    "rndwave"
+	{
+		"wave"	"npc/footsteps/hardboot_generic2.wav"
+		"wave"	"npc/footsteps/hardboot_generic4.wav"
+		"wave"	"npc/footsteps/hardboot_generic6.wav"
+	}
+}
+
+"MetroPolice.RunFootstepLeft"
+{
+	"channel"		"CHAN_BODY"
+	"volume"		"0.55"
+	"pitch"		"95, 99"
+
+	"soundlevel"	"SNDLVL_NORM"
+
+	"rndwave"
+	{
+
+		"wave"	"npc/metropolice/gear1.wav"
+		"wave"	"npc/metropolice/gear3.wav"
+		"wave"	"npc/metropolice/gear5.wav"
+	}
+}
+
+"MetroPolice.RunFootstepRight"
+{
+	"channel"		"CHAN_BODY"
+	"volume"		"0.55"
+	"pitch"		"101, 105"
+
+	"soundlevel"	"SNDLVL_NORM"
+
+	"rndwave"
+	{
+
+		"wave"	"npc/metropolice/gear2.wav"
+		"wave"	"npc/metropolice/gear4.wav"
+		"wave"	"npc/metropolice/gear6.wav"
+	}
+}
+
+"Soldier.RunFootstepLeft"
+{
+	"channel"		"CHAN_BODY"
+	"volume"		"0.75"
+	"pitch"		"95, 99"
+
+	"soundlevel"	"SNDLVL_NORM"
+
+	"rndwave"
+	{
+		"wave"	"npc/combine_soldier/gear1.wav"
+		"wave"	"npc/combine_soldier/gear3.wav"
+		"wave"	"npc/combine_soldier/gear5.wav"
+	}
+}
+
+"Soldier.RunFootstepRight"
+{
+	"channel"		"CHAN_BODY"
+	"volume"		"0.75"
+	"pitch"		"101, 105"
+
+	"soundlevel"	"SNDLVL_NORM"
+
+	"rndwave"
+	{
+		"wave"	"npc/combine_soldier/gear2.wav"
+		"wave"	"npc/combine_soldier/gear4.wav"
+		"wave"	"npc/combine_soldier/gear6.wav"
+	}
+}
