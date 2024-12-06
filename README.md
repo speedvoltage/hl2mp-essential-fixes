@@ -8,11 +8,15 @@ As of 11/22/24, the code has been updated with all the bug fixes and the entiret
 
 ## Will Sourcemod work with the binaries?
 
-It should work fine for the most part with those binaries.
+It should work fine for the most part with those binaries. However, some specific plugins requiring specific gamedata might not work. Because this is outside the scope of providing bug fixes, I cannot provide assistance there.
 
 ## How do I raise an issue?
 
 Use the **Issues** tab above to help me keep tabs of ongoing issues.
+
+## I would like to report a bug. How do I do that?
+
+Use the **Discussions** tab at the top. I will more than happy to take a look.
 
 # Preamble
 You **must** apply the loose fixes explained here by Adrian: https://gist.github.com/Adrianilloo/6359896e79b6b135d3c925c627c9554b#loose-fixes
