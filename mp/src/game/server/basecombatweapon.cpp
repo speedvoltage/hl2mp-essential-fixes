@@ -199,12 +199,14 @@ CBaseEntity* CBaseCombatWeapon::Respawn( void )
 {
 	// make a copy of this weapon that is invisible and inaccessible to players (no touch function). The weapon spawn/respawn code
 	// will decide when to make the weapon visible and touchable.
-	CBaseEntity *pNewWeapon = CBaseEntity::Create( GetClassname(), g_pGameRules->VecWeaponRespawnSpot( this ), GetLocalAngles(), GetOwnerEntity() );
+
+	CBaseEntity* pNewWeapon = CBaseEntity::Create( GetClassname(), g_pGameRules->VecWeaponRespawnSpot( this ), g_pGameRules->DefaultWeaponRespawnAngle( this ) );
 
 	if ( pNewWeapon )
 	{
 		pNewWeapon->AddEffects( EF_NODRAW );// invisible for now
 		pNewWeapon->SetTouch( NULL );// no touch
+		pNewWeapon->AddEFlags(EFL_NO_PHYSCANNON_INTERACTION);
 		pNewWeapon->SetThink( &CBaseCombatWeapon::AttemptToMaterialize );
 
 		UTIL_DropToFloor( this, MASK_SOLID );
@@ -577,7 +579,7 @@ void CBaseCombatWeapon::Materialize( void )
 		DoMuzzleFlash();
 	}
 #ifdef HL2MP
-	if ( HasSpawnFlags( SF_NORESPAWN ) == false )
+	//if ( HasSpawnFlags( SF_NORESPAWN ) == false )
 	{
 		VPhysicsInitNormal( SOLID_BBOX, GetSolidFlags() | FSOLID_TRIGGER, false );
 		SetMoveType( MOVETYPE_VPHYSICS );
@@ -604,6 +606,7 @@ void CBaseCombatWeapon::AttemptToMaterialize( void )
 	if ( time == 0 )
 	{
 		Materialize();
+		RemoveEFlags(EFL_NO_PHYSCANNON_INTERACTION);
 		return;
 	}
 

@@ -550,6 +550,7 @@ public:
 	virtual void			PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize = true ) {}
 	virtual void			ForceDropOfCarriedPhysObjects( CBaseEntity *pOnlyIfHoldindThis = NULL ) {}
 	virtual float			GetHeldObjectMass( IPhysicsObject *pHeldObject );
+	virtual CBaseEntity		*GetHeldObject( void );
 
 	void					CheckSuitUpdate();
 	void					SetSuitUpdate(const char *name, int fgroup, int iNoRepeat);
@@ -746,6 +747,10 @@ public:
 	CBaseEntity *GetFOVOwner( void ) { return m_hZoomOwner; }
 	float	GetFOVDistanceAdjustFactor(); // shared between client and server
 	float	GetFOVDistanceAdjustFactorForNetworking();
+	float GetLadderCooldownTime() const { return m_flLadderCooldownTime; }
+	void SetLadderCooldownTime(float cooldownTime) { m_flLadderCooldownTime = cooldownTime; }
+	bool UsingGameUI() const { return m_bIsUsingGameUI; }
+	void IsUsingGameUI( bool enabled ) { m_bIsUsingGameUI = enabled; }
 
 	int		GetImpulse( void ) const { return m_nImpulse; }
 
@@ -819,12 +824,17 @@ private:
 
 	int					DetermineSimulationTicks( void );
 	void				AdjustPlayerTimeBase( int simulation_ticks );
+	float m_flLadderCooldownTime;
+	bool m_bIsUsingGameUI;
+	int iDamageTime;
 
 public:
 	
 	// How long since this player last interacted with something the game considers an objective/target/goal
 	float				GetTimeSinceLastObjective( void ) const { return ( m_flLastObjectiveTime == -1.f ) ? 999.f : gpGlobals->curtime - m_flLastObjectiveTime; }
 	void				SetLastObjectiveTime( float flTime ) { m_flLastObjectiveTime = flTime; }
+	void           SetAllowPickupWeaponThroughObstacle( bool bValue ) { m_bAllowPickupWeaponThroughObstacle = bValue; }
+	bool           GetAllowPickupWeaponThroughObstacle() const { return m_bAllowPickupWeaponThroughObstacle; }
 
 	// Used by gamemovement to check if the entity is stuck.
 	int m_StuckLast;
@@ -880,6 +890,7 @@ public:
 	float					m_fLerpTime;		// users cl_interp
 	bool					m_bLagCompensation;	// user wants lag compenstation
 	bool					m_bPredictWeapons; //  user has client side predicted weapons
+	bool              m_bAllowPickupWeaponThroughObstacle; // flag active only during givedefaultweapons
 	
 	float		GetDeathTime( void ) { return m_flDeathTime; }
 

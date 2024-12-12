@@ -43,6 +43,7 @@ public:
 	virtual void UpdateOnRemove();
 
 	void	SetSize( float size ) { m_flSize = size; }
+	void	StopFlameSound();
 
 	DECLARE_DATADESC();
 

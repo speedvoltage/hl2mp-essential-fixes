@@ -177,6 +177,13 @@ void CTripmineGrenade::MakeBeam( void )
 	m_pBeam->SetScrollRate( 25.6 );
 	m_pBeam->SetBrightness( 64 );
 }
+void CTripmineGrenade::AttachToEntity(const CBaseEntity* entity )
+{
+	Assert(m_pAttachedObject == NULL);
+	m_pAttachedObject = entity;
+	m_vecOldPosAttachedObject = entity->GetAbsOrigin();
+	m_vecOldAngAttachedObject = entity->GetAbsAngles();
+}
 
 
 void CTripmineGrenade::BeamBreakThink( void  )

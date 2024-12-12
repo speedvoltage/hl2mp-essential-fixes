@@ -75,6 +75,7 @@ public:
 	virtual void UpdateOnRemove( void );
 	virtual void DeathSound( const CTakeDamageInfo &info );
 	virtual CBaseEntity* EntSelectSpawnPoint( void );
+	virtual void InitialSpawn( void );
 		
 	int FlashlightIsOn( void );
 	void FlashlightTurnOn( void );
@@ -139,6 +140,8 @@ public:
 
 		
 private:
+
+	void LadderRespawnFix();
 
 	CNetworkQAngle( m_angEyeAngles );
 	CPlayerAnimState   m_PlayerAnimState;

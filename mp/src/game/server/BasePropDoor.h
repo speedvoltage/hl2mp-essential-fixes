@@ -86,9 +86,6 @@ protected:
 		DOOR_STATE_AJAR,
 	};
 
-	// dvs: FIXME: make these private
-	void DoorClose();
-
 	CBasePropDoor *GetMaster( void ) { return m_hMaster; }
 	bool HasSlaves( void ) { return ( m_hDoorList.Count() > 0 ); }
 
@@ -100,7 +97,7 @@ protected:
 	inline CBaseEntity *GetActivator();
 
 private:
-
+	void DoorClose();
 	// Implement these in your leaf class.
 	// {
 	// Called when the door becomes fully open.

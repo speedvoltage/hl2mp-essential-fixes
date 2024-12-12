@@ -802,6 +802,11 @@ void CFuncTank::Spawn( void )
 			if ( pProp )
 			{
 				pProp->m_bUseHitboxesForRenderBox = true;
+
+#ifndef HL2MP
+				// should be client-sided
+				pProp->SetClientSideAnimation(true);
+#endif
 			}
 		}
 	}
@@ -908,6 +913,29 @@ void CFuncTank::Precache( void )
 	{
 		PrecacheScriptSound( "NPC_Combine_Cannon.FireBullet" );
 	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+int CFuncTank::UpdateTransmitState()
+{
+	return SetTransmitState(FL_EDICT_FULLCHECK);
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+int CFuncTank::ShouldTransmit(const CCheckTransmitInfo* pInfo)
+{
+	// Always transmit to the controlling player.
+	CBaseCombatCharacter* pController = m_hController.Get();
+	if (pController && pController->IsPlayer() && pInfo->m_pClientEnt == pController->edict())
+	{
+		return FL_EDICT_ALWAYS;
+	}
+
+	return BaseClass::ShouldTransmit(pInfo);
 }
 
 void CFuncTank::UpdateOnRemove( void )
@@ -1448,6 +1476,9 @@ void CFuncTank::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 	// player controlled turret
 	CBasePlayer *pPlayer = ToBasePlayer( pActivator );
 	if ( !pPlayer )
+		return;
+
+	if (pPlayer->IsPlayer() && pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
 		return;
 
 	if ( value == 2 && useType == USE_SET )
@@ -2675,6 +2706,7 @@ void CFuncTankLaser::Think( void )
 
 void CFuncTankLaser::Fire( int bulletCount, const Vector &barrelEnd, const Vector &forward, CBaseEntity *pAttacker, bool bIgnoreSpread )
 {
+	IPredictionSystem::SuppressHostEvents(NULL);
 	int i;
 	trace_t tr;
 
@@ -2836,6 +2868,7 @@ void CFuncTankAirboatGun::Activate()
 		if ( m_hAirboatGunModel )
 		{
 			m_nGunBarrelAttachment = m_hAirboatGunModel->LookupAttachment( "muzzle" );
+			m_hAirboatGunModel->SetClientSideAnimation(false);
 		}
 	}
 }
@@ -2990,6 +3023,8 @@ void CFuncTankAirboatGun::DoImpactEffect( trace_t &tr, int nDamageType )
 
 void CFuncTankAirboatGun::Fire( int bulletCount, const Vector &barrelEnd, const Vector &forward, CBaseEntity *pAttacker, bool bIgnoreSpread )
 {
+	IPredictionSystem::SuppressHostEvents(NULL);
+
 	CAmmoDef *pAmmoDef = GetAmmoDef();
 	int ammoType = pAmmoDef->Index( "AirboatGun" );
 

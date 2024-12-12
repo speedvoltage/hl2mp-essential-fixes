@@ -16,7 +16,7 @@
 #include "tier0/memdbgon.h"
 
 #define FRAG_GRENADE_BLIP_FREQUENCY			1.0f
-#define FRAG_GRENADE_BLIP_FAST_FREQUENCY	0.3f
+#define FRAG_GRENADE_BLIP_FAST_FREQUENCY	0.25f
 
 #define FRAG_GRENADE_GRACE_TIME_AFTER_PICKUP 1.5f
 #define FRAG_GRENADE_WARN_TIME 1.5f
@@ -36,7 +36,7 @@ class CGrenadeFrag : public CBaseGrenade
 #if !defined( CLIENT_DLL )
 	DECLARE_DATADESC();
 #endif
-					
+
 	~CGrenadeFrag( void );
 
 public:
@@ -78,19 +78,19 @@ LINK_ENTITY_TO_CLASS( npc_grenade_frag, CGrenadeFrag );
 
 BEGIN_DATADESC( CGrenadeFrag )
 
-	// Fields
-	DEFINE_FIELD( m_pMainGlow, FIELD_EHANDLE ),
-	DEFINE_FIELD( m_pGlowTrail, FIELD_EHANDLE ),
-	DEFINE_FIELD( m_flNextBlipTime, FIELD_TIME ),
-	DEFINE_FIELD( m_inSolid, FIELD_BOOLEAN ),
-	DEFINE_FIELD( m_combineSpawned, FIELD_BOOLEAN ),
-	DEFINE_FIELD( m_punted, FIELD_BOOLEAN ),
-	
-	// Function Pointers
-	DEFINE_THINKFUNC( DelayThink ),
+// Fields
+DEFINE_FIELD( m_pMainGlow, FIELD_EHANDLE ),
+DEFINE_FIELD( m_pGlowTrail, FIELD_EHANDLE ),
+DEFINE_FIELD( m_flNextBlipTime, FIELD_TIME ),
+DEFINE_FIELD( m_inSolid, FIELD_BOOLEAN ),
+DEFINE_FIELD( m_combineSpawned, FIELD_BOOLEAN ),
+DEFINE_FIELD( m_punted, FIELD_BOOLEAN ),
 
-	// Inputs
-	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetTimer", InputSetTimer ),
+// Function Pointers
+DEFINE_THINKFUNC( DelayThink ),
+
+// Inputs
+DEFINE_INPUTFUNC( FIELD_FLOAT, "SetTimer", InputSetTimer ),
 
 END_DATADESC()
 
@@ -134,6 +134,8 @@ void CGrenadeFrag::Spawn( void )
 	m_combineSpawned	= false;
 	m_punted			= false;
 
+	VPhysicsGetObject()->SetMaterialIndex(physprops->GetSurfaceIndex("grenade"));
+
 	BaseClass::Spawn();
 }
 
@@ -155,30 +157,42 @@ void CGrenadeFrag::OnRestore( void )
 void CGrenadeFrag::CreateEffects( void )
 {
 	// Start up the eye glow
-	m_pMainGlow = CSprite::SpriteCreate( "sprites/redglow1.vmt", GetLocalOrigin(), false );
+	if( !m_pMainGlow )
+		m_pMainGlow = CSprite::SpriteCreate( "sprites/redglow1.vmt", GetLocalOrigin(), false );
 
-	int	nAttachment = LookupAttachment( "fuse" );
+	Vector attachmentpos(0, 0, 8.5);
+	QAngle attachmentangle(0, 0, 90);
+	VectorAngles(attachmentpos, attachmentangle);
 
 	if ( m_pMainGlow != NULL )
 	{
-		m_pMainGlow->FollowEntity( this );
-		m_pMainGlow->SetAttachment( this, nAttachment );
 		m_pMainGlow->SetTransparency( kRenderGlow, 255, 255, 255, 200, kRenderFxNoDissipation );
 		m_pMainGlow->SetScale( 0.2f );
 		m_pMainGlow->SetGlowProxySize( 4.0f );
+		m_pMainGlow->SetParent(this);
+
+		m_pMainGlow->SetLocalOrigin(attachmentpos);
+		m_pMainGlow->SetLocalAngles(attachmentangle);
+
+		m_pMainGlow->SetMoveType(MOVETYPE_NONE);
 	}
 
-	// Start up the eye trail
-	m_pGlowTrail	= CSpriteTrail::SpriteTrailCreate( "sprites/bluelaser1.vmt", GetLocalOrigin(), false );
+	// Start up the eye trail 
+	if( !m_pGlowTrail )
+		m_pGlowTrail = CSpriteTrail::SpriteTrailCreate( "sprites/bluelaser1.vmt", GetLocalOrigin(), false );
 
 	if ( m_pGlowTrail != NULL )
 	{
-		m_pGlowTrail->FollowEntity( this );
-		m_pGlowTrail->SetAttachment( this, nAttachment );
 		m_pGlowTrail->SetTransparency( kRenderTransAdd, 255, 0, 0, 255, kRenderFxNone );
 		m_pGlowTrail->SetStartWidth( 8.0f );
 		m_pGlowTrail->SetEndWidth( 1.0f );
 		m_pGlowTrail->SetLifeTime( 0.5f );
+		m_pGlowTrail->SetParent(this);
+
+		m_pGlowTrail->SetLocalOrigin(attachmentpos);
+		m_pGlowTrail->SetLocalAngles(attachmentangle);
+
+		m_pGlowTrail->SetMoveType(MOVETYPE_NONE);
 	}
 }
 
@@ -195,12 +209,12 @@ class CTraceFilterCollisionGroupDelta : public CTraceFilterEntitiesOnly
 public:
 	// It does have a base, but we'll never network anything below here..
 	DECLARE_CLASS_NOBASE( CTraceFilterCollisionGroupDelta );
-	
+
 	CTraceFilterCollisionGroupDelta( const IHandleEntity *passentity, int collisionGroupAlreadyChecked, int newCollisionGroup )
 		: m_pPassEnt(passentity), m_collisionGroupAlreadyChecked( collisionGroupAlreadyChecked ), m_newCollisionGroup( newCollisionGroup )
 	{
 	}
-	
+
 	virtual bool ShouldHitEntity( IHandleEntity *pHandleEntity, int contentsMask )
 	{
 		if ( !PassServerEntityFilter( pHandleEntity, m_pPassEnt ) )
@@ -230,7 +244,7 @@ void CGrenadeFrag::VPhysicsUpdate( IPhysicsObject *pPhysics )
 	Vector vel;
 	AngularImpulse angVel;
 	pPhysics->GetVelocity( &vel, &angVel );
-	
+
 	Vector start = GetAbsOrigin();
 	// find all entities that my collision group wouldn't hit, but COLLISION_GROUP_NONE would and bounce off of them as a ray cast
 	CTraceFilterCollisionGroupDelta filter( this, GetCollisionGroup(), COLLISION_GROUP_NONE );
@@ -264,7 +278,7 @@ void CGrenadeFrag::VPhysicsUpdate( IPhysicsObject *pPhysics )
 
 		// reflect velocity around normal
 		vel = -2.0f * tr.plane.normal * DotProduct(vel,tr.plane.normal) + vel;
-		
+
 		// absorb 80% in impact
 		vel *= GRENADE_COEFFICIENT_OF_RESTITUTION;
 		angVel *= -0.5f;
@@ -295,21 +309,36 @@ void CGrenadeFrag::SetTimer( float detonateDelay, float warnDelay )
 	CreateEffects();
 }
 
-void CGrenadeFrag::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t reason )
+void CGrenadeFrag::OnPhysGunPickup( CBasePlayer* pPhysGunUser, PhysGunPickup_t reason )
 {
+	IPhysicsObject* pPhysicsObject = VPhysicsGetObject();
+
+	if ( pPhysicsObject && ( pPhysicsObject->GetGameFlags() & FVPHYSICS_PLAYER_HELD ) )
+	{
+		CBasePlayer* pCurrentOwner = ToBasePlayer( GetOwnerEntity() );
+		if ( pCurrentOwner && pCurrentOwner != pPhysGunUser )
+		{
+#ifdef HL2MP
+			SetTimer( FRAG_GRENADE_GRACE_TIME_AFTER_PICKUP, FRAG_GRENADE_GRACE_TIME_AFTER_PICKUP / 2 );
+			m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FAST_FREQUENCY;
+			m_bHasWarnedAI = true;
+#endif
+			return;
+		}
+	}
+
+	// If not being held, set the new owner
 	SetThrower( pPhysGunUser );
 
 #ifdef HL2MP
-	SetTimer( FRAG_GRENADE_GRACE_TIME_AFTER_PICKUP, FRAG_GRENADE_GRACE_TIME_AFTER_PICKUP / 2);
-
-	BlipSound();
+	SetTimer( FRAG_GRENADE_GRACE_TIME_AFTER_PICKUP, FRAG_GRENADE_GRACE_TIME_AFTER_PICKUP / 2 );
+	// BlipSound();
 	m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FAST_FREQUENCY;
 	m_bHasWarnedAI = true;
 #else
-	if( IsX360() )
+	if ( IsX360() )
 	{
-		// Give 'em a couple of seconds to aim and throw. 
-		SetTimer( 2.0f, 1.0f);
+		SetTimer( 2.0f, 1.0f );
 		BlipSound();
 		m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FAST_FREQUENCY;
 	}
@@ -337,11 +366,11 @@ void CGrenadeFrag::DelayThink()
 #endif
 		m_bHasWarnedAI = true;
 	}
-	
+
 	if( gpGlobals->curtime > m_flNextBlipTime )
 	{
 		BlipSound();
-		
+
 		if( m_bHasWarnedAI )
 		{
 			m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FAST_FREQUENCY;
@@ -420,7 +449,7 @@ CBaseGrenade *Fraggrenade_Create( const Vector &position, const QAngle &angles, 
 {
 	// Don't set the owner here, or the player can't interact with grenades he's thrown
 	CGrenadeFrag *pGrenade = (CGrenadeFrag *)CBaseEntity::Create( "npc_grenade_frag", position, angles, pOwner );
-	
+
 	pGrenade->SetTimer( timer, timer - FRAG_GRENADE_WARN_TIME );
 	pGrenade->SetVelocity( velocity, angVelocity );
 	pGrenade->SetThrower( ToBaseCombatCharacter( pOwner ) );

@@ -93,6 +93,7 @@ public:
 	int				OnTakeDamage( const CTakeDamageInfo &info );
 	void			InputShatter( inputdata_t &inputdata );
 	void			VPhysicsCollision( int index, gamevcollisionevent_t *pEvent );
+	void			PlayPuntSound();
 private:
 	// One bit per pane
 	CNetworkArray( bool, m_RawPanelBitVec, MAX_NUM_PANELS * MAX_NUM_PANELS );

@@ -77,11 +77,10 @@ extern ConVar autoaim_max_dist;
 
 extern int gEvilImpulse101;
 
-ConVar sv_autojump( "sv_autojump", "0" );
-
 ConVar hl2_walkspeed( "hl2_walkspeed", "150" );
 ConVar hl2_normspeed( "hl2_normspeed", "190" );
 ConVar hl2_sprintspeed( "hl2_sprintspeed", "320" );
+ConVar sv_speedcrawl("sv_speedcrawl", "1", FCVAR_NOTIFY);
 
 ConVar hl2_darkness_flashlight_factor ( "hl2_darkness_flashlight_factor", "1" );
 
@@ -101,7 +100,7 @@ ConVar player_showpredictedposition_timestep( "player_showpredictedposition_time
 ConVar player_squad_transient_commands( "player_squad_transient_commands", "1", FCVAR_REPLICATED );
 ConVar player_squad_double_tap_time( "player_squad_double_tap_time", "0.25" );
 
-ConVar sv_infinite_aux_power( "sv_infinite_aux_power", "0", FCVAR_CHEAT );
+ConVar sv_infinite_aux_power( "sv_infinite_aux_power", "0", FCVAR_NOTIFY );
 
 ConVar autoaim_unlock_target( "autoaim_unlock_target", "0.8666" );
 
@@ -478,64 +477,105 @@ void CHL2_Player::RemoveSuit( void )
 	m_HL2Local.m_bDisplayReticle = false;
 }
 
-void CHL2_Player::HandleSpeedChanges( void )
+void CHL2_Player::HandleSpeedChanges(void)
 {
 	int buttonsChanged = m_afButtonPressed | m_afButtonReleased;
+	int iDucked = 0;
 
-	bool bCanSprint = CanSprint();
-	bool bIsSprinting = IsSprinting();
-	bool bWantSprint = ( bCanSprint && IsSuitEquipped() && (m_nButtons & IN_SPEED) );
-	if ( bIsSprinting != bWantSprint && (buttonsChanged & IN_SPEED) )
+	if (IsDucked() && IsSprinting())
 	{
-		// If someone wants to sprint, make sure they've pressed the button to do so. We want to prevent the
-		// case where a player can hold down the sprint key and burn tiny bursts of sprint as the suit recharges
-		// We want a full debounce of the key to resume sprinting after the suit is completely drained
-		if ( bWantSprint )
+		b_ducksprint = true;
+	}
+
+	if (GetWaterLevel() == 3)
+	{
+		StopSprinting();
+	}
+
+	if (m_Local.m_bDucking)
+	{
+		iDucked = gpGlobals->curtime + 1;
+	}
+
+	if (IsDucked())
+	{
+		if (iDucked < gpGlobals->curtime && (m_nButtons & IN_DUCK))
 		{
-			if ( sv_stickysprint.GetBool() )
-			{
-				StartAutoSprint();
-			}
-			else
-			{
-				StartSprinting();
-			}
+			StopSprinting();
+			b_ducksprint = false;
+			m_nButtons &= ~IN_SPEED;
 		}
-		else
+
+		if (!sv_speedcrawl.GetBool() && !m_Local.m_bDucking)
 		{
-			if ( !sv_stickysprint.GetBool() )
-			{
-				StopSprinting();
-			}
-			// Reset key, so it will be activated post whatever is suppressing it.
+			StopSprinting();
 			m_nButtons &= ~IN_SPEED;
 		}
 	}
 
-	bool bIsWalking = IsWalking();
-	// have suit, pressing button, not sprinting or ducking
-	bool bWantWalking;
-	
-	if( IsSuitEquipped() )
+	if (IsDucked() && m_Local.m_bDucking && (m_nButtons & IN_DUCK))
 	{
-		bWantWalking = (m_nButtons & IN_WALK) && !IsSprinting() && !(m_nButtons & IN_DUCK);
+		StopSprinting();
+		b_ducksprint = false;	
+		m_nButtons &= ~IN_SPEED;
 	}
-	else
+
+	// If a player ducks during the unduck animation, m_bDucking stays true when it shouldn't. 
+	// Attempt to rectify this wrong behavior.
+	if ((GetFlags() & FL_DUCKING) && (GetFlags() & FL_ANIMDUCKING))
 	{
-		bWantWalking = true;
+		m_Local.m_bDucking = false;
 	}
-	
-	if( bIsWalking != bWantWalking )
+	else if ((GetFlags() & FL_DUCKING) && !(GetFlags() & FL_ANIMDUCKING))
 	{
-		if ( bWantWalking )
+		m_Local.m_bDucking = true;
+	}
+
+	if ((buttonsChanged & IN_SPEED))
+	{
+		// The state of the sprint/run button has changed.
+		if (IsSuitEquipped())
 		{
-			StartWalking();
-		}
-		else
-		{
-			StopWalking();
+			if (!(m_afButtonPressed & IN_SPEED) && IsSprinting())
+			{
+				StopSprinting();
+			}
+			else if ((m_afButtonPressed & IN_SPEED) && !IsSprinting())
+			{			
+				if (CanSprint())
+				{
+					StartSprinting();
+				}
+				else if (b_ducksprint && sv_speedcrawl.GetBool() && !(m_nButtons & IN_DUCK))
+				{
+					StartSprinting();
+				}
+				else
+				{
+					// Reset key, so it will be activated post whatever is suppressing it.
+					m_nButtons &= ~IN_SPEED;
+				}
+			}
 		}
 	}
+	else if (buttonsChanged & IN_WALK)
+	{
+		if (IsSuitEquipped())
+		{
+			// The state of the WALK button has changed. 
+			if (IsWalking() && !(m_afButtonPressed & IN_WALK))
+			{
+				StopWalking();
+			}
+			else if (!IsWalking() && !IsSprinting() && (m_afButtonPressed & IN_WALK) && !(m_nButtons & IN_DUCK))
+			{
+				StartWalking();
+			}
+		}
+	}
+
+	if (IsSuitEquipped() && m_fIsWalking && !(m_nButtons & IN_WALK))
+		StopWalking();
 }
 
 //-----------------------------------------------------------------------------
@@ -600,49 +640,6 @@ void CHL2_Player::PreThink(void)
 		return;
 	}
 
-	// This is an experiment of mine- autojumping! 
-	// only affects you if sv_autojump is nonzero.
-	if( (GetFlags() & FL_ONGROUND) && sv_autojump.GetFloat() != 0 )
-	{
-		VPROF( "CHL2_Player::PreThink-Autojump" );
-		// check autojump
-		Vector vecCheckDir;
-
-		vecCheckDir = GetAbsVelocity();
-
-		float flVelocity = VectorNormalize( vecCheckDir );
-
-		if( flVelocity > 200 )
-		{
-			// Going fast enough to autojump
-			vecCheckDir = WorldSpaceCenter() + vecCheckDir * 34 - Vector( 0, 0, 16 );
-
-			trace_t tr;
-
-			UTIL_TraceHull( WorldSpaceCenter() - Vector( 0, 0, 16 ), vecCheckDir, NAI_Hull::Mins(HULL_TINY_CENTERED),NAI_Hull::Maxs(HULL_TINY_CENTERED), MASK_PLAYERSOLID, this, COLLISION_GROUP_PLAYER, &tr );
-			
-			//NDebugOverlay::Line( tr.startpos, tr.endpos, 0,255,0, true, 10 );
-
-			if( tr.fraction == 1.0 && !tr.startsolid )
-			{
-				// Now trace down!
-				UTIL_TraceLine( vecCheckDir, vecCheckDir - Vector( 0, 0, 64 ), MASK_PLAYERSOLID, this, COLLISION_GROUP_NONE, &tr );
-
-				//NDebugOverlay::Line( tr.startpos, tr.endpos, 0,255,0, true, 10 );
-
-				if( tr.fraction == 1.0 && !tr.startsolid )
-				{
-					// !!!HACKHACK
-					// I KNOW, I KNOW, this is definitely not the right way to do this,
-					// but I'm prototyping! (sjb)
-					Vector vecNewVelocity = GetAbsVelocity();
-					vecNewVelocity.z += 250;
-					SetAbsVelocity( vecNewVelocity );
-				}
-			}
-		}
-	}
-
 	VPROF_SCOPE_BEGIN( "CHL2_Player::PreThink-Speed" );
 	HandleSpeedChanges();
 #ifdef HL2_EPISODIC
@@ -673,7 +670,7 @@ void CHL2_Player::PreThink(void)
 	else if ( IsSprinting() )
 	{
 		// Disable sprint while ducked unless we're in the air (jumping)
-		if ( IsDucked() && ( GetGroundEntity() != NULL ) )
+		if ( IsDucked() && ( GetGroundEntity() != NULL ) && !IsDucking() )
 		{
 			StopSprinting();
 		}
@@ -883,7 +880,6 @@ void CHL2_Player::PreThink(void)
 	{
 		if ( m_nButtons & IN_ZOOM )
 		{
-			//FIXME: Held weapons like the grenade get sad when this happens
 	#ifdef HL2_EPISODIC
 			// Episodic allows players to zoom while using a func_tank
 			CBaseCombatWeapon* pWep = GetActiveWeapon();
@@ -901,6 +897,12 @@ void CHL2_Player::PostThink( void )
 	if ( !g_fGameOver && !IsPlayerLockedInPlace() && IsAlive() )
 	{
 		 HandleAdmireGlovesAnimation();
+	}
+
+	if (FlashlightIsOn() && (g_pGameRules && g_pGameRules->IsMultiplayer() && !g_pGameRules->FAllowFlashlight()))
+	{
+		FlashlightTurnOff();
+		return;
 	}
 }
 
@@ -1712,19 +1714,22 @@ void CHL2_Player::CheatImpulseCommands( int iImpulse )
 
 	case 51:
 	{
-		// Cheat to create a dynamic resupply item
-		Vector vecForward;
-		AngleVectors( EyeAngles(), &vecForward );
-		CBaseEntity *pItem = (CBaseEntity *)CreateEntityByName( "item_dynamic_resupply" );
-		if ( pItem )
+		if ( sv_cheats->GetBool() )
 		{
-			Vector vecOrigin = GetAbsOrigin() + vecForward * 256 + Vector(0,0,64);
-			QAngle vecAngles( 0, GetAbsAngles().y - 90, 0 );
-			pItem->SetAbsOrigin( vecOrigin );
-			pItem->SetAbsAngles( vecAngles );
-			pItem->KeyValue( "targetname", "resupply" );
-			pItem->Spawn();
-			pItem->Activate();
+			// Cheat to create a dynamic resupply item
+			Vector vecForward;
+			AngleVectors( EyeAngles(), &vecForward );
+			CBaseEntity* pItem = ( CBaseEntity* ) CreateEntityByName( "item_dynamic_resupply" );
+			if ( pItem )
+			{
+				Vector vecOrigin = GetAbsOrigin() + vecForward * 256 + Vector( 0, 0, 64 );
+				QAngle vecAngles( 0, GetAbsAngles().y - 90, 0 );
+				pItem->SetAbsOrigin( vecOrigin );
+				pItem->SetAbsAngles( vecAngles );
+				pItem->KeyValue( "targetname", "resupply" );
+				pItem->Spawn();
+				pItem->Activate();
+			}
 		}
 		break;
 	}
@@ -2025,6 +2030,11 @@ int CHL2_Player::FlashlightIsOn( void )
 //-----------------------------------------------------------------------------
 void CHL2_Player::FlashlightTurnOn( void )
 {
+	if ((g_pGameRules && g_pGameRules->IsMultiplayer() && !g_pGameRules->FAllowFlashlight()))
+	{
+		return;
+	}
+
 	if( m_bFlashlightDisabled )
 		return;
 
@@ -2038,8 +2048,11 @@ void CHL2_Player::FlashlightTurnOn( void )
 		return;
 #endif
 
-	AddEffects( EF_DIMLIGHT );
-	EmitSound( "HL2Player.FlashLightOn" );
+	if (IsAlive())
+	{
+		AddEffects(EF_DIMLIGHT);
+		EmitSound("HL2Player.FlashLightOn");
+	}
 
 	variant_t flashlighton;
 	flashlighton.SetFloat( m_HL2Local.m_flSuitPower / 100.0f );
@@ -2204,6 +2217,9 @@ void CHL2_Player::InputDisableFlashlight( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 void CHL2_Player::InputEnableFlashlight( inputdata_t &inputdata )
 {
+	if (!FlashlightIsOn())
+		FlashlightTurnOn();
+
 	SetFlashlightEnabled( true );
 }
 
@@ -2612,13 +2628,16 @@ int CHL2_Player::GiveAmmo( int nCount, int nAmmoIndex, bool bSuppressSound)
 	// If I was dry on ammo for my best weapon and justed picked up ammo for it,
 	// autoswitch to my best weapon now.
 	//
-	if (bCheckAutoSwitch)
+	const char *cl_autowepswitch = engine->GetClientConVarValue(engine->IndexOfEdict(this->edict()), "cl_autowepswitch"); // if cl_autowepswitch is 0, it will not switch weapon.
+	if (cl_autowepswitch && atoi(cl_autowepswitch) >= 1)
 	{
-		CBaseCombatWeapon *pWeapon = g_pGameRules->GetNextBestWeapon(this, GetActiveWeapon());
-
-		if ( pWeapon && pWeapon->GetPrimaryAmmoType() == nAmmoIndex )
+		if (bCheckAutoSwitch)
 		{
-			SwitchToNextBestWeapon(GetActiveWeapon());
+			CBaseCombatWeapon *pWeapon = g_pGameRules->GetNextBestWeapon(this, GetActiveWeapon());
+			if (pWeapon && pWeapon->GetPrimaryAmmoType() == nAmmoIndex)
+			{
+				SwitchToNextBestWeapon(GetActiveWeapon());
+			}
 		}
 	}
 
@@ -2794,6 +2813,14 @@ void CHL2_Player::PlayerUse ( void )
 
 	if ( m_afButtonPressed & IN_USE )
 	{
+		// game_ui, don't deactivate if +USE on an entity
+		CBaseEntity* pUseEntity = FindUseEntity();
+
+		if (UsingGameUI() && pUseEntity)
+		{
+			m_afButtonPressed &= ~IN_USE; 
+			return;
+		}
 		// Currently using a latched entity?
 		if ( ClearUseEntity() )
 		{
@@ -3154,6 +3181,11 @@ float CHL2_Player::GetHeldObjectMass( IPhysicsObject *pHeldObject )
 	return mass;
 }
 
+CBaseEntity	*CHL2_Player::GetHeldObject( void )
+{
+	return PhysCannonGetHeldEntity( GetActiveWeapon() );
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Force the player to drop any physics objects he's carrying
 //-----------------------------------------------------------------------------
@@ -3178,10 +3210,13 @@ void CHL2_Player::ForceDropOfCarriedPhysObjects( CBaseEntity *pOnlyIfHoldingThis
 #endif
 
 	// Drop any objects being handheld.
-	ClearUseEntity();
+	if (pOnlyIfHoldingThis == NULL || pOnlyIfHoldingThis == GetUseEntity())
+	{
+		ClearUseEntity(); // Drop any objects being handheld
+	}
 
 	// Then force the physcannon to drop anything it's holding, if it's our active weapon
-	PhysCannonForceDrop( GetActiveWeapon(), NULL );
+	PhysCannonForceDrop(GetActiveWeapon(), pOnlyIfHoldingThis);
 }
 
 void CHL2_Player::InputForceDropPhysObjects( inputdata_t &data )
@@ -3714,6 +3749,9 @@ const impactdamagetable_t &CHL2_Player::GetPhysicsImpactDamageTable()
 //-----------------------------------------------------------------------------
 void CHL2_Player::Splash( void )
 {
+	if (IsObserver())
+		return;
+
 	CEffectData data;
 	data.m_fFlags = 0;
 	data.m_vOrigin = GetAbsOrigin();
@@ -3728,11 +3766,13 @@ void CHL2_Player::Splash( void )
 	float flSpeed = GetAbsVelocity().Length();
 	if ( flSpeed < 300 )
 	{
+		IPredictionSystem::SuppressHostEvents(NULL);
 		data.m_flScale = random->RandomFloat( 10, 12 );
 		DispatchEffect( "waterripple", data );
 	}
 	else
 	{
+		IPredictionSystem::SuppressHostEvents(NULL);
 		data.m_flScale = random->RandomFloat( 6, 8 );
 		DispatchEffect( "watersplash", data );
 	}

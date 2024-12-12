@@ -18,6 +18,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+extern ConVar sk_auto_reload_time;
+
 IMPLEMENT_NETWORKCLASS_ALIASED( HL2MPMachineGun, DT_HL2MPMachineGun )
 
 BEGIN_NETWORK_TABLE( CHL2MPMachineGun, DT_HL2MPMachineGun )
@@ -217,7 +219,18 @@ int CHL2MPMachineGun::WeaponSoundRealtime( WeaponSound_t shoot_type )
 	return numBullets;
 }
 
+bool CHL2MPMachineGun::Holster(CBaseCombatWeapon* pSwitchingTo)
+{
+	// Call base class Holster
+	if (BaseClass::Holster(pSwitchingTo))
+	{
+		SetWeaponVisible(false);  // Hide the weapon when holstered
+		m_flHolsterTime = gpGlobals->curtime;  // Set the holster time to current time
+		return true;
+	}
 
+	return false;
+}
 
 
 //-----------------------------------------------------------------------------
@@ -239,4 +252,24 @@ void CHL2MPMachineGun::ItemPostFrame( void )
 	BaseClass::ItemPostFrame();
 }
 
+// Restore backpack reload
+void CHL2MPMachineGun::ItemHolsterFrame(void)
+{
+	BaseClass::ItemHolsterFrame();
 
+	// Must be player held
+	if (GetOwner() && GetOwner()->IsPlayer() == false)
+		return;
+
+	// We can't be active
+	if (GetOwner()->GetActiveWeapon() == this)
+		return;
+
+	// If it's been longer than three seconds, reload
+	if ((gpGlobals->curtime - m_flHolsterTime) > sk_auto_reload_time.GetFloat())
+	{
+		// Just load the clip with no animations
+		FinishReload();
+		m_flHolsterTime = gpGlobals->curtime;
+	}
+}

@@ -414,12 +414,12 @@ bool UTIL_CheckBottom( CBaseEntity *pEntity, ITraceFilter *pTraceFilter, float f
 realcheck:
 	// check it for real...
 	start[2] = mins[2] + flStepSize; // seems to help going up/down slopes.
-	
+
 	// the midpoint must be within 16 of the bottom
 	start[0] = stop[0] = (mins[0] + maxs[0])*0.5;
 	start[1] = stop[1] = (mins[1] + maxs[1])*0.5;
 	stop[2] = start[2] - 2*flStepSize;
-	
+
 	UTIL_TraceLine( start, stop, mask, pTraceFilter, &trace );
 
 	if (trace.fraction == 1.0)
@@ -433,9 +433,9 @@ realcheck:
 		{
 			start[0] = stop[0] = x ? maxs[0] : mins[0];
 			start[1] = stop[1] = y ? maxs[1] : mins[1];
-			
+
 			UTIL_TraceLine( start, stop, mask, pTraceFilter, &trace );
-			
+
 			if (trace.fraction != 1.0 && trace.endpos[2] > bottom)
 				bottom = trace.endpos[2];
 			if (trace.fraction == 1.0 || mid - trace.endpos[2] > flStepSize)
@@ -569,7 +569,7 @@ CBasePlayer	*UTIL_PlayerByIndex( int playerIndex )
 			pPlayer = (CBasePlayer*)GetContainingEntity( pPlayerEdict );
 		}
 	}
-	
+
 	return pPlayer;
 }
 
@@ -599,7 +599,7 @@ CBasePlayer* UTIL_PlayerByName( const char *name )
 	for (int i = 1; i<=gpGlobals->maxClients; i++ )
 	{
 		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
-		
+
 		if ( !pPlayer )
 			continue;
 
@@ -611,7 +611,7 @@ CBasePlayer* UTIL_PlayerByName( const char *name )
 			return pPlayer;
 		}
 	}
-	
+
 	return NULL;
 }
 
@@ -620,7 +620,7 @@ CBasePlayer* UTIL_PlayerByUserId( int userID )
 	for (int i = 1; i<=gpGlobals->maxClients; i++ )
 	{
 		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
-		
+
 		if ( !pPlayer )
 			continue;
 
@@ -632,7 +632,7 @@ CBasePlayer* UTIL_PlayerByUserId( int userID )
 			return pPlayer;
 		}
 	}
-	
+
 	return NULL;
 }
 
@@ -647,7 +647,7 @@ CBasePlayer *UTIL_GetLocalPlayer( void )
 		if ( developer.GetBool() )
 		{
 			Assert( !"UTIL_GetLocalPlayer" );
-			
+
 #ifdef	DEBUG
 			Warning( "UTIL_GetLocalPlayer() called in multiplayer game.\n" );
 #endif
@@ -678,9 +678,9 @@ CBasePlayer *UTIL_GetListenServerHost( void )
 
 //--------------------------------------------------------------------------------------------------------------
 /**
- * Returns true if the command was issued by the listenserver host, or by the dedicated server, via rcon or the server console.
- * This is valid during ConCommand execution.
- */
+* Returns true if the command was issued by the listenserver host, or by the dedicated server, via rcon or the server console.
+* This is valid during ConCommand execution.
+*/
 bool UTIL_IsCommandIssuedByServerAdmin( void )
 {
 	int issuingPlayerIndex = UTIL_GetCommandClientIndex();
@@ -712,8 +712,8 @@ bool UTIL_IsCommandIssuedByServerAdmin( void )
 
 //--------------------------------------------------------------------------------------------------------------
 /**
- * Returns a CBaseEntity pointer by entindex.  Index is 1 based.
- */
+* Returns a CBaseEntity pointer by entindex.  Index is 1 based.
+*/
 CBaseEntity	*UTIL_EntityByIndex( int entityIndex )
 {
 	CBaseEntity *entity = NULL;
@@ -726,7 +726,7 @@ CBaseEntity	*UTIL_EntityByIndex( int entityIndex )
 			entity = GetContainingEntity( edict );
 		}
 	}
-	
+
 	return entity;
 }
 
@@ -755,11 +755,11 @@ void UTIL_GetPlayerConnectionInfo( int playerIndex, int& ping, int &packetloss )
 	if ( nci && player && !player->IsBot() )
 	{
 		float latency = nci->GetAvgLatency( FLOW_OUTGOING ); // in seconds
-		
+
 		// that should be the correct latency, we assume that cmdrate is higher 
 		// then updaterate, what is the case for default settings
 		const char * szCmdRate = engine->GetClientConVarValue( playerIndex, "cl_cmdrate" );
-		
+
 		int nCmdRate = MAX( 1, Q_atoi( szCmdRate ) );
 		latency -= (0.5f/nCmdRate) + TICKS_TO_TIME( 1.0f ); // correct latency
 
@@ -769,7 +769,7 @@ void UTIL_GetPlayerConnectionInfo( int playerIndex, int& ping, int &packetloss )
 
 		ping = latency * 1000.0f; // as msecs
 		ping = clamp( ping, 5, 1000 ); // set bounds, dont show pings under 5 msecs
-		
+
 		packetloss = 100.0f * nci->GetAvgLoss( FLOW_INCOMING ); // loss in percentage
 		packetloss = clamp( packetloss, 0, 100 );
 	}
@@ -830,10 +830,10 @@ inline void TransmitShakeEvent( CBasePlayer *pPlayer, float localAmplitude, floa
 		CSingleUserRecipientFilter user( pPlayer );
 		user.MakeReliable();
 		UserMessageBegin( user, "Shake" );
-			WRITE_BYTE( eCommand );				// shake command (SHAKE_START, STOP, FREQUENCY, AMPLITUDE)
-			WRITE_FLOAT( localAmplitude );			// shake magnitude/amplitude
-			WRITE_FLOAT( frequency );				// shake noise frequency
-			WRITE_FLOAT( duration );				// shake lasts this long
+		WRITE_BYTE( eCommand );				// shake command (SHAKE_START, STOP, FREQUENCY, AMPLITUDE)
+		WRITE_FLOAT( localAmplitude );			// shake magnitude/amplitude
+		WRITE_FLOAT( frequency );				// shake noise frequency
+		WRITE_FLOAT( duration );				// shake lasts this long
 		MessageEnd();
 	}
 }
@@ -985,7 +985,7 @@ void UTIL_ViewPunch( const Vector &center, QAngle angPunch, float radius, bool b
 				continue;
 			}
 		}
-		
+
 		pPlayer->ViewPunch( angTemp );
 	}
 }
@@ -1012,13 +1012,13 @@ void UTIL_ScreenFadeWrite( const ScreenFade_t &fade, CBaseEntity *pEntity )
 	user.MakeReliable();
 
 	UserMessageBegin( user, "Fade" );		// use the magic #1 for "one client"
-		WRITE_SHORT( fade.duration );		// fade lasts this long
-		WRITE_SHORT( fade.holdTime );		// fade lasts this long
-		WRITE_SHORT( fade.fadeFlags );		// fade type (in / out)
-		WRITE_BYTE( fade.r );				// fade red
-		WRITE_BYTE( fade.g );				// fade green
-		WRITE_BYTE( fade.b );				// fade blue
-		WRITE_BYTE( fade.a );				// fade blue
+	WRITE_SHORT( fade.duration );		// fade lasts this long
+	WRITE_SHORT( fade.holdTime );		// fade lasts this long
+	WRITE_SHORT( fade.fadeFlags );		// fade type (in / out)
+	WRITE_BYTE( fade.r );				// fade red
+	WRITE_BYTE( fade.g );				// fade green
+	WRITE_BYTE( fade.b );				// fade blue
+	WRITE_BYTE( fade.a );				// fade blue
 	MessageEnd();
 }
 
@@ -1034,7 +1034,7 @@ void UTIL_ScreenFadeAll( const color32 &color, float fadeTime, float fadeHold, i
 	for ( i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
-	
+
 		UTIL_ScreenFadeWrite( fade, pPlayer );
 	}
 }
@@ -1052,7 +1052,7 @@ void UTIL_ScreenFade( CBaseEntity *pEntity, const color32 &color, float fadeTime
 void UTIL_HudMessage( CBasePlayer *pToPlayer, const hudtextparms_t &textparms, const char *pMessage )
 {
 	CRecipientFilter filter;
-	
+
 	if( pToPlayer )
 	{
 		filter.AddRecipient( pToPlayer );
@@ -1065,23 +1065,23 @@ void UTIL_HudMessage( CBasePlayer *pToPlayer, const hudtextparms_t &textparms, c
 	filter.MakeReliable();
 
 	UserMessageBegin( filter, "HudMsg" );
-		WRITE_BYTE ( textparms.channel & 0xFF );
-		WRITE_FLOAT( textparms.x );
-		WRITE_FLOAT( textparms.y );
-		WRITE_BYTE ( textparms.r1 );
-		WRITE_BYTE ( textparms.g1 );
-		WRITE_BYTE ( textparms.b1 );
-		WRITE_BYTE ( textparms.a1 );
-		WRITE_BYTE ( textparms.r2 );
-		WRITE_BYTE ( textparms.g2 );
-		WRITE_BYTE ( textparms.b2 );
-		WRITE_BYTE ( textparms.a2 );
-		WRITE_BYTE ( textparms.effect );
-		WRITE_FLOAT( textparms.fadeinTime );
-		WRITE_FLOAT( textparms.fadeoutTime );
-		WRITE_FLOAT( textparms.holdTime );
-		WRITE_FLOAT( textparms.fxTime );
-		WRITE_STRING( pMessage );
+	WRITE_BYTE ( textparms.channel & 0xFF );
+	WRITE_FLOAT( textparms.x );
+	WRITE_FLOAT( textparms.y );
+	WRITE_BYTE ( textparms.r1 );
+	WRITE_BYTE ( textparms.g1 );
+	WRITE_BYTE ( textparms.b1 );
+	WRITE_BYTE ( textparms.a1 );
+	WRITE_BYTE ( textparms.r2 );
+	WRITE_BYTE ( textparms.g2 );
+	WRITE_BYTE ( textparms.b2 );
+	WRITE_BYTE ( textparms.a2 );
+	WRITE_BYTE ( textparms.effect );
+	WRITE_FLOAT( textparms.fadeinTime );
+	WRITE_FLOAT( textparms.fadeoutTime );
+	WRITE_FLOAT( textparms.holdTime );
+	WRITE_FLOAT( textparms.fxTime );
+	WRITE_STRING( pMessage );
 	MessageEnd();
 }
 
@@ -1098,45 +1098,67 @@ void UTIL_HudHintText( CBaseEntity *pEntity, const char *pMessage )
 	CSingleUserRecipientFilter user( (CBasePlayer *)pEntity );
 	user.MakeReliable();
 	UserMessageBegin( user, "KeyHintText" );
-		WRITE_BYTE( 1 );	// one string
-		WRITE_STRING( pMessage );
+	WRITE_BYTE( 1 );	// one string
+	WRITE_STRING( pMessage );
 	MessageEnd();
 }
 
 void UTIL_ClientPrintFilter( IRecipientFilter& filter, int msg_dest, const char *msg_name, const char *param1, const char *param2, const char *param3, const char *param4 )
 {
 	UserMessageBegin( filter, "TextMsg" );
-		WRITE_BYTE( msg_dest );
-		WRITE_STRING( msg_name );
+	WRITE_BYTE( msg_dest );
+	WRITE_STRING( msg_name );
 
-		if ( param1 )
-			WRITE_STRING( param1 );
-		else
-			WRITE_STRING( "" );
+	if ( param1 )
+		WRITE_STRING( param1 );
+	else
+		WRITE_STRING( "" );
 
-		if ( param2 )
-			WRITE_STRING( param2 );
-		else
-			WRITE_STRING( "" );
+	if ( param2 )
+		WRITE_STRING( param2 );
+	else
+		WRITE_STRING( "" );
 
-		if ( param3 )
-			WRITE_STRING( param3 );
-		else
-			WRITE_STRING( "" );
+	if ( param3 )
+		WRITE_STRING( param3 );
+	else
+		WRITE_STRING( "" );
 
-		if ( param4 )
-			WRITE_STRING( param4 );
-		else
-			WRITE_STRING( "" );
+	if ( param4 )
+		WRITE_STRING( param4 );
+	else
+		WRITE_STRING( "" );
 
 	MessageEnd();
 }
-					 
+
 void UTIL_ClientPrintAll( int msg_dest, const char *msg_name, const char *param1, const char *param2, const char *param3, const char *param4 )
 {
 	CReliableBroadcastRecipientFilter filter;
 
 	UTIL_ClientPrintFilter( filter, msg_dest, msg_name, param1, param2, param3, param4 );
+}
+
+void UTIL_PrintToAllClients(const char* msg, const char* param1, const char* param2, const char* param3, const char* param4)
+{
+	if (msg)
+	{
+		CReliableBroadcastRecipientFilter filter;
+		UTIL_SayText2Filter(filter, NULL, true, msg, param1, param2, param3, param4);
+	}
+}
+
+void UTIL_PrintToClient(CBasePlayer* player, const char* msg, const char* param1, const char* param2, const char* param3, const char* param4)
+{
+	if (!player)
+		return;
+
+	if (msg)
+	{
+		CSingleUserRecipientFilter user(player);
+		user.MakeReliable();
+		UTIL_SayText2Filter(user, NULL, true, msg, param1, param2, param3, param4);
+	}
 }
 
 void ClientPrint( CBasePlayer *player, int msg_dest, const char *msg_name, const char *param1, const char *param2, const char *param3, const char *param4 )
@@ -1153,54 +1175,54 @@ void ClientPrint( CBasePlayer *player, int msg_dest, const char *msg_name, const
 void UTIL_SayTextFilter( IRecipientFilter& filter, const char *pText, CBasePlayer *pPlayer, bool bChat )
 {
 	UserMessageBegin( filter, "SayText" );
-		if ( pPlayer ) 
-		{
-			WRITE_BYTE( pPlayer->entindex() );
-		}
-		else
-		{
-			WRITE_BYTE( 0 ); // world, dedicated server says
-		}
-		WRITE_STRING( pText );
-		WRITE_BYTE( bChat );
+	if ( pPlayer ) 
+	{
+		WRITE_BYTE( pPlayer->entindex() );
+	}
+	else
+	{
+		WRITE_BYTE( 0 ); // world, dedicated server says
+	}
+	WRITE_STRING( pText );
+	WRITE_BYTE( bChat );
 	MessageEnd();
 }
 
 void UTIL_SayText2Filter( IRecipientFilter& filter, CBasePlayer *pEntity, bool bChat, const char *msg_name, const char *param1, const char *param2, const char *param3, const char *param4 )
 {
 	UserMessageBegin( filter, "SayText2" );
-		if ( pEntity )
-		{
-			WRITE_BYTE( pEntity->entindex() );
-		}
-		else
-		{
-			WRITE_BYTE( 0 ); // world, dedicated server says
-		}
+	if ( pEntity )
+	{
+		WRITE_BYTE( pEntity->entindex() );
+	}
+	else
+	{
+		WRITE_BYTE( 0 ); // world, dedicated server says
+	}
 
-		WRITE_BYTE( bChat );
+	WRITE_BYTE( bChat );
 
-		WRITE_STRING( msg_name );
+	WRITE_STRING( msg_name );
 
-		if ( param1 )
-			WRITE_STRING( param1 );
-		else
-			WRITE_STRING( "" );
+	if ( param1 )
+		WRITE_STRING( param1 );
+	else
+		WRITE_STRING( "" );
 
-		if ( param2 )
-			WRITE_STRING( param2 );
-		else
-			WRITE_STRING( "" );
+	if ( param2 )
+		WRITE_STRING( param2 );
+	else
+		WRITE_STRING( "" );
 
-		if ( param3 )
-			WRITE_STRING( param3 );
-		else
-			WRITE_STRING( "" );
+	if ( param3 )
+		WRITE_STRING( param3 );
+	else
+		WRITE_STRING( "" );
 
-		if ( param4 )
-			WRITE_STRING( param4 );
-		else
-			WRITE_STRING( "" );
+	if ( param4 )
+		WRITE_STRING( param4 );
+	else
+		WRITE_STRING( "" );
 
 	MessageEnd();
 }
@@ -1234,11 +1256,11 @@ void UTIL_ShowMessage( const char *pString, CBasePlayer *pPlayer )
 	{
 		filter.AddAllPlayers();
 	}
-	
+
 	filter.MakeReliable();
 
 	UserMessageBegin( filter, "HudText" );
-		WRITE_STRING( pString );
+	WRITE_STRING( pString );
 	MessageEnd();
 }
 
@@ -1252,7 +1274,7 @@ void UTIL_ShowMessageAll( const char *pString )
 static csurface_t	g_NullSurface = { "**empty**", 0 };
 
 void UTIL_SetTrace(trace_t& trace, const Ray_t &ray, edict_t *ent, float fraction, 
-				   int hitgroup, unsigned int contents, const Vector& normal, float intercept )
+	int hitgroup, unsigned int contents, const Vector& normal, float intercept )
 {
 	trace.startsolid = (fraction == 0.0f);
 	trace.fraction = fraction;
@@ -1274,7 +1296,7 @@ void UTIL_ClearTrace( trace_t &trace )
 	trace.surface = g_NullSurface;
 }
 
-	
+
 
 //-----------------------------------------------------------------------------
 // Sets the entity size
@@ -1303,7 +1325,7 @@ void UTIL_SetSize( CBaseEntity *pEnt, const Vector &vecMin, const Vector &vecMax
 	SetMinMaxSize (pEnt, vecMin, vecMax);
 }
 
-	
+
 //-----------------------------------------------------------------------------
 // Sets the model to be associated with an entity
 //-----------------------------------------------------------------------------
@@ -1313,9 +1335,7 @@ void UTIL_SetModel( CBaseEntity *pEntity, const char *pModelName )
 	int i = modelinfo->GetModelIndex( pModelName );
 	if ( i == -1 )	
 	{
-		Error("%i/%s - %s:  UTIL_SetModel:  not precached: %s\n", pEntity->entindex(),
-			STRING( pEntity->GetEntityName() ),
-			pEntity->GetClassname(), pModelName);
+		i = 1;
 	}
 
 	CBaseAnimating *pAnimating = pEntity->GetBaseAnimating();
@@ -1330,7 +1350,7 @@ void UTIL_SetModel( CBaseEntity *pEntity, const char *pModelName )
 	pEntity->SetCollisionBoundsFromModel();
 }
 
-	
+
 void UTIL_SetOrigin( CBaseEntity *entity, const Vector &vecOrigin, bool bFireTriggers )
 {
 	entity->SetLocalOrigin( vecOrigin );
@@ -1375,7 +1395,7 @@ const char *UTIL_VarArgs( const char *format, ... )
 {
 	va_list		argptr;
 	static char		string[1024];
-	
+
 	va_start (argptr, format);
 	Q_vsnprintf(string, sizeof(string), format,argptr);
 	va_end (argptr);
@@ -1388,7 +1408,7 @@ bool UTIL_IsMasterTriggered(string_t sMaster, CBaseEntity *pActivator)
 	if (sMaster != NULL_STRING)
 	{
 		CBaseEntity *pMaster = gEntList.FindEntityByName( NULL, sMaster, NULL, pActivator );
-	
+
 		if ( pMaster && (pMaster->ObjectCaps() & FCAP_MASTER) )
 		{
 			return pMaster->IsTriggered( pActivator );
@@ -1694,8 +1714,8 @@ void UTIL_BubbleTrail( const Vector& from, const Vector& to, int count )
 //			Speed - 
 //-----------------------------------------------------------------------------
 void UTIL_Beam( Vector &Start, Vector &End, int nModelIndex, int nHaloIndex, unsigned char FrameStart, unsigned char FrameRate,
-				float Life, unsigned char Width, unsigned char EndWidth, unsigned char FadeLength, unsigned char Noise, unsigned char Red, unsigned char Green,
-				unsigned char Blue, unsigned char Brightness, unsigned char Speed)
+	float Life, unsigned char Width, unsigned char EndWidth, unsigned char FadeLength, unsigned char Noise, unsigned char Red, unsigned char Green,
+	unsigned char Blue, unsigned char Brightness, unsigned char Speed)
 {
 	CBroadcastRecipientFilter filter;
 
@@ -1800,7 +1820,7 @@ void UTIL_PrecacheOther( const char *szClassname, const char *modelName )
 	{
 		pEntity->SetModelName( AllocPooledString( modelName ) );
 	}
-	
+
 	if (pEntity)
 		pEntity->Precache( );
 
@@ -1815,7 +1835,7 @@ void UTIL_LogPrintf( const char *fmt, ... )
 {
 	va_list		argptr;
 	char		tempString[1024];
-	
+
 	va_start ( argptr, fmt );
 	Q_vsnprintf( tempString, sizeof(tempString), fmt, argptr );
 	va_end   ( argptr );
@@ -1871,7 +1891,7 @@ extern "C" void Sys_Error( char *error, ... )
 {
 	va_list	argptr;
 	char	string[1024];
-	
+
 	va_start( argptr, error );
 	Q_vsnprintf( string, sizeof(string), error, argptr );
 	va_end( argptr );
@@ -1963,7 +1983,7 @@ int DispatchSpawn( CBaseEntity *pEntity )
 			{
 				// Spawned entities default to 'On'
 				GlobalEntity_Add( pEntity->m_iGlobalname, gpGlobals->mapname, GLOBAL_ON );
-//					Msg( "Added global entity %s (%s)\n", pEntity->GetClassname(), STRING(pEntity->m_iGlobalname) );
+				//					Msg( "Added global entity %s (%s)\n", pEntity->GetClassname(), STRING(pEntity->m_iGlobalname) );
 			}
 		}
 
@@ -2045,8 +2065,8 @@ void EntityMatrix::InitFromEntityLocal( CBaseEntity *entity )
 void UTIL_ValidateSoundName( string_t &name, const char *defaultStr )
 {
 	if ( ( !name || 
-		   strlen( (char*) STRING( name ) ) < 1 ) || 
-		   !Q_stricmp( (char *)STRING(name), "0" ) )
+		strlen( (char*) STRING( name ) ) < 1 ) || 
+		!Q_stricmp( (char *)STRING(name), "0" ) )
 	{
 		name = AllocPooledString( defaultStr );
 	}
@@ -2133,7 +2153,7 @@ static int UTIL_GetNewCheckClient( int check )
 	edict_t	*ent;
 	Vector	org;
 
-// cycle to the next one
+	// cycle to the next one
 
 	if (check < 1)
 		check = 1;
@@ -2196,7 +2216,7 @@ static int UTIL_GetNewCheckClient( int check )
 			engine->GetPVSForCluster( clusterIndex, sizeof(g_CheckClient.m_checkPVS), g_CheckClient.m_checkPVS );
 		}
 	}
-	
+
 	return i;
 }
 
@@ -2330,7 +2350,7 @@ static edict_t *UTIL_FindClientInPVSGuts(edict_t *pEdict, unsigned char *pvs, un
 	if ( pe )
 	{
 		view = pe->EyePosition();
-		
+
 		if ( !engine->CheckOriginInPVS( view, pvs, pvssize ) )
 		{
 			return NULL;
@@ -2529,7 +2549,7 @@ bool UTIL_TransferPoseParameters( CBaseEntity *pSourceEntity, CBaseEntity *pDest
 	{
 		pDestBaseAnimating->SetPoseParameter( iPose, pSourceBaseAnimating->GetPoseParameter( iPose ) );
 	}
-	
+
 	return true;
 }
 
@@ -2564,12 +2584,12 @@ Vector UTIL_PointOnLineNearestPoint(const Vector& vStartPos, const Vector& vEndP
 	float	fDenominator	= vEndToStart.Length() * vOrgToStart.Length();
 	float	fIntersectDist	= vOrgToStart.Length()*(fNumerator/fDenominator);
 	float	flLineLength	= VectorNormalize( vEndToStart ); 
-	
+
 	if ( clampEnds )
 	{
 		fIntersectDist = clamp( fIntersectDist, 0.0f, flLineLength );
 	}
-	
+
 	Vector	vIntersectPos	= vStartPos + vEndToStart * fIntersectDist;
 
 	return vIntersectPos;
@@ -2812,7 +2832,7 @@ void UTIL_ParentToWorldSpace( CBaseEntity *pEntity, Vector &vecPosition, QAngle 
 	// concatenate with our parent's transform
 	matrix3x4_t matScratch, matResult;
 	matrix3x4_t matParentToWorld;
-	
+
 	if ( pEntity->GetParent() != NULL )
 	{
 		matParentToWorld = pEntity->GetParentToWorldTransform( matScratch );
@@ -2862,7 +2882,7 @@ void UTIL_WorldToParentSpace( CBaseEntity *pEntity, Vector &vecPosition, QAngle 
 	// concatenate with our parent's transform
 	matrix3x4_t matScratch, matResult;
 	matrix3x4_t matWorldToParent;
-	
+
 	if ( pEntity->GetParent() != NULL )
 	{
 		matScratch = pEntity->GetParentToWorldTransform( matScratch );
@@ -2921,8 +2941,8 @@ void CC_KDTreeTest( const CCommand &args )
 	Msg( "Testing kd-tree entity queries." );
 
 	// Get the testing spot.
-//	CBaseEntity *pSpot = gEntList.FindEntityByClassname( NULL, "info_player_start" );
-//	Vector vecStart = pSpot->GetAbsOrigin();
+	//	CBaseEntity *pSpot = gEntList.FindEntityByClassname( NULL, "info_player_start" );
+	//	Vector vecStart = pSpot->GetAbsOrigin();
 
 	CBasePlayer *pPlayer = static_cast<CBasePlayer*>( UTIL_GetLocalPlayer() );
 	Vector vecStart = pPlayer->GetAbsOrigin();
@@ -2958,7 +2978,7 @@ void CC_KDTreeTest( const CCommand &args )
 			vecTargets[i].x = flRadius * ct * sp;
 			vecTargets[i].y = flRadius * st * sp;
 			vecTargets[i].z = flRadius * cp;
-			
+
 			// Make the trace 1024 units long.
 			Vector vecDir = vecTargets[i] - vecStart;
 			VectorNormalize( vecDir );
@@ -2986,93 +3006,93 @@ void CC_KDTreeTest( const CCommand &args )
 	switch ( nTestType )
 	{
 	case 0:
-		{
-			VPROF( "TraceTotal" );			
+	{
+		VPROF( "TraceTotal" );			
 
-			trace_t trace;
-			for ( int iTest = 0; iTest < NUM_KDTREE_TESTS; ++iTest )
-			{
-				UTIL_TraceLine( vecStart, vecTargets[iTest], MASK_SOLID_BRUSHONLY, NULL, COLLISION_GROUP_NONE, &trace );
-			}
-			break;
+		trace_t trace;
+		for ( int iTest = 0; iTest < NUM_KDTREE_TESTS; ++iTest )
+		{
+			UTIL_TraceLine( vecStart, vecTargets[iTest], MASK_SOLID_BRUSHONLY, NULL, COLLISION_GROUP_NONE, &trace );
 		}
+		break;
+	}
 	case 1:
-		{
-			VPROF( "TraceTotal" );
+	{
+		VPROF( "TraceTotal" );
 
-			trace_t trace;
-			for ( int iTest = 0; iTest < NUM_KDTREE_TESTS; ++iTest )
-			{
-				UTIL_TraceHull( vecStart, vecTargets[iTest], VEC_HULL_MIN_SCALED( pPlayer ), VEC_HULL_MAX_SCALED( pPlayer ), MASK_SOLID, pPlayer, COLLISION_GROUP_NONE, &trace );
-			}
-			break;
+		trace_t trace;
+		for ( int iTest = 0; iTest < NUM_KDTREE_TESTS; ++iTest )
+		{
+			UTIL_TraceHull( vecStart, vecTargets[iTest], VEC_HULL_MIN_SCALED( pPlayer ), VEC_HULL_MAX_SCALED( pPlayer ), MASK_SOLID, pPlayer, COLLISION_GROUP_NONE, &trace );
 		}
+		break;
+	}
 	case 2:
+	{
+		Vector vecMins[NUM_KDTREE_TESTS];
+		Vector vecMaxs[NUM_KDTREE_TESTS];
+		int iTest;
+		for ( iTest = 0; iTest < NUM_KDTREE_TESTS; ++iTest )
 		{
-			Vector vecMins[NUM_KDTREE_TESTS];
-			Vector vecMaxs[NUM_KDTREE_TESTS];
-			int iTest;
-			for ( iTest = 0; iTest < NUM_KDTREE_TESTS; ++iTest )
+			vecMins[iTest] = vecStart;
+			vecMaxs[iTest] = vecStart;
+			for ( int iAxis = 0; iAxis < 3; ++iAxis )
 			{
-				vecMins[iTest] = vecStart;
-				vecMaxs[iTest] = vecStart;
-				for ( int iAxis = 0; iAxis < 3; ++iAxis )
-				{
-					if ( vecTargets[iTest].x < vecMins[iTest].x ) { vecMins[iTest].x = vecTargets[iTest].x; }
-					if ( vecTargets[iTest].y < vecMins[iTest].y ) { vecMins[iTest].y = vecTargets[iTest].y; }
-					if ( vecTargets[iTest].z < vecMins[iTest].z ) { vecMins[iTest].z = vecTargets[iTest].z; }
+				if ( vecTargets[iTest].x < vecMins[iTest].x ) { vecMins[iTest].x = vecTargets[iTest].x; }
+				if ( vecTargets[iTest].y < vecMins[iTest].y ) { vecMins[iTest].y = vecTargets[iTest].y; }
+				if ( vecTargets[iTest].z < vecMins[iTest].z ) { vecMins[iTest].z = vecTargets[iTest].z; }
 
-					if ( vecTargets[iTest].x > vecMaxs[iTest].x ) { vecMaxs[iTest].x = vecTargets[iTest].x; }
-					if ( vecTargets[iTest].y > vecMaxs[iTest].y ) { vecMaxs[iTest].y = vecTargets[iTest].y; }
-					if ( vecTargets[iTest].z > vecMaxs[iTest].z ) { vecMaxs[iTest].z = vecTargets[iTest].z; }
-				}
+				if ( vecTargets[iTest].x > vecMaxs[iTest].x ) { vecMaxs[iTest].x = vecTargets[iTest].x; }
+				if ( vecTargets[iTest].y > vecMaxs[iTest].y ) { vecMaxs[iTest].y = vecTargets[iTest].y; }
+				if ( vecTargets[iTest].z > vecMaxs[iTest].z ) { vecMaxs[iTest].z = vecTargets[iTest].z; }
 			}
-
-
-			VPROF( "TraceTotal" );
-
-			int nCount = 0;
-
-			Vector vecDelta;
-			trace_t trace;
-			CBaseEntity *pList[1024];
-			for ( iTest = 0; iTest < NUM_KDTREE_TESTS; ++iTest )
-			{
-				nCount += UTIL_EntitiesInBox( pList, 1024, vecMins[iTest], vecMaxs[iTest], 0 );
-			}
-
-			Msg( "Count = %d\n", nCount );
-			break;
 		}
+
+
+		VPROF( "TraceTotal" );
+
+		int nCount = 0;
+
+		Vector vecDelta;
+		trace_t trace;
+		CBaseEntity *pList[1024];
+		for ( iTest = 0; iTest < NUM_KDTREE_TESTS; ++iTest )
+		{
+			nCount += UTIL_EntitiesInBox( pList, 1024, vecMins[iTest], vecMaxs[iTest], 0 );
+		}
+
+		Msg( "Count = %d\n", nCount );
+		break;
+	}
 	case 3:
+	{
+		Vector vecDelta;
+		float flRadius[NUM_KDTREE_TESTS];
+		int iTest;
+		for ( iTest = 0; iTest < NUM_KDTREE_TESTS; ++iTest )
 		{
-			Vector vecDelta;
-			float flRadius[NUM_KDTREE_TESTS];
-			int iTest;
-			for ( iTest = 0; iTest < NUM_KDTREE_TESTS; ++iTest )
-			{
-				VectorSubtract( vecTargets[iTest], vecStart, vecDelta );
-				flRadius[iTest] = vecDelta.Length() * 0.5f;
-			}
-
-			VPROF( "TraceTotal" );
-
-			int nCount = 0;
-
-			trace_t trace;
-			CBaseEntity *pList[1024];
-			for ( iTest = 0; iTest < NUM_KDTREE_TESTS; ++iTest )
-			{
-				nCount += UTIL_EntitiesInSphere( pList, 1024, vecStart, flRadius[iTest], 0 );
-			}
-
-			Msg( "Count = %d\n", nCount );
-			break;
+			VectorSubtract( vecTargets[iTest], vecStart, vecDelta );
+			flRadius[iTest] = vecDelta.Length() * 0.5f;
 		}
+
+		VPROF( "TraceTotal" );
+
+		int nCount = 0;
+
+		trace_t trace;
+		CBaseEntity *pList[1024];
+		for ( iTest = 0; iTest < NUM_KDTREE_TESTS; ++iTest )
+		{
+			nCount += UTIL_EntitiesInSphere( pList, 1024, vecStart, flRadius[iTest], 0 );
+		}
+
+		Msg( "Count = %d\n", nCount );
+		break;
+	}
 	default:
-		{
-			break;
-		}
+	{
+		break;
+	}
 	}
 
 #ifdef VPROF_ENABLED
@@ -3080,7 +3100,7 @@ void CC_KDTreeTest( const CCommand &args )
 	g_VProfCurrentProfile.Pause();
 	g_VProfCurrentProfile.OutputReport( VPRT_FULL );
 #endif
-	
+
 	vtune( false );
 }
 
@@ -3134,17 +3154,17 @@ void CC_VoxelTreeBox( const CCommand &args )
 	vecPoints[5].Init( vecMin.x, vecMax.y, vecMax.z );
 	vecPoints[6].Init( vecMax.x, vecMax.y, vecMax.z );
 	vecPoints[7].Init( vecMax.x, vecMin.y, vecMax.z );
-	
+
 	debugoverlay->AddLineOverlay( vecPoints[0], vecPoints[1], 255, 0, 0, true, flTime );
 	debugoverlay->AddLineOverlay( vecPoints[1], vecPoints[2], 255, 0, 0, true, flTime );
 	debugoverlay->AddLineOverlay( vecPoints[2], vecPoints[3], 255, 0, 0, true, flTime );
 	debugoverlay->AddLineOverlay( vecPoints[3], vecPoints[0], 255, 0, 0, true, flTime );
-	
+
 	debugoverlay->AddLineOverlay( vecPoints[4], vecPoints[5], 255, 0, 0, true, flTime );
 	debugoverlay->AddLineOverlay( vecPoints[5], vecPoints[6], 255, 0, 0, true, flTime );
 	debugoverlay->AddLineOverlay( vecPoints[6], vecPoints[7], 255, 0, 0, true, flTime );
 	debugoverlay->AddLineOverlay( vecPoints[7], vecPoints[4], 255, 0, 0, true, flTime );
-	
+
 	debugoverlay->AddLineOverlay( vecPoints[0], vecPoints[4], 255, 0, 0, true, flTime );
 	debugoverlay->AddLineOverlay( vecPoints[3], vecPoints[7], 255, 0, 0, true, flTime );
 	debugoverlay->AddLineOverlay( vecPoints[1], vecPoints[5], 255, 0, 0, true, flTime );
@@ -3188,17 +3208,17 @@ void CC_VoxelTreeSphere( const CCommand &args )
 	vecPoints[5].Init( vecMin.x, vecMax.y, vecMax.z );
 	vecPoints[6].Init( vecMax.x, vecMax.y, vecMax.z );
 	vecPoints[7].Init( vecMax.x, vecMin.y, vecMax.z );
-	
+
 	debugoverlay->AddLineOverlay( vecPoints[0], vecPoints[1], 255, 0, 0, true, flTime );
 	debugoverlay->AddLineOverlay( vecPoints[1], vecPoints[2], 255, 0, 0, true, flTime );
 	debugoverlay->AddLineOverlay( vecPoints[2], vecPoints[3], 255, 0, 0, true, flTime );
 	debugoverlay->AddLineOverlay( vecPoints[3], vecPoints[0], 255, 0, 0, true, flTime );
-	
+
 	debugoverlay->AddLineOverlay( vecPoints[4], vecPoints[5], 255, 0, 0, true, flTime );
 	debugoverlay->AddLineOverlay( vecPoints[5], vecPoints[6], 255, 0, 0, true, flTime );
 	debugoverlay->AddLineOverlay( vecPoints[6], vecPoints[7], 255, 0, 0, true, flTime );
 	debugoverlay->AddLineOverlay( vecPoints[7], vecPoints[4], 255, 0, 0, true, flTime );
-	
+
 	debugoverlay->AddLineOverlay( vecPoints[0], vecPoints[4], 255, 0, 0, true, flTime );
 	debugoverlay->AddLineOverlay( vecPoints[3], vecPoints[7], 255, 0, 0, true, flTime );
 	debugoverlay->AddLineOverlay( vecPoints[1], vecPoints[5], 255, 0, 0, true, flTime );
@@ -3240,7 +3260,7 @@ void CC_CollisionTest( const CCommand &args )
 			theta = fabs(fmod(theta, DEG2RAD(360)));
 			phi += NUM_COLLISION_TESTS * 1997.99;
 			phi = fabs(fmod(phi, DEG2RAD(180)));
-			
+
 			float st, ct, sp, cp;
 			SinCos( theta, &st, &ct );
 			SinCos( phi, &sp, &cp );
@@ -3248,7 +3268,7 @@ void CC_CollisionTest( const CCommand &args )
 			targets[i].x = radius * ct * sp;
 			targets[i].y = radius * st * sp;
 			targets[i].z = radius * cp;
-			
+
 			// make the trace 1024 units long
 			Vector dir = targets[i] - start;
 			VectorNormalize(dir);
@@ -3317,6 +3337,32 @@ void CC_CollisionTest( const CCommand &args )
 }
 static ConCommand collision_test("collision_test", CC_CollisionTest, "Tests collision system", FCVAR_CHEAT );
 
+//HAX EMPTY ENTITY - NEVER CREATE THIS
+class CPointWorldText : public CBaseEntity
+{
+public:
+	DECLARE_CLASS( CPointWorldText, CBaseEntity );
+	DECLARE_SERVERCLASS();
+	//DUMMY VALUES
+	CNetworkString( m_szText, MAX_PATH );
+	CNetworkVar( int, m_colTextColor );
+	CNetworkVar( float, m_flTextSize );
+	CNetworkVar( float, m_flTextSpacingX );
+	CNetworkVar( float, m_flTextSpacingY );
+	CNetworkVar( int, m_nOrientation );
+	CNetworkVar( short, m_nFont );
+	CNetworkVar( bool, m_bRainbow );
+};
 
-
+LINK_ENTITY_TO_CLASS( point_world_text, CPointWorldText );
+IMPLEMENT_SERVERCLASS_ST( CPointWorldText, DT_PointWorldText )
+SendPropString( SENDINFO( m_szText ) ),
+SendPropInt( SENDINFO( m_colTextColor ), 32, SPROP_UNSIGNED ),
+SendPropFloat( SENDINFO( m_flTextSize ), 0, SPROP_NOSCALE ),
+SendPropFloat( SENDINFO( m_flTextSpacingX ), 0, SPROP_NOSCALE ),
+SendPropFloat( SENDINFO( m_flTextSpacingY ), 0, SPROP_NOSCALE ),
+SendPropInt( SENDINFO( m_nOrientation ), 3, SPROP_UNSIGNED ),
+SendPropInt( SENDINFO( m_nFont ), 16, SPROP_UNSIGNED ),
+SendPropBool( SENDINFO( m_bRainbow ) ),
+END_SEND_TABLE()
 

@@ -12,11 +12,12 @@
 #endif
 
 #include "basegrenade_shared.h"
+#include "hl2mp/weapon_slam.h"
 
 class CBeam;
 
 
-class CTripmineGrenade : public CBaseGrenade
+class CTripmineGrenade : public CBaseGrenade, public CSteamIDWeapon
 {
 public:
 	DECLARE_CLASS( CTripmineGrenade, CBaseGrenade );
@@ -25,23 +26,20 @@ public:
 	void Spawn( void );
 	void Precache( void );
 
-#if 0 // FIXME: OnTakeDamage_Alive() is no longer called now that base grenade derives from CBaseAnimating
-	int OnTakeDamage_Alive( const CTakeDamageInfo &info );
-#endif	
-	void WarningThink( void );
-	void PowerupThink( void );
+	void PowerUp(void);
 	void BeamBreakThink( void );
 	void DelayDeathThink( void );
 	void Event_Killed( const CTakeDamageInfo &info );
+	void AttachToEntity( const CBaseEntity* entity );
 
 	void MakeBeam( void );
 	void KillBeam( void );
+	void OnPhysGunPickup( CBasePlayer* pPhysGunUser, PhysGunPickup_t reason );
 
 public:
 	EHANDLE		m_hOwner;
 
 private:
-	float		m_flPowerUp;
 	Vector		m_vecDir;
 	Vector		m_vecEnd;
 	float		m_flBeamLength;
@@ -50,6 +48,9 @@ private:
 	Vector		m_posOwner;
 	Vector		m_angleOwner;
 
+	const CBaseEntity* m_pAttachedObject;
+	Vector m_vecOldPosAttachedObject;
+	QAngle m_vecOldAngAttachedObject;
 	DECLARE_DATADESC();
 };
 

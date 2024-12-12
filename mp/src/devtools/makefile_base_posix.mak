@@ -99,6 +99,12 @@ else ifeq ($(USE_VALVE_BINDIR),1)
 	GCC_VER = -4.6
 	P4BIN = p4
 	CRYPTOPPDIR=linux32
+else ifeq($(GITHUB_ACTIONS),1)
+	# Setup used by GitHub Actions
+	export STEAM_RUNTIME_PATH ?= /usr
+	GCC_VER =
+	P4BIN =
+	CRYPTOPPDIR=linux32
 else
 	# Not using chroot, use old steam-runtime. (gcc 4.6.3)
 	export STEAM_RUNTIME_PATH ?= /valve/steam-runtime
@@ -116,6 +122,11 @@ endif
 ifeq ($(USE_VALVE_BINDIR),1)
 	# On dedicated servers, some plugins depend on global variable symbols in addition to functions.
 	# So symbols like _Z16ClearMultiDamagev should show up when you do "nm server_srv.so" in TF2.
+	STRIP_FLAGS =
+else ifeq($(GITHUB_ACTIONS),1)
+	# GitHub Actions will not strip the debugging symbols from the
+	# binaries. This allow people who use SourceMod to peek inside to
+	# retrieve offsets (gamedata) if they need it.
 	STRIP_FLAGS =
 else
 	# Linux desktop client (or client/dedicated server in chroot).
@@ -168,6 +179,12 @@ else ifeq ($(GCC_VER),-4.8)
 	WARN_FLAGS += -Wno-unused-result
 	WARN_FLAGS += -Wno-narrowing
 	# WARN_FLAGS += -Wno-unused-function
+else ifeq ($(GITHUB_ACTIONS),1)
+	# We need to skip those warnings on GitHub Actions
+	# otherwise the runner's log/output will be bloated
+	WARN_FLAGS += -Wno-unused-local-typedefs
+	WARN_FLAGS += -Wno-unused-result
+	WARN_FLAGS += -Wno-narrowing
 endif
 
 WARN_FLAGS += -Wno-unknown-pragmas -Wno-unused-parameter -Wno-unused-value -Wno-missing-field-initializers

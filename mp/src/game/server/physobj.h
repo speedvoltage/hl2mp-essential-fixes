@@ -67,7 +67,7 @@ public:
 	virtual void OnPhysGunDrop( CBasePlayer *pPhysGunUser, PhysGunDrop_t Reason );
 
 	bool		 HasPreferredCarryAnglesForPlayer( CBasePlayer *pPlayer );
-	virtual QAngle PreferredCarryAngles( void ) { return m_angPreferredCarryAngles; }
+	virtual QAngle PreferredCarryAngles(CBasePlayer* pPlayer) { return m_angPreferredCarryAngles; }
 
 	// inputs
 	void InputWake( inputdata_t &inputdata );
@@ -87,6 +87,7 @@ protected:
 	float			m_flForceToEnableMotion;
 	QAngle			m_angPreferredCarryAngles;
 	bool			m_bNotSolidToWorld;
+	CBasePlayer* m_pLastHolder = nullptr;
 
 	// Outputs
 	COutputEvent	m_OnDamaged;

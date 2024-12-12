@@ -84,9 +84,15 @@ void CFuncMoveLinear::Spawn( void )
 		m_flMoveDistance = DotProductAbs( m_vecMoveDir, vecOBB ) - m_flLip;
 	}
 
+	/* BM: Fixing this based on: https://developer.valvesoftware.com/wiki/CFuncMoveLinear_Fix
 	m_vecPosition1 = GetAbsOrigin() - (m_vecMoveDir * m_flMoveDistance * m_flStartPosition);
 	m_vecPosition2 = m_vecPosition1 + (m_vecMoveDir * m_flMoveDistance);
 	m_vecFinalDest = GetAbsOrigin();
+	//*/
+	m_vecPosition1 = GetLocalOrigin() - (m_vecMoveDir * m_flMoveDistance * m_flStartPosition);
+	m_vecPosition2 = m_vecPosition1 + (m_vecMoveDir * m_flMoveDistance);
+	m_vecFinalDest = GetLocalOrigin();
+	//*/ The start & end positions are now calculated in local (parent) space.
 
 	SetTouch( NULL );
 
@@ -361,13 +367,29 @@ void CFuncMoveLinear::InputSetSpeed( inputdata_t &inputdata )
 	// Set the new speed
 	m_flSpeed = inputdata.value.Float();
 
-	// FIXME: This is a little questionable.  Do we want to fix the speed, or let it continue on at the old speed?
+	// Calculate remaining distance to destination
 	float flDistToGoalSqr = ( m_vecFinalDest - GetAbsOrigin() ).LengthSqr();
 	if ( flDistToGoalSqr > Square( FLT_EPSILON ) )
 	{
-		// NOTE: We do NOT want to call sound functions here, just vanilla position changes
-		LinearMove( m_vecFinalDest, m_flSpeed );
+		// Check if the entity is currently moving
+		if (m_flSpeed > 0)
+		{
+			// Continue moving to the final destination with the updated speed
+			LinearMove(m_vecFinalDest, m_flSpeed);
+		}
+		else
+		{
+			// If speed is zero, stop the movement
+			StopMoving();
+		}
 	}
+}
+
+void CFuncMoveLinear::StopMoving()
+{
+	// Stop the entity's movement but keep the destination intact
+	SetAbsVelocity(vec3_origin);
+	SetThink(NULL);  // Clear any active think functions, stopping the movement logic
 }
 
 //-----------------------------------------------------------------------------
@@ -393,4 +415,16 @@ int CFuncMoveLinear::DrawDebugTextOverlays(void)
 		text_offset++;
 	}
 	return text_offset;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Runs a fix atfer the base version clearly dosen't cut it.
+//-----------------------------------------------------------------------------
+void CFuncMoveLinear::SetParent(CBaseEntity *pParentEntity, int iAttachment)
+{
+	BaseClass::SetParent(pParentEntity, iAttachment);
+	// Recompute all positions
+	m_vecPosition1 = GetLocalOrigin() - (m_vecMoveDir * m_flMoveDistance * m_flStartPosition);
+	m_vecPosition2 = m_vecPosition1 + (m_vecMoveDir * m_flMoveDistance);
+	m_vecFinalDest = GetLocalOrigin();
 }

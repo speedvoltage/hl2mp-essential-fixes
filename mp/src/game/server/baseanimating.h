@@ -376,6 +376,8 @@ protected:
 public:
 	Vector	GetStepOrigin( void ) const;
 	QAngle	GetStepAngles( void ) const;
+	void SetClientSideAnimation(bool bEnable) { m_bClientSideAnimation = bEnable; }
+	bool IsClientSideAnimation() const { return m_bClientSideAnimation; }
 
 private:
 	bool				m_bSequenceFinished;// flag set when StudioAdvanceFrame moves across a frame boundry

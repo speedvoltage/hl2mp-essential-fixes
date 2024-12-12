@@ -16,6 +16,7 @@
 #include "vstdlib/random.h"
 #include "engine/IEngineSound.h"
 #include "world.h"
+#include "particle_parse.h"
 
 #ifdef PORTAL
 	#include "portal_util_shared.h"
@@ -94,6 +95,7 @@ void CGrenadeAR2::Spawn( void )
 	// -------------
 	// Smoke trail.
 	// -------------
+	/*
 	if( g_CV_SmokeTrail.GetInt() && !IsXbox() )
 	{
 		m_hSmokeTrail = SmokeTrail::CreateSmokeTrail();
@@ -115,6 +117,7 @@ void CGrenadeAR2::Spawn( void )
 			m_hSmokeTrail->FollowEntity(this);
 		}
 	}
+	*/
 }
 
 //-----------------------------------------------------------------------------
@@ -127,6 +130,7 @@ void CGrenadeAR2::Spawn( void )
 void CGrenadeAR2::GrenadeAR2Think( void )
 {
 	SetNextThink( gpGlobals->curtime + 0.05f );
+	DispatchParticleEffect("Rocket_Smoke_Trail", PATTACH_ABSORIGIN_FOLLOW, this, true, true);
 
 	if (!m_bIsLive)
 	{
@@ -244,6 +248,7 @@ void CGrenadeAR2::Detonate(void)
 void CGrenadeAR2::Precache( void )
 {
 	PrecacheModel("models/Weapons/ar2_grenade.mdl"); 
+	PrecacheParticleSystem("Rocket_Smoke_Trail");
 }
 
 

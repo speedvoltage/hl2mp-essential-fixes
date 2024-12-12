@@ -14,6 +14,7 @@
 #include "movehelper_server.h"
 #include "iservervehicle.h"
 #include "tier0/vprof.h"
+#include "engine/IEngineSound.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -299,6 +300,12 @@ void CPlayerMove::RunPostThink( CBasePlayer *player )
 {
 	VPROF( "CPlayerMove::RunPostThink" );
 
+	CSingleUserRecipientFilter user( player );
+
+	if ( gpGlobals->curtime >= player->iDamageTime + 3 )
+	{
+		enginesound->SetPlayerDSP( user, 0, false );
+	}
 	// Run post-think
 	player->PostThink();
 }
@@ -418,6 +425,11 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 		player->pl.v_angle = ucmd->viewangles + player->pl.anglechange;
 	}
 
+	// Let server invoke any needed impact functions
+	VPROF_SCOPE_BEGIN( "moveHelper->ProcessImpacts" );
+	moveHelper->ProcessImpacts();
+	VPROF_SCOPE_END();
+
 	// Call standard client pre-think
 	RunPreThink( player );
 
@@ -448,11 +460,6 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	{
 		player->pl.v_angle = player->GetLockViewanglesData();
 	}
-
-	// Let server invoke any needed impact functions
-	VPROF_SCOPE_BEGIN( "moveHelper->ProcessImpacts" );
-	moveHelper->ProcessImpacts();
-	VPROF_SCOPE_END();
 
 	RunPostThink( player );
 

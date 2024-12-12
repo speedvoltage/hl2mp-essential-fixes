@@ -576,6 +576,8 @@ CBasePlayer::CBasePlayer( )
 	pl.frags = 0;
 	pl.deaths = 0;
 
+	m_bAllowPickupWeaponThroughObstacle = false;
+
 	m_szNetname[0] = '\0';
 
 	m_iHealth = 0;
@@ -584,6 +586,7 @@ CBasePlayer::CBasePlayer( )
 
 	m_bForceOrigin = false;
 	m_hVehicle = NULL;
+	m_hUseEntity = NULL;
 	m_pCurrentCommand = NULL;
 	m_iLockViewanglesTickNumber = 0;
 	m_qangLockViewangles.Init();
@@ -729,11 +732,11 @@ int CBasePlayer::ShouldTransmit( const CCheckTransmitInfo *pInfo )
 }
 
 
-bool CBasePlayer::WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const
+bool CBasePlayer::WantsLagCompensationOnEntity( const CBasePlayer*pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const
 {
 	// Team members shouldn't be adjusted unless friendly fire is on.
-	if ( !friendlyfire.GetInt() && pPlayer->GetTeamNumber() == GetTeamNumber() )
-		return false;
+	//if ( !friendlyfire.GetInt() && pPlayer->GetTeamNumber() == GetTeamNumber() )
+	//	return false;
 
 	// If this entity hasn't been transmitted to us and acked, then don't bother lag compensating it.
 	if ( pEntityTransmitBits && !pEntityTransmitBits->Get( pPlayer->entindex() ) )
@@ -744,7 +747,8 @@ bool CBasePlayer::WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, cons
 
 	// get max distance player could have moved within max lag compensation time, 
 	// multiply by 1.5 to to avoid "dead zones"  (sqrt(2) would be the exact value)
-	float maxDistance = 1.5 * pPlayer->MaxSpeed() * sv_maxunlag.GetFloat();
+	float entityMaxSpeed = ToBasePlayer ( pPlayer ) ? ToBasePlayer ( pPlayer )->MaxSpeed ( ) : 600.0f;
+	float maxDistance = 1.5 * entityMaxSpeed * sv_maxunlag.GetFloat ( );
 
 	// If the player is within this distance, lag compensate them in case they're running past us.
 	if ( vHisOrigin.DistTo( vMyOrigin ) < maxDistance )
@@ -848,6 +852,8 @@ void CBasePlayer::DeathSound( const CTakeDamageInfo &info )
 
 int CBasePlayer::TakeHealth( float flHealth, int bitsDamageType )
 {
+	if (!IsAlive()) // You can't heal dead players...
+		return 0;
 	// clear out any damage types we healed.
 	// UNDONE: generic health should not heal any
 	// UNDONE: time-based damage
@@ -1444,6 +1450,7 @@ void CBasePlayer::OnDamagedByExplosion( const CTakeDamageInfo &info )
 
 	CSingleUserRecipientFilter user( this );
 	enginesound->SetPlayerDSP( user, effect, false );
+	iDamageTime = gpGlobals->curtime;
 }
 
 //=========================================================
@@ -1736,7 +1743,10 @@ void CBasePlayer::Event_Dying( const CTakeDamageInfo& info )
 {
 	// NOT GIBBED, RUN THIS CODE
 
-	DeathSound( info );
+	if (!IsDisconnecting())
+	{
+		DeathSound(info);
+	}
 
 	// The dead body rolls out of the vehicle.
 	if ( IsInAVehicle() )
@@ -1953,7 +1963,10 @@ void CBasePlayer::WaterMove()
 		
 		if (m_AirFinished < gpGlobals->curtime)
 		{
-			EmitSound( "Player.DrownStart" );
+			if (GetWaterLevel() == WL_Waist)
+			{
+				EmitSound("Player.DrownStart");
+			}
 		}
 
 		m_AirFinished = gpGlobals->curtime + AIRTIME;
@@ -2120,13 +2133,14 @@ void CBasePlayer::PlayerDeathThink(void)
 	
 	StopAnimation();
 
+	Extinguish();
+
 	IncrementInterpolationFrame();
 	m_flPlaybackRate = 0.0;
 	
 	int fAnyButtonDown = (m_nButtons & ~IN_SCORE);
-	
 	// Strip out the duck key from this check if it's toggled
-	if ( (fAnyButtonDown & IN_DUCK) && GetToggledDuckState())
+	if ((fAnyButtonDown & IN_DUCK) && GetToggledDuckState())
 	{
 		fAnyButtonDown &= ~IN_DUCK;
 	}
@@ -2134,29 +2148,24 @@ void CBasePlayer::PlayerDeathThink(void)
 	// wait for all buttons released
 	if (m_lifeState == LIFE_DEAD)
 	{
-		if (fAnyButtonDown)
-			return;
-
-		if ( g_pGameRules->FPlayerCanRespawn( this ) )
+		if (fAnyButtonDown && (gpGlobals->curtime > (m_flDeathTime + 5)))
 		{
-			m_lifeState = LIFE_RESPAWNABLE;
+			respawn(this, !IsObserver());// don't copy a corpse if we're in deathcam.
+			return;
 		}
-		
-		return;
 	}
 
-// if the player has been dead for one second longer than allowed by forcerespawn, 
-// forcerespawn isn't on. Send the player off to an intermission camera until they 
-// choose to respawn.
-	if ( g_pGameRules->IsMultiplayer() && ( gpGlobals->curtime > (m_flDeathTime + DEATH_ANIMATION_TIME) ) && !IsObserver() )
+	// if the player has been dead for one second longer than allowed by forcerespawn, 
+	// forcerespawn isn't on. Send the player off to an intermission camera until they 
+	// choose to respawn.
+	if (g_pGameRules->IsMultiplayer() && (gpGlobals->curtime > (m_flDeathTime + DEATH_ANIMATION_TIME)) && !IsObserver())
 	{
 		// go to dead camera. 
-		StartObserverMode( m_iObserverLastMode );
+		StartObserverMode(m_iObserverLastMode);
 	}
-	
-// wait for any button down,  or mp_forcerespawn is set and the respawn time is up
-	if (!fAnyButtonDown 
-		&& !( g_pGameRules->IsMultiplayer() && forcerespawn.GetInt() > 0 && (gpGlobals->curtime > (m_flDeathTime + 5))) )
+	// wait for any button down,  or mp_forcerespawn is set and the respawn time is up
+	if (!fAnyButtonDown
+		&& !(g_pGameRules->IsMultiplayer() && forcerespawn.GetInt() > 0 && (gpGlobals->curtime > (m_flDeathTime + 5))))
 		return;
 
 	m_nButtons = 0;
@@ -2164,8 +2173,8 @@ void CBasePlayer::PlayerDeathThink(void)
 
 	//Msg( "Respawn\n");
 
-	respawn( this, !IsObserver() );// don't copy a corpse if we're in deathcam.
-	SetNextThink( TICK_NEVER_THINK );
+	respawn(this, !IsObserver());// don't copy a corpse if we're in deathcam.
+	SetNextThink(TICK_NEVER_THINK);
 }
 
 /*
@@ -2613,6 +2622,17 @@ void CBasePlayer::ObserverUse( bool bIsPressed )
 
 void CBasePlayer::JumptoPosition(const Vector &origin, const QAngle &angles)
 {
+	Vector neworigin;
+	QAngle newangles;
+	// Clamp the position and angles to prevent crashes
+	neworigin.x = clamp(origin.x, MIN_COORD_FLOAT, MAX_COORD_FLOAT);
+	neworigin.y = clamp(origin.y, MIN_COORD_FLOAT, MAX_COORD_FLOAT);
+	neworigin.z = clamp(origin.z, MIN_COORD_FLOAT, MAX_COORD_FLOAT);
+
+	newangles.x = clamp(angles.x, MIN_COORD_FLOAT, MAX_COORD_FLOAT);
+	newangles.y = clamp(angles.y, MIN_COORD_FLOAT, MAX_COORD_FLOAT);
+	newangles.z = clamp(angles.z, MIN_COORD_FLOAT, MAX_COORD_FLOAT); // not clamped in original valve's code, idk why
+
 	SetAbsOrigin( origin );
 	SetAbsVelocity( vec3_origin );	// stop movement
 	SetLocalAngles( angles );
@@ -2872,6 +2892,10 @@ float CBasePlayer::GetHeldObjectMass( IPhysicsObject *pHeldObject )
 	return 0;
 }
 
+CBaseEntity	*CBasePlayer::GetHeldObject( void )
+{
+	return NULL;
+}
 
 //-----------------------------------------------------------------------------
 // Purpose:	Server side of jumping rules.  Most jumping logic is already
@@ -4518,6 +4542,29 @@ void CBasePlayer::ForceOrigin( const Vector &vecOrigin )
 //-----------------------------------------------------------------------------
 void CBasePlayer::PostThink()
 {
+	if (IsObserver())
+	{
+		m_Local.m_iHideHUD = HIDEHUD_HEALTH;
+
+		if (m_iObserverMode == OBS_MODE_POI || m_iObserverMode == OBS_MODE_FIXED)
+		{
+			// Removes a pointless second third person view.
+			m_iObserverMode = OBS_MODE_ROAMING;
+		}
+		if (m_iObserverLastMode == OBS_MODE_ROAMING)
+		{
+			SetMoveType(MOVETYPE_OBSERVER);
+		}
+		if (m_iObserverMode != OBS_MODE_IN_EYE)
+		{
+			m_Local.m_iHideHUD = HIDEHUD_CROSSHAIR;
+		}
+		else
+		{
+			m_Local.m_iHideHUD &= ~HIDEHUD_CROSSHAIR;
+		}
+	}
+
 	m_vecSmoothedVelocity = m_vecSmoothedVelocity * SMOOTHING_FACTOR + GetAbsVelocity() * ( 1 - SMOOTHING_FACTOR );
 
 	if ( !g_fGameOver && !m_iPlayerLocked )
@@ -5906,13 +5953,13 @@ void CBasePlayer::ImpulseCommands( )
 		break;
 
 	case 200:
-		if ( sv_cheats->GetBool() )
-		{
-			CBaseCombatWeapon *pWeapon;
+		CBaseCombatWeapon *pWeapon;
 
-			pWeapon = GetActiveWeapon();
-			
-			if( pWeapon->IsEffectActive( EF_NODRAW ) )
+		pWeapon = GetActiveWeapon();
+
+		if (pWeapon)
+		{
+			if (pWeapon->IsEffectActive(EF_NODRAW))
 			{
 				pWeapon->Deploy();
 			}
@@ -6157,6 +6204,7 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 		gEvilImpulse101 = true;
 
 		EquipSuit();
+		SetArmorValue(100);
 
 		// Give the player everything!
 		GiveAmmo( 255,	"Pistol");
@@ -6430,6 +6478,10 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 		else
 		{
 			// switch to next spec mode if no parameter given
+			CBaseEntity * target = FindNextObserverTarget(false);
+			if (!target)
+				return true;
+
  			mode = GetObserverMode() + 1;
 			
 			if ( mode > LAST_PLAYER_OBSERVERMODE )
@@ -6471,6 +6523,10 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 			{
 				SetObserverTarget( target );
 			}
+			else
+			{
+				SetObserverMode(OBS_MODE_ROAMING);
+			}
 		}
 		else if ( GetObserverMode() == OBS_MODE_FREEZECAM )
 		{
@@ -6488,6 +6544,10 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 			if ( target )
 			{
 				SetObserverTarget( target );
+			}
+			else
+			{
+				SetObserverMode(OBS_MODE_ROAMING);
 			}
 		}
 		else if ( GetObserverMode() == OBS_MODE_FREEZECAM )
@@ -6519,6 +6579,10 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 			{
 				SetObserverTarget( target );
 			}
+			else
+			{
+				SetObserverMode(OBS_MODE_ROAMING);
+			}
 		}
 		
 		return true;
@@ -6531,9 +6595,9 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 			 args.ArgC() == 6 )
 		{
 			Vector origin;
-			origin.x = atof( args[1] );
-			origin.y = atof( args[2] );
-			origin.z = atof( args[3] );
+			origin.x = clamp( atof( args [ 1 ] ), MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+			origin.y = clamp( atof( args [ 2 ] ), MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+			origin.z = clamp( atof( args [ 3 ] ), MIN_COORD_FLOAT, MAX_COORD_FLOAT );
 
 			QAngle angle;
 			angle.x = atof( args[4] );
@@ -6569,7 +6633,7 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 	return false;
 }
 
-extern bool UTIL_ItemCanBeTouchedByPlayer( CBaseEntity *pItem, CBasePlayer *pPlayer );
+extern bool UTIL_ItemCanBeTouchedByPlayer( CBaseEntity *pItem, CBasePlayer *pPlayer, unsigned int traceMask = MASK_SOLID );
 
 //-----------------------------------------------------------------------------
 // Purpose: Player reacts to bumping a weapon. 
@@ -7506,6 +7570,21 @@ void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent)
 	if ( GetTeam() )
 	{
 		GetTeam()->RemovePlayer( this );
+
+		// Compensate the team score by adding 1 frag when switching to spectators
+		if (GameRules()->IsTeamplay() && iTeamNum == 1 && !IsDisconnecting())
+			GetTeam()->AddScore(1);
+
+		if (GameRules()->IsTeamplay() && GetTeam() && !IsDisconnecting())
+		{
+			int iFrags = FragCount();
+			GetTeam()->AddScore(-iFrags);
+
+			if (iTeamNum != 1)
+			{
+				GetGlobalTeam(iTeamNum)->AddScore(iFrags);
+			}
+		}
 	}
 
 	// Are we being added to a team?
@@ -8001,6 +8080,7 @@ void SendProxy_CropFlagsToPlayerFlagBitsLength( const SendProp *pProp, const voi
 		SendPropEHandle(SENDINFO(m_hUseEntity)),
 		SendPropInt		(SENDINFO(m_iHealth), -1, SPROP_VARINT | SPROP_CHANGES_OFTEN ),
 		SendPropInt		(SENDINFO(m_lifeState), 3, SPROP_UNSIGNED ),
+		//SendPropArray3( SENDINFO_ARRAY3( m_iAmmo ), SendPropInt( SENDINFO_ARRAY( m_iAmmo ), 10, SPROP_UNSIGNED ) ),
 		SendPropInt		(SENDINFO(m_iBonusProgress), 15 ),
 		SendPropInt		(SENDINFO(m_iBonusChallenge), 4 ),
 		SendPropFloat	(SENDINFO(m_flMaxspeed), 12, SPROP_ROUNDDOWN, 0.0f, 2048.0f ),  // CL
@@ -9346,7 +9426,10 @@ void CBasePlayer::Event_KilledOther( CBaseEntity *pVictim, const CTakeDamageInfo
 	}
 	else
 	{
-		gamestats->Event_PlayerSuicide( this );
+		if (!IsDisconnecting())
+		{
+			gamestats->Event_PlayerSuicide(this);
+		}
 	}
 }
 

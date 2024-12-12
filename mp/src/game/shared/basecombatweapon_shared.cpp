@@ -51,7 +51,7 @@
 
 #define HIDEWEAPON_THINK_CONTEXT			"BaseCombatWeapon_HideThink"
 
-extern bool UTIL_ItemCanBeTouchedByPlayer( CBaseEntity *pItem, CBasePlayer *pPlayer );
+extern bool UTIL_ItemCanBeTouchedByPlayer( CBaseEntity *pItem, CBasePlayer *pPlayer, unsigned int traceMask = MASK_SOLID );
 
 #if defined ( TF_CLIENT_DLL ) || defined ( TF_DLL )
 #ifdef _DEBUG
@@ -72,6 +72,7 @@ CBaseCombatWeapon::CBaseCombatWeapon()
 	m_fMinRange2		= 65;
 	m_fMaxRange1		= 1024;
 	m_fMaxRange2		= 1024;
+	m_nCustomViewmodelModelIndex = -1;
 
 	m_bReloadsSingly	= false;
 
@@ -677,6 +678,7 @@ void CBaseCombatWeapon::Drop( const Vector &vecVelocity )
 	// world.
 	SetRemoveable( true );
 	WeaponManager_AmmoMod( this );
+	RemoveEffects(EF_NOSHADOW);
 
 	//If it was dropped then there's no need to respawn it.
 	AddSpawnFlags( SF_NORESPAWN );
@@ -1317,17 +1319,21 @@ void CBaseCombatWeapon::SetWeaponVisible( bool visible )
 
 	if ( visible )
 	{
+		RemoveEffects(EF_NOSHADOW);
 		RemoveEffects( EF_NODRAW );
 		if ( vm )
 		{
+			vm->RemoveEffects(EF_NOSHADOW);
 			vm->RemoveEffects( EF_NODRAW );
 		}
 	}
 	else
 	{
+		AddEffects(EF_NOSHADOW);
 		AddEffects( EF_NODRAW );
 		if ( vm )
 		{
+			vm->AddEffects(EF_NOSHADOW);
 			vm->AddEffects( EF_NODRAW );
 		}
 	}
@@ -1454,6 +1460,8 @@ bool CBaseCombatWeapon::Deploy( )
 	MDLCACHE_CRITICAL_SECTION();
 	bool bResult = DefaultDeploy( (char*)GetViewModel(), (char*)GetWorldModel(), GetDrawActivity(), (char*)GetAnimPrefix() );
 
+	RemoveEffects(EF_NOSHADOW);
+
 	// override pose parameters
 	PoseParameterOverride( false );
 
@@ -1494,6 +1502,8 @@ bool CBaseCombatWeapon::Holster( CBaseCombatWeapon *pSwitchingTo )
 	{
 		pOwner->SetNextAttack( gpGlobals->curtime + flSequenceDuration );
 	}
+
+	AddEffects(EF_NOSHADOW);
 
 	// If we don't have a holster anim, hide immediately to avoid timing issues
 	if ( !flSequenceDuration )
@@ -2828,9 +2838,8 @@ BEGIN_NETWORK_TABLE_NOBASE( CBaseCombatWeapon, DT_LocalWeaponData )
 	SendPropIntWithMinusOneFlag( SENDINFO(m_iClip2 ), 8 ),
 	SendPropInt( SENDINFO(m_iPrimaryAmmoType ), 8 ),
 	SendPropInt( SENDINFO(m_iSecondaryAmmoType ), 8 ),
-
 	SendPropInt( SENDINFO( m_nViewModelIndex ), VIEWMODEL_INDEX_BITS, SPROP_UNSIGNED ),
-
+	SendPropInt (SENDINFO( m_nCustomViewmodelModelIndex ),13),
 	SendPropInt( SENDINFO( m_bFlipViewModel ) ),
 
 #if defined( TF_DLL )

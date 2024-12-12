@@ -1577,7 +1577,26 @@ int CBaseEntity::VPhysicsTakeDamage( const CTakeDamageInfo &info )
 		if ( gameFlags & FVPHYSICS_PLAYER_HELD )
 		{
 			// if the player is holding the object, use it's real mass (player holding reduced the mass)
-			CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
+			CBasePlayer *pPlayer = NULL;
+
+			if ( gpGlobals->maxClients == 1 )
+			{
+				pPlayer = UTIL_GetLocalPlayer();
+			}
+			else
+			{
+				// See which MP player is holding the physics object and then use that player to get the real mass of the object.
+				// This is ugly but better than having linkage between an object and its "holding" player.
+				for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+				{
+					CBasePlayer *tempPlayer = UTIL_PlayerByIndex( i );
+					if ( tempPlayer && (tempPlayer->GetHeldObject() == this ) )
+					{
+						pPlayer = tempPlayer;
+						break;
+					}
+				}
+			}
 			if ( pPlayer )
 			{
 				float mass = pPlayer->GetHeldObjectMass( VPhysicsGetObject() );
@@ -5039,6 +5058,17 @@ static ConCommand ent_viewoffset("ent_viewoffset", CC_Ent_ViewOffset, "Displays 
 //------------------------------------------------------------------------------
 void CC_Ent_Remove( const CCommand& args )
 {
+	CBasePlayer* pPlayer = UTIL_GetCommandClient();
+
+	if (pPlayer)
+	{
+		if (!Q_stricmp(args[1], "player") || !Q_stricmp(args[1], "worldspawn") || !Q_stricmp(args[1], "info_player_deathmatch") || !Q_stricmp(args[1], "info_player_rebel") || !Q_stricmp(args[1], "info_player_combine"))
+		{
+			ClientPrint(pPlayer, HUD_PRINTCONSOLE, "This entity cannot be removed.");
+			return;
+		}
+	}
+
 	CBaseEntity *pEntity = NULL;
 
 	// If no name was given set bits based on the picked
@@ -5082,6 +5112,17 @@ static ConCommand ent_remove("ent_remove", CC_Ent_Remove, "Removes the given ent
 //------------------------------------------------------------------------------
 void CC_Ent_RemoveAll( const CCommand& args )
 {
+	CBasePlayer* pPlayer = UTIL_GetCommandClient();
+
+	if (pPlayer)
+	{
+		if (!Q_stricmp(args[1], "player") || !Q_stricmp(args[1], "worldspawn") || !Q_stricmp(args[1], "info_player_deathmatch") || !Q_stricmp(args[1], "info_player_rebel") || !Q_stricmp(args[1], "info_player_combine"))
+		{
+			ClientPrint(pPlayer, HUD_PRINTCONSOLE, "This entity cannot be removed.");
+			return;
+		}
+	}
+
 	// If no name was given remove based on the picked
 	if ( args.ArgC() < 2 )
 	{
@@ -5575,6 +5616,12 @@ void CC_Ent_Info( const CCommand& args )
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() );
 	if (!pPlayer)
 	{
+		return;
+	}
+
+	if (!Q_stricmp(args[1], "worldspawn"))
+	{
+		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "Usage:\n   ent_info <class name>\n");
 		return;
 	}
 	

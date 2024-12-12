@@ -84,15 +84,15 @@ void CHL2MP_Player::PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, f
 
 	m_Local.m_nStepside = !m_Local.m_nStepside;
 
-	char szStepSound[128];
+	char szStepSound[ 128 ];
 
 	if ( m_Local.m_nStepside )
 	{
-		Q_snprintf( szStepSound, sizeof( szStepSound ), "%s.RunFootstepLeft", g_ppszPlayerSoundPrefixNames[m_iPlayerSoundType] );
+		Q_snprintf( szStepSound, sizeof( szStepSound ), "%s.RunFootstepLeft", g_ppszPlayerSoundPrefixNames[ m_iPlayerSoundType ] );
 	}
 	else
 	{
-		Q_snprintf( szStepSound, sizeof( szStepSound ), "%s.RunFootstepRight", g_ppszPlayerSoundPrefixNames[m_iPlayerSoundType] );
+		Q_snprintf( szStepSound, sizeof( szStepSound ), "%s.RunFootstepRight", g_ppszPlayerSoundPrefixNames[ m_iPlayerSoundType ] );
 	}
 
 	CSoundParameters params;
@@ -101,13 +101,7 @@ void CHL2MP_Player::PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, f
 
 	CRecipientFilter filter;
 	filter.AddRecipientsByPAS( vecOrigin );
-
-#ifndef CLIENT_DLL
-	// im MP, server removed all players in origins PVS, these players 
-	// generate the footsteps clientside
-	if ( gpGlobals->maxClients > 1 )
-		filter.RemoveRecipientsByPVS( vecOrigin );
-#endif
+	filter.RemoveRecipient( this );
 
 	EmitSound_t ep;
 	ep.m_nChannel = CHAN_BODY;
@@ -193,7 +187,12 @@ void CPlayerAnimState::ComputePlaybackRate()
 
 		// Note this gets set back to 1.0 if sequence changes due to ResetSequenceInfo below
 		GetOuter()->SetPlaybackRate( ( speed * flFactor ) / maxspeed );
-
+#ifdef GAME_DLL
+		if (GetOuter()->m_flPlaybackRate > 11.0f)
+		{
+			GetOuter()->SetPlaybackRate(11.0f);
+		}
+#endif
 		// BUG BUG:
 		// This stuff really should be m_flPlaybackRate = speed / m_flGroundSpeed
 	}

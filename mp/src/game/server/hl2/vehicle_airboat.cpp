@@ -590,9 +590,11 @@ void CPropAirboat::InputExitVehicle( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 void CPropAirboat::InputWake( inputdata_t &inputdata )
 {
-	VPhysicsGetObject()->Wake();
+	if (VPhysicsGetObject())
+	{
+		VPhysicsGetObject()->Wake();
+	}
 }
-
 
 //-----------------------------------------------------------------------------
 // Purpose: Input handler to enable or disable the airboat's mounted gun.

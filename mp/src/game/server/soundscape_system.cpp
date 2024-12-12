@@ -36,7 +36,7 @@ CON_COMMAND(soundscape_flush, "Flushes the server & client side soundscapes")
 	g_SoundscapeSystem.FlushSoundscapes();	// don't bother forgetting about the entities
 	g_SoundscapeSystem.Init();
 
-	
+
 	if ( engine->IsDedicatedServer() )
 	{
 		// If the ds console typed it, send it to everyone.
@@ -120,7 +120,7 @@ void CSoundscapeSystem::PrintDebugInfo()
 			currentSoundscape->GetAbsOrigin().x,
 			currentSoundscape->GetAbsOrigin().y,
 			currentSoundscape->GetAbsOrigin().z
-			);
+		);
 	}
 	Msg( "----------------------------------\n\n" );
 }
@@ -326,12 +326,11 @@ void CSoundscapeSystem::FrameUpdatePostEntityThink()
 
 				// if we got this far, we're looking at an entity that is contending
 				// for current player sound. the closest entity to player wins.
-				CEnvSoundscape *pCurrent = (CEnvSoundscape *)( audio.ent.Get() );
-				if ( pCurrent )
+				CEnvSoundscape* pCurrent = nullptr;
+				if ( audio.entIndex > 0 && audio.entIndex <= m_soundscapeEntities.Count() )
 				{
-					int nEntIndex = pCurrent->m_soundscapeEntityId - 1;
-					NOTE_UNUSED( nEntIndex );
-					Assert( m_soundscapeEntities[nEntIndex] == pCurrent );
+					int ssIndex = audio.entIndex - 1;
+					pCurrent = m_soundscapeEntities[ssIndex];
 				}
 				ss_update_t update;
 				update.pPlayer = pPlayer;
@@ -346,7 +345,7 @@ void CSoundscapeSystem::FrameUpdatePostEntityThink()
 				}
 
 				int clusterIndex = engine->GetClusterForOrigin( update.playerPosition );
-			
+
 				if ( clusterIndex >= 0 && clusterIndex < m_soundscapesInCluster.Count() )
 				{
 					// find all soundscapes that could possibly attach to this player and update them

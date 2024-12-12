@@ -205,6 +205,9 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 	if ( !p )
 		return;
 
+	if (!p || strspn(p, " \t") == strlen(p))
+		return;
+
 	if ( pEdict )
 	{
 		if ( !pPlayer->CanSpeak() )
@@ -269,15 +272,39 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 		client = ToBaseMultiplayerPlayer( UTIL_PlayerByIndex( i ) );
 		if ( !client || !client->edict() )
 			continue;
-		
+
 		if ( client->edict() == pEdict )
 			continue;
 
-		if ( !(client->IsNetClient()) )	// Not a client ? (should never be true)
 			continue;
 
-		if ( teamonly && g_pGameRules->PlayerCanHearChat( client, pPlayer ) != GR_TEAMMATE )
-			continue;
+		// Handle team-only chat when mp_teamplay is disabled
+		if ( teamonly )
+		{
+			if ( g_pGameRules->IsTeamplay() )
+			{
+				// Standard teamplay: Check if the target player is a teammate
+				if ( g_pGameRules->PlayerCanHearChat( client, pPlayer ) != GR_TEAMMATE )
+					continue;
+			}
+			else
+			{
+				// Deathmatch mode (mp_teamplay = 0)
+				if ( pPlayer )
+				{
+					CTeam* senderTeam = pPlayer->GetTeam();
+					CTeam* receiverTeam = client->GetTeam();
+
+					// Allow communication only if both players are on the same team
+					if ( senderTeam != receiverTeam )
+						continue;
+
+					// Prevent team chat from being visible to players without a team
+					if ( !senderTeam || !receiverTeam )
+						continue;
+				}
+			}
+		}
 
 		if ( pPlayer && !client->CanHearAndReadChatFrom( pPlayer ) )
 			continue;
@@ -285,6 +312,7 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 		if ( pPlayer && GetVoiceGameMgr() && GetVoiceGameMgr()->IsPlayerIgnoringPlayer( pPlayer->entindex(), i ) )
 			continue;
 
+		// Send the message to the client
 		CSingleUserRecipientFilter user( client );
 		user.MakeReliable();
 
@@ -657,12 +685,12 @@ void CC_DrawLine( const CCommand &args )
 	Vector startPos;
 	Vector endPos;
 
-	startPos.x = atof(args[1]);
-	startPos.y = atof(args[2]);
-	startPos.z = atof(args[3]);
-	endPos.x = atof(args[4]);
-	endPos.y = atof(args[5]);
-	endPos.z = atof(args[6]);
+	startPos.x = clamp( atof( args [ 1 ] ), MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+	startPos.y = clamp( atof( args [ 2 ] ), MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+	startPos.z = clamp( atof( args [ 3 ] ), MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+	endPos.x = clamp( atof( args [ 4 ] ), MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+	endPos.y = clamp( atof( args [ 5 ] ), MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+	endPos.z = clamp( atof( args [ 6 ] ), MIN_COORD_FLOAT, MAX_COORD_FLOAT );
 
 	UTIL_AddDebugLine(startPos,endPos,true,true);
 }
@@ -677,9 +705,9 @@ void CC_DrawCross( const CCommand &args )
 {
 	Vector vPosition;
 
-	vPosition.x = atof(args[1]);
-	vPosition.y = atof(args[2]);
-	vPosition.z = atof(args[3]);
+	vPosition.x = clamp( atof( args [ 1 ] ), MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+	vPosition.y = clamp( atof( args [ 2 ] ), MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+	vPosition.z = clamp( atof( args [ 3 ] ), MIN_COORD_FLOAT, MAX_COORD_FLOAT );
 
 	// Offset since min and max z in not about center
 	Vector mins = Vector(-5,-5,-5);
@@ -812,8 +840,6 @@ CON_COMMAND_F( buddha, "Toggle.  Player takes damage but won't die. (Shows red c
 	}
 }
 
-
-#define TALK_INTERVAL 0.66 // min time between say commands from a client
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 CON_COMMAND( say, "Display player message" )
@@ -821,11 +847,7 @@ CON_COMMAND( say, "Display player message" )
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
 	if ( pPlayer )
 	{
-		if (( pPlayer->LastTimePlayerTalked() + TALK_INTERVAL ) < gpGlobals->curtime) 
-		{
-			Host_Say( pPlayer->edict(), args, 0 );
-			pPlayer->NotePlayerTalked();
-		}
+		Host_Say( pPlayer->edict(), args, 0 );
 	}
 	// This will result in a "console" say.  Ignore anything from
 	// an index greater than 0 when we don't have a player pointer, 
@@ -845,11 +867,7 @@ CON_COMMAND( say_team, "Display player message to team" )
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
 	if (pPlayer)
 	{
-		if (( pPlayer->LastTimePlayerTalked() + TALK_INTERVAL ) < gpGlobals->curtime) 
-		{
-			Host_Say( pPlayer->edict(), args, 1 );
-			pPlayer->NotePlayerTalked();
-		}
+		Host_Say( pPlayer->edict(), args, 1 );
 	}
 }
 
@@ -885,7 +903,7 @@ CON_COMMAND( give, "Give item to player.\n\tArguments: <item_name>" )
 			}
 		}
 
-		// Dirty hack to avoid suit playing it's pickup sound
+		// Dirty hack to avoid suit playing its pickup sound
 		if ( !Q_stricmp( item_to_give, "item_suit" ) )
 		{
 			pPlayer->EquipSuit( false );
@@ -930,6 +948,14 @@ void CC_Player_SetModel( const CCommand &args )
 	{
 		static char szName[256];
 		Q_snprintf( szName, sizeof( szName ), "models/%s.mdl", args[1] );
+
+		int i = modelinfo->GetModelIndex(szName);
+		if (i == -1)
+		{
+			Warning("Model %s does not exist.\n", szName);
+			return;
+		}
+
 		pPlayer->SetModel( szName );
 		UTIL_SetSize(pPlayer, VEC_HULL_MIN, VEC_HULL_MAX);
 	}
@@ -1028,12 +1054,11 @@ void CC_Player_PhysSwap( void )
 
 		if ( pWeapon )
 		{
-			// Tell the client to stop selecting weapons
-			engine->ClientCommand( UTIL_GetCommandClient()->edict(), "cancelselect" );
+
 
 			const char *strWeaponName = pWeapon->GetName();
 
-			if ( !Q_stricmp( strWeaponName, "weapon_physcannon" ) )
+			if ( !Q_stricmp( strWeaponName, "weapon_physcannon" ) && pWeapon->CanHolster() )
 			{
 				PhysCannonForceDrop( pWeapon, NULL );
 				pPlayer->SelectLastItem();
@@ -1061,9 +1086,6 @@ void CC_Player_BugBaitSwap( void )
 
 		if ( pWeapon )
 		{
-			// Tell the client to stop selecting weapons
-			engine->ClientCommand( UTIL_GetCommandClient()->edict(), "cancelselect" );
-
 			const char *strWeaponName = pWeapon->GetName();
 
 			if ( !Q_stricmp( strWeaponName, "weapon_bugbait" ) )
@@ -1249,9 +1271,9 @@ CON_COMMAND_F( setpos, "Move player to specified origin (must have sv_cheats).",
 	Vector oldorigin = pPlayer->GetAbsOrigin();
 
 	Vector newpos;
-	newpos.x = atof( args[1] );
-	newpos.y = atof( args[2] );
-	newpos.z = args.ArgC() == 4 ? atof( args[3] ) : oldorigin.z;
+	newpos.x = clamp( atof( args [ 1 ] ), MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+	newpos.y = clamp( atof( args [ 2 ] ), MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+	newpos.z = args.ArgC() == 4 ? clamp( atof( args [ 3 ] ), MIN_COORD_FLOAT, MAX_COORD_FLOAT ) : oldorigin.z;
 
 	pPlayer->SetAbsOrigin( newpos );
 

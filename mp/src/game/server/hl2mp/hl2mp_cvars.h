@@ -16,5 +16,6 @@
 extern ConVar mp_restartround;
 extern ConVar mp_readyrestart;
 extern ConVar mp_ready_signal;
+extern ConVar sv_soundfix;
 
 #endif //HL2MP_CVARS_H

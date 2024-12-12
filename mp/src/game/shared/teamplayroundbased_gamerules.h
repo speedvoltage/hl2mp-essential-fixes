@@ -491,7 +491,6 @@ protected:
 
 protected:
 	CGameRulesRoundStateInfo	*m_pCurStateInfo;			// Per-state data 
-	float						m_flStateTransitionTime;	// Timer for round states
 
 	float						m_flWaitingForPlayersTimeEnds;
 	CHandle<CTeamRoundTimer>	m_hWaitingForPlayersTimer;
@@ -526,7 +525,6 @@ protected:
 	float						m_flRoundStartTime;		// time the current round started
 	float						m_flNewThrottledAlertTime;		// time that we can play another throttled alert
 
-	int							m_nRoundsPlayed;
 	bool						m_bUseAddScoreAnim;
 
 	gamerules_roundstate_t		m_prevState;
@@ -579,8 +577,11 @@ protected:
 	CNetworkArray( bool,		m_bTeamReady, MAX_TEAMS );
 	CNetworkVar( bool,			m_bStopWatch );
 	CNetworkVar( bool,			m_bMultipleTrains ); // two trains in this map?
-	CNetworkArray( bool,		m_bPlayerReady, MAX_PLAYERS );
+	CNetworkArray( bool,		m_bPlayerReady, MAX_PLAYERS+1 );
 	CNetworkVar( bool,			m_bCheatsEnabledDuringLevel );
+	CNetworkVar( int, m_nRoundsPlayed );
+	CNetworkVar( float, m_flCountdownTime );
+	CNetworkVar( float, m_flStateTransitionTime );	// Timer for round states
 
 public:
 	CNetworkArray( float,		m_TeamRespawnWaveTimes, MAX_TEAMS );	// Time between each team's respawn wave

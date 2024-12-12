@@ -348,11 +348,17 @@ void CEnvExplosion::InputExplode( inputdata_t &inputdata )
 		RadiusDamage( info, GetAbsOrigin(), iRadius, m_iClassIgnore, m_hEntityIgnore.Get() );
 	}
 
+	if (!(m_spawnflags & SF_ENVEXPLOSION_NODLIGHTS))
+	{
+		CBroadcastRecipientFilter filter2;
+		te->DynamicLight(filter2, 0.0, &GetAbsOrigin(), 255, 173, 41, 0, 200, 0.15, 0);
+	}
+
 	SetThink( &CEnvExplosion::Smoke );
 	SetNextThink( gpGlobals->curtime + 0.3 );
 
 	// Only do these effects if we're not submerged
-	if ( UTIL_PointContents( GetAbsOrigin() ) & CONTENTS_WATER )
+	if (!(UTIL_PointContents(GetAbsOrigin()) & CONTENTS_WATER))
 	{
 		// draw sparks
 		if ( !( m_spawnflags & SF_ENVEXPLOSION_NOSPARKS ) )
@@ -385,7 +391,7 @@ void ExplosionCreate( const Vector &center, const QAngle &angles,
 	const EHANDLE *ignoredEntity , Class_T ignoredClass )
 {
 	char			buf[128];
-
+	nSpawnFlags |= SF_ENVEXPLOSION_NOSOUND;
 	CEnvExplosion *pExplosion = (CEnvExplosion*)CBaseEntity::Create( "env_explosion", center, angles, pOwner );
 	Q_snprintf( buf,sizeof(buf), "%3d", magnitude );
 	char *szKeyName = "iMagnitude";
@@ -419,6 +425,17 @@ void ExplosionCreate( const Vector &center, const QAngle &angles,
 	pExplosion->m_iClassIgnore = ignoredClass;
 
 	pExplosion->AcceptInput( "Explode", NULL, NULL, emptyVariant, 0 );
+
+	CBroadcastRecipientFilter soundFilter;
+	EmitSound_t ep;
+	ep.m_nChannel = CHAN_STATIC;
+	ep.m_pSoundName = "BaseExplosionEffect.Sound";
+	ep.m_flVolume = 1.0f; 
+	ep.m_SoundLevel = SNDLVL_140dB; 
+	ep.m_nFlags = SND_NOFLAGS;
+
+	// Emit the sound
+	CBaseEntity::EmitSound(soundFilter, pExplosion->entindex(), ep);
 }
 
 

@@ -32,10 +32,17 @@
 	#include "voice_gamemgr.h"
 	#include "hl2mp_gameinterface.h"
 	#include "hl2mp_cvars.h"
+	#include <networkstringtable_gamedll.h>
+	#include "filesystem.h"
+	#include "networkstringtabledefs.h"
+	#include "weapon_rpg.h"
+	#include "SoundEmitterSystem/isoundemittersystembase.h"
 
 #ifdef DEBUG	
 	#include "hl2mp_bot_temp.h"
 #endif
+
+#define DOWNLOADABLE_FILE_TABLENAME "downloadables"
 
 extern void respawn(CBaseEntity *pEdict, bool fCopyCorpse);
 
@@ -49,6 +56,8 @@ extern ConVar mp_chattime;
 
 extern CBaseEntity	 *g_pLastCombineSpawn;
 extern CBaseEntity	 *g_pLastRebelSpawn;
+
+static bool m_bFirstInitialization = true;
 
 #define WEAPON_MAX_DISTANCE_FROM_SPAWN 64
 
@@ -183,9 +192,129 @@ char *sTeamNames[] =
 	"Rebels",
 };
 
+bool IsValidPositiveInteger(const char* str)
+{
+	// Check if the string is not empty and doesn't start with '+' or '-'
+	if (str == nullptr || *str == '\0' || *str == '+' || *str == '-')
+		return false;
+
+	// Ensure all characters are digits
+	for (const char* p = str; *p; p++)
+	{
+		if (!isdigit(*p))
+			return false;
+	}
+
+	return true;
+}
+
+CUtlVector<const char*> mExcludedUploadExts;
+
+// Example function to add extensions to the list
+void CHL2MPRules::InitExcludedExtensions()
+{
+	mExcludedUploadExts.AddToTail("bz2");
+	mExcludedUploadExts.AddToTail("cache");
+	mExcludedUploadExts.AddToTail("ztmp");
+}
+
+// Checking if an extension is excluded
+bool IsExtensionExcluded(const char* ext)
+{
+	for (int i = 0; i < mExcludedUploadExts.Count(); ++i)
+	{
+		if (Q_stricmp(mExcludedUploadExts[i], ext) == 0)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+#ifndef CLIENT_DLL
+void CHL2MPRules::RegisterDownloadableFiles(char* path, FileFindHandle_t findHandle, INetworkStringTable* pDownloadables)
+{
+	int dirLen = strlen(path);
+
+	// Modify the path to include a wildcard for files (e.g., *.wav)
+	char searchPattern[MAX_PATH];
+	Q_snprintf(searchPattern, sizeof(searchPattern), "%s*.*", path);
+
+	// Iterate over files in the directory
+	for (const char* pNextFileName = filesystem->FindFirstEx(searchPattern, "GAME", &findHandle);
+		pNextFileName != NULL; pNextFileName = filesystem->FindNext(findHandle))
+	{
+		path[dirLen] = '\0';  // Reset path length to directory length
+
+		// Check if it's a directory
+		if (filesystem->FindIsDirectory(findHandle))
+		{
+			if (*pNextFileName != '.')
+			{
+				// Append the directory to the path
+				Q_snprintf(path + dirLen, MAX_PATH - dirLen, "%s%c", pNextFileName, CORRECT_PATH_SEPARATOR);
+
+				// Recursively search in subdirectories
+				RegisterDownloadableFiles(path, findHandle, pDownloadables);
+#ifdef _DEBUG
+				// Debug for directories
+				Msg("Entering directory: %s\n", path);
+#endif
+			}
+		}
+		else
+		{
+#ifdef _DEBUG
+			// Debug for found files
+			Msg("Found file: %s\n", pNextFileName);
+#endif
+			// Only add files that are not in the excluded list
+			const char* extension = Q_GetFileExtension(pNextFileName);
+			if (!mExcludedUploadExts.HasElement(extension))
+			{
+				// Add the file to the downloadable table
+				Q_snprintf(path + dirLen, MAX_PATH - dirLen, "%s", pNextFileName);
+
+				Msg("Registering file: %s\n", path);
+
+				if (pDownloadables->AddString(true, path) == INVALID_STRING_INDEX)
+				{
+					Msg("Failed to register file: %s\n", path);
+					break; // Stop if we can't register more files
+				}
+			}
+#ifdef _DEBUG
+			else
+			{
+				Msg("File extension excluded: %s\n", pNextFileName);
+			}
+#endif
+		}
+	}
+
+	filesystem->FindClose(findHandle);
+}
+#endif
+
 CHL2MPRules::CHL2MPRules()
 {
 #ifndef CLIENT_DLL
+	if ( m_bFirstInitialization )
+	{
+		// Get the downloadables string table
+		InitExcludedExtensions();
+
+		// Get the downloadables string table
+		INetworkStringTable* pDownloadables = networkstringtable->FindTable( DOWNLOADABLE_FILE_TABLENAME );
+
+		if ( pDownloadables )
+		{
+			// Path to your custom sounds using a char array
+			char path[ MAX_PATH ] = "sound/server_sounds/";
+			RegisterDownloadableFiles( path, FILESYSTEM_INVALID_FIND_HANDLE, pDownloadables );
+		}
+	}
+
 	// Create the team managers
 	for ( int i = 0; i < ARRAYSIZE( sTeamNames ); i++ )
 	{
@@ -194,6 +323,8 @@ CHL2MPRules::CHL2MPRules()
 
 		g_Teams.AddToTail( pTeam );
 	}
+
+	m_bFirstInitialization = false;
 
 	m_bTeamPlayEnabled = teamplay.GetBool();
 	m_flIntermissionEndTime = 0.0f;
@@ -373,6 +504,93 @@ void CHL2MPRules::Think( void )
 
 	ManageObjectRelocation();
 
+	// Forcefully remove suit and weapons here to account for mp_restartgame
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+		if (pPlayer && pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+		{
+			pPlayer->RemoveAllItems(true);
+		}
+	}
+
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		if (gpGlobals->curtime > m_tmNextPeriodicThink)
+		{
+			CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+			if (pPlayer && !pPlayer->IsBot() && !pPlayer->IsHLTV())
+			{
+				// Fetch client-side settings from the player
+				const char* cl_updaterate = engine->GetClientConVarValue(pPlayer->entindex(), "cl_updaterate");
+				const char* cl_cmdrate = engine->GetClientConVarValue(pPlayer->entindex(), "cl_cmdrate");
+
+				bool shouldKick = false;
+				char kickReason[128] = "";
+
+				// Validate and convert cl_updaterate
+				if (!IsValidPositiveInteger(cl_updaterate))
+				{
+					shouldKick = true;
+					Q_snprintf(kickReason, sizeof(kickReason), "cl_updaterate is invalid (value: %s)", cl_updaterate);
+				}
+				else
+				{
+					int updaterate = atoi(cl_updaterate);
+					if (updaterate <= 0)
+					{
+						shouldKick = true;
+						Q_snprintf(kickReason, sizeof(kickReason), "cl_updaterate is invalid (value: %d)", updaterate);
+					}
+				}
+
+				// Validate and convert cl_cmdrate
+				if (!IsValidPositiveInteger(cl_cmdrate))
+				{
+					shouldKick = true;
+					Q_snprintf(kickReason, sizeof(kickReason), "cl_cmdrate is invalid (value: %s)", cl_cmdrate);
+				}
+				else
+				{
+					int cmdrate = atoi(cl_cmdrate);
+					if (cmdrate <= 0)
+					{
+						shouldKick = true;
+						Q_snprintf(kickReason, sizeof(kickReason), "cl_cmdrate is invalid (value: %d)", cmdrate);
+					}
+				}
+
+				if (shouldKick)
+				{
+					// Get the player's user ID instead of the entity index
+					int userID = pPlayer->GetUserID();  // This will provide the correct user ID for kicking
+
+					engine->ServerCommand(UTIL_VarArgs("kickid %d %s\n", userID, kickReason));  // Use userID instead of entindex()
+					return;
+				}
+			}
+		}
+	}
+
+	// Peter: I can't seem to get the rocket sounds to stop when the game restarts with StopSound(), 
+	// gotta blow them up 0.1 second before
+	if (m_flRestartGameTime > 0.0f && m_flRestartGameTime <= gpGlobals->curtime + 0.1f)
+	{
+		CBaseEntity* pEntity = NULL;
+		while ((pEntity = gEntList.FindEntityByClassname(pEntity, "rpg_missile")) != NULL)
+		{
+			if (pEntity && pEntity->IsAlive())
+			{
+				CMissile* pMissile = dynamic_cast<CMissile*>(pEntity);
+				if (pMissile)
+				{
+					pMissile->Explode();
+				}
+			}
+		}
+	}
 #endif
 }
 
@@ -458,6 +676,19 @@ Vector CHL2MPRules::VecWeaponRespawnSpot( CBaseCombatWeapon *pWeapon )
 #endif
 	
 	return pWeapon->GetAbsOrigin();
+}
+
+QAngle CHL2MPRules::DefaultWeaponRespawnAngle( CBaseCombatWeapon* pWeapon )
+{
+#ifndef CLIENT_DLL
+	CWeaponHL2MPBase* pHL2Weapon = dynamic_cast< CWeaponHL2MPBase* >( pWeapon );
+
+	if ( pHL2Weapon )
+	{
+		return pHL2Weapon->GetOriginalSpawnAngles();
+	}
+#endif
+	return pWeapon->GetAbsAngles();
 }
 
 #ifndef CLIENT_DLL
@@ -672,6 +903,10 @@ void CHL2MPRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info
 	CBaseEntity *pKiller = info.GetAttacker();
 	CBasePlayer *pScorer = GetDeathScorer( pKiller, pInflictor );
 
+	CBasePlayer* pVictimPlayer = dynamic_cast<CBasePlayer*>(pVictim);
+	CHL2MP_Player* pAttackerPlayer = dynamic_cast<CHL2MP_Player*>(pScorer);
+	CHL2MP_Player* pVictimHL2MP = dynamic_cast<CHL2MP_Player*>(pVictimPlayer);
+
 	// Custom kill type?
 	if ( info.GetDamageCustom() )
 	{
@@ -726,6 +961,10 @@ void CHL2MPRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info
 		{
 			killer_weapon_name = "physics";
 		}
+		if ( strstr( killer_weapon_name, "physbox" ) )
+		{
+			killer_weapon_name = "physics";
+		}
 
 		if ( strcmp( killer_weapon_name, "prop_combine_ball" ) == 0 )
 		{
@@ -739,8 +978,15 @@ void CHL2MPRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info
 		{
 			killer_weapon_name = "slam";
 		}
+	}
 
-
+	if (HL2MPRules()->IsTeamplay() && pAttackerPlayer->GetTeamNumber() == pVictimHL2MP->GetTeamNumber())
+	{
+		CTeam* pKillerTeam = pAttackerPlayer->GetTeam();
+		if (pKillerTeam)
+		{
+			pKillerTeam->AddScore(-2);
+		}
 	}
 
 	IGameEvent *event = gameeventmanager->CreateEvent( "player_death" );
@@ -781,8 +1027,6 @@ void CHL2MPRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 			Q_snprintf( szReturnString, sizeof (szReturnString ), "cl_playermodel %s\n", pCurrentModel );
 			engine->ClientCommand ( pHL2Player->edict(), szReturnString );
 
-			Q_snprintf( szReturnString, sizeof( szReturnString ), "Please wait %d more seconds before trying to switch.\n", (int)(pHL2Player->GetNextModelChangeTime() - gpGlobals->curtime) );
-			ClientPrint( pHL2Player, HUD_PRINTTALK, szReturnString );
 			return;
 		}
 
@@ -1277,4 +1521,36 @@ const char *CHL2MPRules::GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer )
 	return pszFormat;
 }
 
+extern ISoundEmitterSystemBase *soundemitterbase;
+void CHL2MPRules::HandleSoundFix()
+{
+	if ( sv_soundfix.GetBool() )
+	{
+		if ( !soundemitterbase )
+		{
+			DevMsg( "Sound emitter system not initialized.\n" );
+			return;
+		}
+
+		int soundCount = soundemitterbase->GetSoundCount();
+		for ( int i = 0; i < soundCount; ++i )
+		{
+			const char* soundName = soundemitterbase->GetSoundName( i );
+			if ( !soundName )
+				continue;
+
+			CSoundParametersInternal* soundParamsInternal = soundemitterbase->InternalGetParametersForSound( i );
+			if ( soundParamsInternal )
+			{
+				if ( soundParamsInternal->GetPitch().start == 100 ) // Check for pitch of 100
+				{
+					soundParamsInternal->SetPitch( 99 ); // Adjust pitch to 99
+					DevMsg( "Adjusted pitch for sound: %s\n", soundName );
+
+					soundemitterbase->UpdateSoundParameters( soundName, *soundParamsInternal );
+				}
+			}
+		}
+	}
+}
 #endif

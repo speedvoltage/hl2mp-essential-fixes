@@ -178,7 +178,7 @@ void CMissile::Spawn( void )
 
 	SetSolid( SOLID_BBOX );
 	SetModel("models/weapons/w_missile_launch.mdl");
-	UTIL_SetSize( this, -Vector(4,4,4), Vector(4,4,4) );
+	UTIL_SetSize( this, -Vector(2,2,2), Vector(2,2,2) );
 
 	SetTouch( &CMissile::MissileTouch );
 
@@ -254,7 +254,7 @@ void CMissile::DumbFire( void )
 	SetModel("models/weapons/w_missile.mdl");
 	UTIL_SetSize( this, vec3_origin, vec3_origin );
 
-	EmitSound( "Missile.Ignite" );
+	EmitSound( "Missile.Launch" );
 
 	// Smoke trail.
 	CreateSmokeTrail();
@@ -297,6 +297,12 @@ void CMissile::AccelerateThink( void )
 //---------------------------------------------------------
 void CMissile::AugerThink( void )
 {
+	if (!m_hOwner)
+	{
+		UTIL_Remove(this);
+		return;
+	}
+
 	// If we've augered long enough, then just explode
 	if ( m_flAugerTime < gpGlobals->curtime )
 	{
@@ -359,9 +365,12 @@ void CMissile::ShotDown( void )
 //-----------------------------------------------------------------------------
 void CMissile::DoExplosion( void )
 {
+	//Fix GetAbsOrigin().z+1 in gamerules.cpp:349
+	Vector origin = GetAbsOrigin();
+	origin.z -= 1;
+	SetAbsOrigin( origin );
 	// Explode
-	ExplosionCreate( GetAbsOrigin(), GetAbsAngles(), GetOwnerEntity(), GetDamage(), GetDamage() * 2, 
-		SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this);
+	ExplosionCreate(GetAbsOrigin(), GetAbsAngles(), GetOwnerEntity(), GetDamage(), GetDamage() * 2, SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this);
 }
 
 
@@ -398,7 +407,7 @@ void CMissile::Explode( void )
 		m_hOwner = NULL;
 	}
 
-	StopSound( "Missile.Ignite" );
+	StopSound( "Missile.Launch" );
 	UTIL_Remove( this );
 }
 
@@ -452,14 +461,14 @@ void CMissile::IgniteThink( void )
 {
 	SetMoveType( MOVETYPE_FLY );
 	SetModel("models/weapons/w_missile.mdl");
-	UTIL_SetSize( this, vec3_origin, vec3_origin );
+	//UTIL_SetSize( this, vec3_origin, vec3_origin ); //This cause weird no damage dealing on stairs
  	RemoveSolidFlags( FSOLID_NOT_SOLID );
-
+	AddEFlags( EFL_NO_WATER_VELOCITY_CHANGE );//Ignore velocity change by in or out water transition
 	//TODO: Play opening sound
 
 	Vector vecForward;
 
-	EmitSound( "Missile.Ignite" );
+	EmitSound( "Missile.Launch" );
 
 	AngleVectors( GetLocalAngles(), &vecForward );
 	SetAbsVelocity( vecForward * RPG_SPEED );
@@ -660,8 +669,6 @@ CMissile *CMissile::Create( const Vector &vecOrigin, const QAngle &vecAngles, ed
 	//CMissile *pMissile = (CMissile *)CreateEntityByName("rpg_missile" );
 	CMissile *pMissile = (CMissile *) CBaseEntity::Create( "rpg_missile", vecOrigin, vecAngles, CBaseEntity::Instance( pentOwner ) );
 	pMissile->SetOwnerEntity( Instance( pentOwner ) );
-	pMissile->Spawn();
-	pMissile->AddEffects( EF_NOSHADOW );
 	
 	Vector vecForward;
 	AngleVectors( vecAngles, &vecForward );
@@ -882,7 +889,6 @@ CAPCMissile *CAPCMissile::Create( const Vector &vecOrigin, const QAngle &vecAngl
 	pMissile->Spawn();
 	pMissile->SetAbsVelocity( vecVelocity );
 	pMissile->AddFlag( FL_NOTARGET );
-	pMissile->AddEffects( EF_NOSHADOW );
 	return pMissile;
 }
 
@@ -1248,7 +1254,7 @@ void CAPCMissile::ComputeActualDotPosition( CLaserDot *pLaserDot, Vector *pActua
 
 #define	RPG_BEAM_SPRITE		"effects/laser1.vmt"
 #define	RPG_BEAM_SPRITE_NOZ	"effects/laser1_noz.vmt"
-#define	RPG_LASER_SPRITE	"sprites/redglow1"
+#define	RPG_LASER_SPRITE	"sprites/redglow1.vmt"
 
 //=============================================================================
 // RPG
@@ -1357,11 +1363,12 @@ void CWeaponRPG::Precache( void )
 {
 	BaseClass::Precache();
 
-	PrecacheScriptSound( "Missile.Ignite" );
+	PrecacheScriptSound( "Missile.Launch" );
 	PrecacheScriptSound( "Missile.Accelerate" );
+	PrecacheScriptSound( "Weapon_RPG.TurnOn" );
+	PrecacheScriptSound( "Weapon_RPG.TurnOff" );
 
 	// Laser dot...
-	PrecacheModel( "sprites/redglow1.vmt" );
 	PrecacheModel( RPG_LASER_SPRITE );
 	PrecacheModel( RPG_BEAM_SPRITE );
 	PrecacheModel( RPG_BEAM_SPRITE_NOZ );
@@ -1412,10 +1419,11 @@ bool CWeaponRPG::HasAnyAmmo( void )
 //-----------------------------------------------------------------------------
 bool CWeaponRPG::WeaponShouldBeLowered( void )
 {
+#ifndef CLIENT_DLL
 	// Lower us if we're out of ammo
 	if ( !HasAnyAmmo() )
 		return true;
-	
+#endif
 	return BaseClass::WeaponShouldBeLowered();
 }
 
@@ -1433,11 +1441,11 @@ void CWeaponRPG::PrimaryAttack( void )
 	// Can't have an active missile out
 	if ( m_hMissile != NULL )
 		return;
-
+#ifndef CLIENT_DLL
 	// Can't be reloading
 	if ( GetActivity() == ACT_VM_RELOAD )
 		return;
-
+#endif
 	Vector vecOrigin;
 	Vector vecForward;
 
@@ -1530,9 +1538,10 @@ void CWeaponRPG::SuppressGuiding( bool state )
 //-----------------------------------------------------------------------------
 bool CWeaponRPG::Lower( void )
 {
+#ifndef CLIENT_DLL
 	if ( m_hMissile != NULL )
 		return false;
-
+#endif
 	return BaseClass::Lower();
 }
 
@@ -1541,6 +1550,7 @@ bool CWeaponRPG::Lower( void )
 //-----------------------------------------------------------------------------
 void CWeaponRPG::ItemPostFrame( void )
 {
+#ifndef CLIENT_DLL 
 	BaseClass::ItemPostFrame();
 
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
@@ -1568,10 +1578,11 @@ void CWeaponRPG::ItemPostFrame( void )
 	//Move the laser
 	UpdateLaserPosition();
 
-	if ( pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0 && m_hMissile == NULL )
+	if ( pPlayer->GetAmmoCount(m_iPrimaryAmmoType) == 0 && m_hMissile == NULL )
 	{
 		StopGuiding();
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1636,7 +1647,7 @@ bool CWeaponRPG::Deploy( void )
 	return BaseClass::Deploy();
 }
 
-bool CWeaponRPG::CanHolster( void )
+bool CWeaponRPG::CanHolster( void ) const 
 {
 	//Can't have an active missile out
 	if ( m_hMissile != NULL )
@@ -1667,7 +1678,9 @@ void CWeaponRPG::StartGuiding( void )
 	m_bGuiding = true;
 
 #ifndef CLIENT_DLL
-	WeaponSound(SPECIAL1);
+	// IPredictionSystem::SuppressHostEvents(NULL);
+	// WeaponSound(SPECIAL1);
+	EmitSound( "Weapon_RPG.TurnOn" );
 
 	CreateLaserPointer();
 #endif
@@ -1682,8 +1695,9 @@ void CWeaponRPG::StopGuiding( void )
 	m_bGuiding = false;
 
 #ifndef CLIENT_DLL
-
-	WeaponSound( SPECIAL2 );
+	// IPredictionSystem::SuppressHostEvents(NULL);
+	// WeaponSound( SPECIAL2 );
+	EmitSound( "Weapon_RPG.TurnOff" );
 
 	// Kill the dot completely
 	if ( m_hLaserDot != NULL )
@@ -1795,8 +1809,8 @@ void CWeaponRPG::CreateLaserPointer( void )
 	
 	if ( pOwner == NULL )
 		return;
-
-	if ( pOwner->GetAmmoCount(m_iPrimaryAmmoType) <= 0 )
+	//3RD ROCKET FIX
+	if (pOwner->GetAmmoCount(m_iPrimaryAmmoType) == 0 && m_hMissile == NULL)
 		return;
 
 	m_hLaserDot = CLaserDot::Create( GetAbsOrigin(), GetOwner() );
@@ -1811,12 +1825,14 @@ void CWeaponRPG::CreateLaserPointer( void )
 //-----------------------------------------------------------------------------
 void CWeaponRPG::NotifyRocketDied( void )
 {
+#ifndef CLIENT_DLL
 	m_hMissile = NULL;
 
 	if ( GetActivity() == ACT_VM_RELOAD )
 		return;
 
 	Reload();
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1824,6 +1840,7 @@ void CWeaponRPG::NotifyRocketDied( void )
 //-----------------------------------------------------------------------------
 bool CWeaponRPG::Reload( void )
 {
+#ifndef CLIENT_DLL 
 	CBaseCombatCharacter *pOwner = GetOwner();
 	
 	if ( pOwner == NULL )
@@ -1834,9 +1851,13 @@ bool CWeaponRPG::Reload( void )
 
 	WeaponSound( RELOAD );
 	
-	SendWeaponAnim( ACT_VM_RELOAD );
-
+	if (pOwner->GetActiveWeapon() == this)
+	{
+		SendWeaponAnim(ACT_VM_RELOAD);
+	}
+#endif
 	return true;
+
 }
 
 #ifdef CLIENT_DLL

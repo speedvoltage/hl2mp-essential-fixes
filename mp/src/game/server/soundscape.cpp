@@ -23,8 +23,8 @@ ConVar soundscape_debug( "soundscape_debug", "0", FCVAR_CHEAT, "When on, draws l
 LINK_ENTITY_TO_CLASS( env_soundscape_proxy, CEnvSoundscapeProxy );
 
 BEGIN_DATADESC( CEnvSoundscapeProxy )
-	
-	DEFINE_KEYFIELD( m_MainSoundscapeName, FIELD_STRING, "MainSoundscapeName" )
+
+DEFINE_KEYFIELD( m_MainSoundscapeName, FIELD_STRING, "MainSoundscapeName" )
 
 END_DATADESC()
 
@@ -70,31 +70,31 @@ LINK_ENTITY_TO_CLASS( env_soundscape, CEnvSoundscape );
 
 BEGIN_DATADESC( CEnvSoundscape )
 
-	DEFINE_KEYFIELD( m_flRadius, FIELD_FLOAT, "radius" ),
-	// don't save, recomputed on load
-	//DEFINE_FIELD( m_soundscapeIndex, FIELD_INTEGER ),
-	DEFINE_FIELD( m_soundscapeName, FIELD_STRING ),
-	DEFINE_FIELD( m_hProxySoundscape, FIELD_EHANDLE ),
+DEFINE_KEYFIELD( m_flRadius, FIELD_FLOAT, "radius" ),
+// don't save, recomputed on load
+//DEFINE_FIELD( m_soundscapeIndex, FIELD_INTEGER ),
+DEFINE_FIELD( m_soundscapeName, FIELD_STRING ),
+DEFINE_FIELD( m_hProxySoundscape, FIELD_EHANDLE ),
 
 // Silence, Classcheck!
 //	DEFINE_ARRAY( m_positionNames, FIELD_STRING, 4 ),
 
-	DEFINE_KEYFIELD( m_positionNames[0], FIELD_STRING, "position0" ),
-	DEFINE_KEYFIELD( m_positionNames[1], FIELD_STRING, "position1" ),
-	DEFINE_KEYFIELD( m_positionNames[2], FIELD_STRING, "position2" ),
-	DEFINE_KEYFIELD( m_positionNames[3], FIELD_STRING, "position3" ),
-	DEFINE_KEYFIELD( m_positionNames[4], FIELD_STRING, "position4" ),
-	DEFINE_KEYFIELD( m_positionNames[5], FIELD_STRING, "position5" ),
-	DEFINE_KEYFIELD( m_positionNames[6], FIELD_STRING, "position6" ),
-	DEFINE_KEYFIELD( m_positionNames[7], FIELD_STRING, "position7" ),
+DEFINE_KEYFIELD( m_positionNames[0], FIELD_STRING, "position0" ),
+DEFINE_KEYFIELD( m_positionNames[1], FIELD_STRING, "position1" ),
+DEFINE_KEYFIELD( m_positionNames[2], FIELD_STRING, "position2" ),
+DEFINE_KEYFIELD( m_positionNames[3], FIELD_STRING, "position3" ),
+DEFINE_KEYFIELD( m_positionNames[4], FIELD_STRING, "position4" ),
+DEFINE_KEYFIELD( m_positionNames[5], FIELD_STRING, "position5" ),
+DEFINE_KEYFIELD( m_positionNames[6], FIELD_STRING, "position6" ),
+DEFINE_KEYFIELD( m_positionNames[7], FIELD_STRING, "position7" ),
 
-	DEFINE_KEYFIELD( m_bDisabled,	FIELD_BOOLEAN,	"StartDisabled" ),
+DEFINE_KEYFIELD( m_bDisabled,	FIELD_BOOLEAN,	"StartDisabled" ),
 
-	DEFINE_INPUTFUNC( FIELD_VOID, "Enable", InputEnable ),
-	DEFINE_INPUTFUNC( FIELD_VOID, "Disable", InputDisable ),
-	DEFINE_INPUTFUNC( FIELD_VOID, "ToggleEnabled", InputToggleEnabled ),
+DEFINE_INPUTFUNC( FIELD_VOID, "Enable", InputEnable ),
+DEFINE_INPUTFUNC( FIELD_VOID, "Disable", InputDisable ),
+DEFINE_INPUTFUNC( FIELD_VOID, "ToggleEnabled", InputToggleEnabled ),
 
-	DEFINE_OUTPUT( m_OnPlay, "OnPlay" ),
+DEFINE_OUTPUT( m_OnPlay, "OnPlay" ),
 
 
 END_DATADESC()
@@ -217,18 +217,23 @@ int CEnvSoundscape::UpdateTransmitState()
 
 void CEnvSoundscape::WriteAudioParamsTo( audioparams_t &audio )
 {
-	audio.ent.Set( this );
+	if ( !g_SoundscapeSystem.IsValidIndex( m_soundscapeIndex ) )
+	{
+		Warning( "Setting invalid soundscape, %s, as the active soundscape. There is probably no script entry matching this name. BUG THIS!\n", STRING( m_soundscapeName ) );
+	}
+
+	audio.entIndex = m_soundscapeEntityId;
 	audio.soundscapeIndex = m_soundscapeIndex;
 	audio.localBits = 0;
-	for ( int i = 0; i < ARRAYSIZE(m_positionNames); i++ )
+	for ( int i = 0; i < ARRAYSIZE( m_positionNames ); i++ )
 	{
 		if ( m_positionNames[i] != NULL_STRING )
 		{
 			// We are a valid entity for a sound position
-			CBaseEntity *pEntity = gEntList.FindEntityByName( NULL, m_positionNames[i], this, this );
+			CBaseEntity* pEntity = gEntList.FindEntityByName( NULL, m_positionNames[i], this, this );
 			if ( pEntity )
 			{
-				audio.localBits |= 1<<i;
+				audio.localBits |= 1 << i;
 				audio.localSound.Set( i, pEntity->GetAbsOrigin() );
 			}
 		}
@@ -264,7 +269,7 @@ void CEnvSoundscape::UpdateForPlayer( ss_update_t &update )
 	// calc range from sound entity to player
 	Vector target = EarPosition();
 	float range = (update.playerPosition - target).Length();
-	
+
 	if ( update.pCurrentSoundscape == this )
 	{
 		update.currentDistance = range;
@@ -305,12 +310,12 @@ void CEnvSoundscape::UpdateForPlayer( ss_update_t &update )
 	if ( soundscape_debug.GetBool() )
 	{
 		// draw myself
-		NDebugOverlay::Box(GetAbsOrigin(), Vector(-10,-10,-10), Vector(10,10,10),  255, 0, 255, 64, NDEBUG_PERSIST_TILL_NEXT_SERVER );
+		NDebugOverlay::Box( GetAbsOrigin(), Vector( -10, -10, -10 ), Vector( 10, 10, 10 ), 255, 0, 255, 64, NDEBUG_PERSIST_TILL_NEXT_SERVER );
 
- 		if ( update.pPlayer )
+		if ( update.pPlayer )
 		{
-			audioparams_t &audio = update.pPlayer->GetAudioParams();
-			if ( audio.ent.Get() != this )
+			audioparams_t& audio = update.pPlayer->GetAudioParams();
+			if ( audio.entIndex != m_soundscapeEntityId )
 			{
 				if ( InRangeOfPlayer( update.pPlayer ) )
 				{
@@ -318,37 +323,37 @@ void CEnvSoundscape::UpdateForPlayer( ss_update_t &update )
 				}
 				else
 				{
-					NDebugOverlay::Line( GetAbsOrigin(), update.pPlayer->WorldSpaceCenter(), 255, 0, 0, true, NDEBUG_PERSIST_TILL_NEXT_SERVER  );
+					NDebugOverlay::Line( GetAbsOrigin(), update.pPlayer->WorldSpaceCenter(), 255, 0, 0, true, NDEBUG_PERSIST_TILL_NEXT_SERVER );
 				}
 			}
 			else
 			{
 				if ( InRangeOfPlayer( update.pPlayer ) )
 				{
-					NDebugOverlay::Line( GetAbsOrigin(), update.pPlayer->WorldSpaceCenter(), 0, 255, 0, true, NDEBUG_PERSIST_TILL_NEXT_SERVER  );
+					NDebugOverlay::Line( GetAbsOrigin(), update.pPlayer->WorldSpaceCenter(), 0, 255, 0, true, NDEBUG_PERSIST_TILL_NEXT_SERVER );
 				}
-  				else
+				else
 				{
-					NDebugOverlay::Line( GetAbsOrigin(), update.pPlayer->WorldSpaceCenter(), 255, 170, 0, true, NDEBUG_PERSIST_TILL_NEXT_SERVER  );
+					NDebugOverlay::Line( GetAbsOrigin(), update.pPlayer->WorldSpaceCenter(), 255, 170, 0, true, NDEBUG_PERSIST_TILL_NEXT_SERVER );
 				}
 
 				// also draw lines to each sound position.
 				// we don't store the number of local sound positions, just a bitvector of which ones are on.
 				unsigned int soundbits = audio.localBits.Get();
-				float periodic = 2.0f * sin((fmod(gpGlobals->curtime,2.0f) - 1.0f) * M_PI); // = -4f .. 4f
-				for (int ii = 0 ; ii < NUM_AUDIO_LOCAL_SOUNDS ; ++ii )
+				float periodic = 2.0f * sin( ( fmod( gpGlobals->curtime, 2.0f ) - 1.0f ) * M_PI ); // = -4f .. 4f
+				for ( int ii = 0; ii < NUM_AUDIO_LOCAL_SOUNDS; ++ii )
 				{
-					if ( soundbits & (1 << ii) )
+					if ( soundbits & ( 1 << ii ) )
 					{
-						const Vector &soundLoc = audio.localSound.Get(ii);
-						NDebugOverlay::Line( GetAbsOrigin(), soundLoc, 0, 32 , 255 , false, NDEBUG_PERSIST_TILL_NEXT_SERVER );
+						const Vector& soundLoc = audio.localSound.Get( ii );
+						NDebugOverlay::Line( GetAbsOrigin(), soundLoc, 0, 32, 255, false, NDEBUG_PERSIST_TILL_NEXT_SERVER );
 						NDebugOverlay::Cross3D( soundLoc, 16.0f + periodic, 0, 0, 255, false, NDEBUG_PERSIST_TILL_NEXT_SERVER );
 					}
 				}
 			}
 		}
 
-		NDebugOverlay::EntityTextAtPosition( GetAbsOrigin(), 0, STRING(m_soundscapeName), NDEBUG_PERSIST_TILL_NEXT_SERVER );
+		NDebugOverlay::EntityTextAtPosition( GetAbsOrigin(), 0, STRING( m_soundscapeName ), NDEBUG_PERSIST_TILL_NEXT_SERVER );
 	}
 }
 
@@ -387,19 +392,19 @@ void CEnvSoundscape::Precache()
 
 void CEnvSoundscape::DrawDebugGeometryOverlays( void )
 {
-	if ( m_debugOverlays & (OVERLAY_BBOX_BIT|OVERLAY_PIVOT_BIT|OVERLAY_ABSBOX_BIT) )
+	if ( m_debugOverlays & ( OVERLAY_BBOX_BIT | OVERLAY_PIVOT_BIT | OVERLAY_ABSBOX_BIT ) )
 	{
-		CBasePlayer *pPlayer = UTIL_PlayerByIndex(1);
+		CBasePlayer* pPlayer = UTIL_GetListenServerHost();
 		if ( pPlayer )
 		{
-			audioparams_t &audio = pPlayer->GetAudioParams();
-			if ( audio.ent.Get() != this )
+			audioparams_t& audio = pPlayer->GetAudioParams();
+			if ( audio.entIndex != m_soundscapeEntityId )
 			{
-				CBaseEntity *pEnt = pPlayer; // ->GetSoundscapeListener();
-				if ( pEnt )
-				{
-					NDebugOverlay::Line(GetAbsOrigin(), pEnt->WorldSpaceCenter(), 255, 0, 255, false, 0 );
-				}
+				//CBaseEntity* pEnt = pPlayer->GetSoundscapeListener();
+				//if ( pEnt )
+				//{
+				//	NDebugOverlay::Line( GetAbsOrigin(), pEnt->WorldSpaceCenter(), 255, 0, 255, false, 0 );
+				//}
 			}
 		}
 	}
@@ -463,7 +468,7 @@ void CEnvSoundscapeTriggerable::DelegateEndTouch( CBaseEntity *pEnt )
 	}
 
 	// No soundscapes left.
-	pPlayer->GetAudioParams().ent = NULL;
+	pPlayer->GetAudioParams().entIndex = 0;
 }
 
 
@@ -504,10 +509,10 @@ private:
 LINK_ENTITY_TO_CLASS( trigger_soundscape, CTriggerSoundscape );
 
 BEGIN_DATADESC( CTriggerSoundscape )
-	DEFINE_THINKFUNC( PlayerUpdateThink ),
-	DEFINE_KEYFIELD( m_SoundscapeName, FIELD_STRING, "soundscape" ),
-	DEFINE_FIELD( m_hSoundscape, FIELD_EHANDLE ),
-	DEFINE_UTLVECTOR( m_spectators, FIELD_EHANDLE ), 
+DEFINE_THINKFUNC( PlayerUpdateThink ),
+DEFINE_KEYFIELD( m_SoundscapeName, FIELD_STRING, "soundscape" ),
+DEFINE_FIELD( m_hSoundscape, FIELD_EHANDLE ),
+DEFINE_UTLVECTOR( m_spectators, FIELD_EHANDLE ), 
 END_DATADESC()
 
 

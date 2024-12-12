@@ -408,7 +408,7 @@ bool CBaseEntity::KeyValue( const char *szKeyName, const char *szValue )
 		}
 
 		// Do this so inherited classes looking for 'angles' don't have to bother with 'angle'
-		return KeyValue( szKeyName, szBuf );
+		return KeyValue("angles", szBuf);
 	}
 
 	// NOTE: Have to do these separate because they set two values instead of one
@@ -433,6 +433,12 @@ bool CBaseEntity::KeyValue( const char *szKeyName, const char *szValue )
 		// calling SetLocalOrigin from within a KeyValues method.. use SetAbsOrigin instead!
 		Assert( (GetMoveParent() == NULL) && !IsEFlagSet( EFL_DIRTY_ABSTRANSFORM ) );
 		SetAbsOrigin( vecOrigin );
+		return true;
+	}
+
+	if (FStrEq(szKeyName, "modelindex"))
+	{
+		SetModelIndex(atoi(szValue));
 		return true;
 	}
 
@@ -1170,7 +1176,7 @@ void CBaseEntity::VPhysicsUpdate( IPhysicsObject *pPhysics )
 			{
 				if ( CheckEmitReasonablePhysicsSpew() )
 				{
-					Warning( "Ignoring unreasonable position (%f,%f,%f) from vphysics! (entity %s)\n", origin.x, origin.y, origin.z, GetDebugName() );
+					DevWarning( "Ignoring unreasonable position (%f,%f,%f) from vphysics! (entity %s)\n", origin.x, origin.y, origin.z, GetDebugName() );
 				}
 			}
 
@@ -1610,9 +1616,7 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 	
 	bool bDoServerEffects = true;
 
-#if defined( HL2MP ) && defined( GAME_DLL )
 	bDoServerEffects = false;
-#endif
 
 #if defined( GAME_DLL )
 	if( IsPlayer() )
@@ -1733,45 +1737,36 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 #endif
 
 
-		if( IsPlayer() && info.m_iShots > 1 && iShot % 2 )
+		if (info.m_iAmmoType == GetAmmoDef()->Index("Buckshot"))
 		{
-			// Half of the shotgun pellets are hulls that make it easier to hit targets with the shotgun.
-#ifdef PORTAL
-			Ray_t rayBullet;
-			rayBullet.Init( info.m_vecSrc, vecEnd );
-			pShootThroughPortal = UTIL_Portal_FirstAlongRay( rayBullet, fPortalFraction );
-			if ( !UTIL_Portal_TraceRay_Bullets( pShootThroughPortal, rayBullet, MASK_SHOT, &traceFilter, &tr ) )
+			// Use all three trace methods for shotguns
+			trace_t trHull, trRay;
+
+			Vector vecHullMins(-1.5f, -1.5f, -1.5f);
+			Vector vecHullMaxs(1.5f, 1.5f, 1.5f);
+
+			AI_TraceHull(info.m_vecSrc, vecEnd, vecHullMins, vecHullMaxs, MASK_SHOT, &traceFilter, &trHull);
+
+			AI_TraceLine(info.m_vecSrc, vecEnd, MASK_SHOT, &traceFilter, &trRay);
+
+			Ray_t ray;
+			ray.Init(info.m_vecSrc, vecEnd);
+			enginetrace->TraceRay(ray, MASK_SHOT, &traceFilter, &trRay);
+
+			// Compare results and choose the more accurate one
+			if (trRay.fraction < trHull.fraction)
 			{
-				pShootThroughPortal = NULL;
-			}
-#else
-			AI_TraceHull( info.m_vecSrc, vecEnd, Vector( -3, -3, -3 ), Vector( 3, 3, 3 ), MASK_SHOT, &traceFilter, &tr );
-#endif //#ifdef PORTAL
-		}
-		else
-		{
-#ifdef PORTAL
-			Ray_t rayBullet;
-			rayBullet.Init( info.m_vecSrc, vecEnd );
-			pShootThroughPortal = UTIL_Portal_FirstAlongRay( rayBullet, fPortalFraction );
-			if ( !UTIL_Portal_TraceRay_Bullets( pShootThroughPortal, rayBullet, MASK_SHOT, &traceFilter, &tr ) )
-			{
-				pShootThroughPortal = NULL;
-			}
-#elif TF_DLL
-			CTraceFilterIgnoreFriendlyCombatItems traceFilterCombatItem( this, COLLISION_GROUP_NONE, GetTeamNumber() );
-			if ( TFGameRules() && TFGameRules()->GameModeUsesUpgrades() )
-			{
-				CTraceFilterChain traceFilterChain( &traceFilter, &traceFilterCombatItem );
-				AI_TraceLine(info.m_vecSrc, vecEnd, MASK_SHOT, &traceFilterChain, &tr);
+				tr = trRay;
 			}
 			else
 			{
-				AI_TraceLine(info.m_vecSrc, vecEnd, MASK_SHOT, &traceFilter, &tr);
+				tr = trHull;
 			}
-#else
+		}
+		else
+		{
+			// Default behavior for non-shotgun weapons
 			AI_TraceLine(info.m_vecSrc, vecEnd, MASK_SHOT, &traceFilter, &tr);
-#endif //#ifdef PORTAL
 		}
 
 		// Tracker 70354/63250:  ywb 8/2/07

@@ -89,7 +89,9 @@ public:
 
 	void OnStopAllSounds()
 	{
+#ifdef GAME_DLL
 		m_params.ent.Set( NULL );
+#endif
 		m_params.soundscapeIndex = -1;
 		m_loopingSounds.Purge();
 		m_randomSounds.Purge();
@@ -390,7 +392,9 @@ void C_SoundscapeSystem::Shutdown()
 	m_loopingSounds.RemoveAll();
 	m_randomSounds.RemoveAll();
 	m_soundscapes.RemoveAll();
+#ifdef GAME_DLL
 	m_params.ent.Set( NULL );
+#endif
 	m_params.soundscapeIndex = -1;
 
 	while ( m_SoundscapeScripts.Count() > 0 )
@@ -554,11 +558,13 @@ void C_SoundscapeSystem::Update( float frametime )
 
 void C_SoundscapeSystem::UpdateAudioParams( audioparams_t &audio )
 {
+#ifdef GAME_DLL
 	if ( m_params.soundscapeIndex == audio.soundscapeIndex && m_params.ent.Get() == audio.ent.Get() )
 		return;
-
+#endif
 	m_params = audio;
 	m_forcedSoundscapeIndex = -1;
+#ifdef GAME_DLL
 	if ( audio.ent.Get() && audio.soundscapeIndex >= 0 && audio.soundscapeIndex < m_soundscapes.Count() )
 	{
 		DevReportSoundscapeName( audio.soundscapeIndex );
@@ -573,6 +579,7 @@ void C_SoundscapeSystem::UpdateAudioParams( audioparams_t &audio )
 			DevMsg(1, "Error: Bad soundscape!\n");
 		}
 	}
+#endif
 }
 
 

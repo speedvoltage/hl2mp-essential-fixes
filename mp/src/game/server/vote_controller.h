@@ -118,6 +118,7 @@ protected:
 	void			CheckForEarlyVoteClose( void ); // If everyone has voted (and changing votes is not allowed) then end early
 
 	CNetworkVar( int, m_iActiveIssueIndex );					// Type of thing being voted on
+	CNetworkVar( int, m_nVoteIdx );
 	CNetworkVar( int, m_iOnlyTeamToVote );						// If an Ally restricted vote, the team number that is allowed to vote
 	CNetworkArray( int, m_nVoteOptionCount, MAX_VOTE_OPTIONS );	// Vote options counter
 	CNetworkVar( int, m_nPotentialVotes );						// How many votes could come in, so we can close ballot early

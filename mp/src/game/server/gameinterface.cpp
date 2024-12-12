@@ -844,6 +844,11 @@ float CServerGameDLL::GetTickInterval( void ) const
 		if ( tickrate > 10 )
 			tickinterval = 1.0f / tickrate;
 	}
+	else
+	{
+		float tickrate = 100.0;
+		tickinterval = 1.0f / tickrate;
+	}
 #endif
 
 	return tickinterval;
@@ -2758,6 +2763,7 @@ void CServerGameClients::ClientDisconnect( edict_t *pEdict )
 
 			if ( g_pGameRules )
 			{
+				player->ForceDropOfCarriedPhysObjects(NULL);
 				g_pGameRules->ClientDisconnected( pEdict );
 				gamestats->Event_PlayerDisconnected( player );
 			}

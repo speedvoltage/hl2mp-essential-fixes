@@ -15,6 +15,10 @@
 #include "simtimer.h"
 #include "soundenvelope.h"
 
+#if defined ( HL2MP )
+#include "basemultiplayerplayer.h"
+#endif
+
 class CAI_Squad;
 class CPropCombineBall;
 
@@ -75,7 +79,7 @@ public:
 //=============================================================================
 // >> HL2_PLAYER
 //=============================================================================
-class CHL2_Player : public CBasePlayer
+class CHL2_Player : public CBaseMultiplayerPlayer
 {
 public:
 	DECLARE_CLASS( CHL2_Player, CBasePlayer );
@@ -241,6 +245,7 @@ public:
 	virtual	bool		IsHoldingEntity( CBaseEntity *pEnt );
 	virtual void		ForceDropOfCarriedPhysObjects( CBaseEntity *pOnlyIfHoldindThis );
 	virtual float		GetHeldObjectMass( IPhysicsObject *pHeldObject );
+	virtual CBaseEntity	*GetHeldObject( void );
 
 	virtual bool		IsFollowingPhysics( void ) { return (m_afPhysicsFlags & PFLAG_ONBARNACLE) > 0; }
 	void				InputForceDropPhysObjects( inputdata_t &data );
@@ -309,7 +314,7 @@ private:
 	bool				m_bSprintEnabled;		// Used to disable sprint temporarily
 	bool				m_bIsAutoSprinting;		// A proxy for holding down the sprint key.
 	float				m_fAutoSprintMinTime;	// Minimum time to maintain autosprint regardless of player speed. 
-
+	bool				b_ducksprint;
 	CNetworkVar( bool, m_fIsSprinting );
 	CNetworkVarForDerived( bool, m_fIsWalking );
 

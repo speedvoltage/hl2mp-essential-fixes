@@ -23,6 +23,8 @@
 
 #define ITEM_PICKUP_BOX_BLOAT		24
 
+ConVar sv_hl2mp_item_pickup_through_glass( "sv_hl2mp_item_pickup_through_glass", "0", FCVAR_NOTIFY, "Simulates item pickup bug from pre OB update, allow pickup items through glass, ex: allows use room items on dm_biohazard_cal." );
+
 class CWorldItem : public CBaseAnimating
 {
 	DECLARE_DATADESC();
@@ -295,16 +297,15 @@ void CItem::FallThink ( void )
 	{
 		shouldMaterialize = (GetFlags() & FL_ONGROUND) ? true : false;
 	}
-
-	if ( shouldMaterialize )
+	
+	SetThink ( NULL );
+	if (GetOriginalSpawnOrigin() == vec3_origin)
 	{
-		SetThink ( NULL );
-
 		m_vOriginalSpawnOrigin = GetAbsOrigin();
 		m_vOriginalSpawnAngles = GetAbsAngles();
-
-		HL2MPRules()->AddLevelDesignerPlacedObject( this );
 	}
+
+	HL2MPRules()->AddLevelDesignerPlacedObject( this );
 #endif // HL2MP
 
 #if defined( TF_DLL )
@@ -339,7 +340,7 @@ void CItem::FallThink ( void )
 //			*pPlayer - player attempting the pickup
 // Output : Returns true on success, false on failure.
 //-----------------------------------------------------------------------------
-bool UTIL_ItemCanBeTouchedByPlayer( CBaseEntity *pItem, CBasePlayer *pPlayer )
+bool UTIL_ItemCanBeTouchedByPlayer( CBaseEntity *pItem, CBasePlayer *pPlayer, unsigned int traceMask = MASK_SOLID )
 {
 	if ( pItem == NULL || pPlayer == NULL )
 		return false;
@@ -371,7 +372,7 @@ bool UTIL_ItemCanBeTouchedByPlayer( CBaseEntity *pItem, CBasePlayer *pPlayer )
 	// Trace between to see if we're occluded
 	trace_t tr;
 	CTraceFilterSkipTwoEntities filter( pPlayer, pItem, COLLISION_GROUP_PLAYER_MOVEMENT );
-	UTIL_TraceLine( vecStartPos, vecEndPos, MASK_SOLID, &filter, &tr );
+	UTIL_TraceLine( vecStartPos, vecEndPos, traceMask, &filter, &tr );
 
 	// Occluded
 	// FIXME: For now, we exclude starting in solid because there are cases where this doesn't matter
@@ -388,7 +389,7 @@ bool UTIL_ItemCanBeTouchedByPlayer( CBaseEntity *pItem, CBasePlayer *pPlayer )
 //-----------------------------------------------------------------------------
 bool CItem::ItemCanBeTouchedByPlayer( CBasePlayer *pPlayer )
 {
-	return UTIL_ItemCanBeTouchedByPlayer( this, pPlayer );
+	return UTIL_ItemCanBeTouchedByPlayer( this, pPlayer, sv_hl2mp_item_pickup_through_glass.GetBool() ? MASK_SOLID ^ CONTENTS_WINDOW : MASK_SOLID );
 }
 
 //-----------------------------------------------------------------------------
@@ -462,6 +463,7 @@ CBaseEntity* CItem::Respawn( void )
 {
 	SetTouch( NULL );
 	AddEffects( EF_NODRAW );
+	AddEFlags(EFL_NO_PHYSCANNON_INTERACTION);
 
 	VPhysicsDestroyObject();
 
@@ -490,6 +492,7 @@ void CItem::Materialize( void )
 	if ( IsEffectActive( EF_NODRAW ) )
 	{
 		// changing from invisible state to visible.
+		RemoveEFlags(EFL_NO_PHYSCANNON_INTERACTION);
 
 #ifdef HL2MP
 		EmitSound( "AlyxEmp.Charge" );

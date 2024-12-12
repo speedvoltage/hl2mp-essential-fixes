@@ -121,7 +121,44 @@ void CWeaponHL2MPBase::WeaponSound( WeaponSound_t sound_type, float soundtime /*
 				
 		CBaseEntity::EmitSound( filter, GetPlayerOwner()->entindex(), shootsound, &GetPlayerOwner()->GetAbsOrigin() ); 
 #else
-		BaseClass::WeaponSound( sound_type, soundtime );
+	const char *shootsound = GetShootSound(sound_type); 
+	if (!shootsound || !shootsound[0])
+		return;
+
+	CBroadcastRecipientFilter soundFilter;
+	// we add all the players
+	soundFilter.AddAllPlayers();
+	// but exclude ourselves
+	// the weapon sounds are already handled for the client just above, 
+	// we are making sure PVS does not cut the sounds for everyone else,
+	// we are making an exception here for the following sounds, 
+	// because they do not work client-side due to prediction and,
+	// since we have changed how the sound is filtered and propagated,
+	// we need to do that in order to hear them again.
+
+	if ( strcmp( shootsound, "Weapon_Crossbow.BoltElectrify" ) != 0 &&
+		strcmp( shootsound, "Weapon_PhysCannon.OpenClaws" ) != 0 &&
+		strcmp( shootsound, "Weapon_PhysCannon.Pickup" ) != 0 &&
+		strcmp( shootsound, "Weapon_PhysCannon.Drop" ) != 0 &&
+		strcmp( shootsound, "Weapon_PhysCannon.HoldSound" ) != 0 &&
+		strcmp( shootsound, "Weapon_PhysCannon.TooHeavy" ) != 0 &&
+		strcmp( shootsound, "Weapon_PhysCannon.HoldSound" ) != 0 &&
+		strcmp( shootsound, "WeaponFrag.Roll" ) != 0 &&
+		strcmp( shootsound, "Weapon_RPG.TurnOn" ) != 0 &&
+		strcmp( shootsound, "Weapon_RPG.TurnOff" ) != 0 )
+	{
+		// and remove ourselves from the recipients if the sound is not one of the above
+		soundFilter.RemoveRecipient( static_cast< CBasePlayer* >( GetOwner() ) );
+	}
+
+	EmitSound_t ep;
+	ep.m_nChannel = CHAN_WEAPON;
+	ep.m_pSoundName = shootsound;
+	ep.m_flVolume = 1.0f;
+	ep.m_SoundLevel = SNDLVL_140dB;
+	ep.m_nFlags = SND_NOFLAGS;
+
+	EmitSound(soundFilter, entindex(), ep);
 #endif
 }
 
@@ -177,7 +214,7 @@ void CWeaponHL2MPBase::Materialize( void )
 		DoMuzzleFlash();
 	}
 
-	if ( HasSpawnFlags( SF_NORESPAWN ) == false )
+	//if ( HasSpawnFlags( SF_NORESPAWN ) == false )
 	{
 		VPhysicsInitNormal( SOLID_BBOX, GetSolidFlags() | FSOLID_TRIGGER, false );
 		SetMoveType( MOVETYPE_VPHYSICS );
@@ -185,7 +222,7 @@ void CWeaponHL2MPBase::Materialize( void )
 		HL2MPRules()->AddLevelDesignerPlacedObject( this );
 	}
 
-	if ( HasSpawnFlags( SF_NORESPAWN ) == false )
+	//if ( HasSpawnFlags( SF_NORESPAWN ) == false )
 	{
 		if ( GetOriginalSpawnOrigin() == vec3_origin )
 		{
@@ -195,7 +232,7 @@ void CWeaponHL2MPBase::Materialize( void )
 	}
 
 	SetPickupTouch();
-
+	SetOwnerEntity(NULL);
 	SetThink (NULL);
 }
 
@@ -205,67 +242,73 @@ int CWeaponHL2MPBase::ObjectCaps()
 }
 
 #endif
-
+#ifdef GAME_DLL
+void CWeaponHL2MPBase::FallThink(void)
+{
+	// Prevent the common HL2DM weapon respawn bug from happening
+	// When a weapon is spawned, the following chain of events occurs:
+	// - Spawn() is called (duh), which then calls FallInit()
+	// - FallInit() is called, and prepares the weapon's 'Think' function (CBaseCombatWeapon::FallThink())
+	// - FallThink() is called, and performs several checks before deciding whether the weapon should Materialize()
+	// - Materialize() is called (the HL2DM version above), which sets the weapon's respawn location.
+	// The problem occurs when a weapon isn't placed properly by a level designer.
+	// If the weapon is unable to move from its location (e.g. if its bounding box is halfway inside a wall), Materialize() never gets called.
+	// Since Materialize() never gets called, the weapon's respawn location is never set, so if a person picks it up, it respawns forever at
+	// 0 0 0 on the map (infinite loop of fall, wait, respawn, not nice at all for performance and bandwidth!)
+	if (HasSpawnFlags(SF_NORESPAWN) == false)
+	{
+		if (GetOriginalSpawnOrigin() == vec3_origin)
+		{
+			m_vOriginalSpawnOrigin = GetAbsOrigin();
+			m_vOriginalSpawnAngles = GetAbsAngles();
+		}
+	}
+	return BaseClass::FallThink();
+}
+#endif // GAME_DLL
 void CWeaponHL2MPBase::FallInit( void )
 {
 #ifndef CLIENT_DLL
 	SetModel( GetWorldModel() );
 	VPhysicsDestroyObject();
 
-	if ( HasSpawnFlags( SF_NORESPAWN ) == false )
+	// Constrained start?
+	if ( HasSpawnFlags( SF_WEAPON_START_CONSTRAINED ) )
+	{
+		//Constrain the weapon in place
+		IPhysicsObject* pReferenceObject, * pAttachedObject;
+		pReferenceObject = g_PhysWorldObject;
+		pAttachedObject = VPhysicsGetObject();
+
+		if ( pReferenceObject && pAttachedObject )
+		{
+			constraint_fixedparams_t fixed;
+			fixed.Defaults();
+			fixed.InitWithCurrentObjectState( pReferenceObject, pAttachedObject );
+
+			fixed.constraint.forceLimit = lbs2kg( 10000 );
+			fixed.constraint.torqueLimit = lbs2kg( 10000 );
+
+			IPhysicsConstraint* pConstraint = GetConstraint();
+			pConstraint = physenv->CreateFixedConstraint( pReferenceObject,
+				pAttachedObject, NULL, fixed );
+			pConstraint->SetGameData( ( void* ) this );
+		};
+	}
+	else
 	{
 		SetMoveType( MOVETYPE_NONE );
 		SetSolid( SOLID_BBOX );
 		AddSolidFlags( FSOLID_TRIGGER );
 
-		UTIL_DropToFloor( this, MASK_SOLID );
-	}
-	else
-	{
-		if ( !VPhysicsInitNormal( SOLID_BBOX, GetSolidFlags() | FSOLID_TRIGGER, false ) )
-		{
-			SetMoveType( MOVETYPE_NONE );
-			SetSolid( SOLID_BBOX );
-			AddSolidFlags( FSOLID_TRIGGER );
-		}
-		else
-		{
-	#if !defined( CLIENT_DLL )
-			// Constrained start?
-			if ( HasSpawnFlags( SF_WEAPON_START_CONSTRAINED ) )
-			{
-				//Constrain the weapon in place
-				IPhysicsObject *pReferenceObject, *pAttachedObject;
-				
-				pReferenceObject = g_PhysWorldObject;
-				pAttachedObject = VPhysicsGetObject();
-
-				if ( pReferenceObject && pAttachedObject )
-				{
-					constraint_fixedparams_t fixed;
-					fixed.Defaults();
-					fixed.InitWithCurrentObjectState( pReferenceObject, pAttachedObject );
-					
-					fixed.constraint.forceLimit	= lbs2kg( 10000 );
-					fixed.constraint.torqueLimit = lbs2kg( 10000 );
-
-					IPhysicsConstraint *pConstraint = GetConstraint();
-
-					pConstraint = physenv->CreateFixedConstraint( pReferenceObject, pAttachedObject, NULL, fixed );
-
-					pConstraint->SetGameData( (void *) this );
-				}
-			}
-	#endif //CLIENT_DLL
-		}
+		//any difference?
+		if ( HasSpawnFlags( SF_NORESPAWN ) == false ) UTIL_DropToFloor( this, MASK_SOLID );
+		else VPhysicsInitNormal( SOLID_BBOX, GetSolidFlags() | FSOLID_TRIGGER, false );
 	}
 
 	SetPickupTouch();
-	
-	SetThink( &CBaseCombatWeapon::FallThink );
-
+	SetThink( &CWeaponHL2MPBase::FallThink );
 	SetNextThink( gpGlobals->curtime + 0.1f );
-
 #endif
 }
 

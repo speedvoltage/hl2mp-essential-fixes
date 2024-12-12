@@ -106,6 +106,18 @@ acttable_t	CWeapon_SLAM::m_acttable[] =
 
 IMPLEMENT_ACTTABLE(CWeapon_SLAM);
 #endif
+CSteamIDWeapon::CSteamIDWeapon()
+{
+	m_nSteamID = 0;
+}
+uint64 CSteamIDWeapon::GetSteamID()const
+{
+	return m_nSteamID;
+}
+void CSteamIDWeapon::SetSteamID( uint64 steamID )
+{
+	m_nSteamID = steamID;
+}
 
 
 void CWeapon_SLAM::Spawn( )
@@ -132,7 +144,6 @@ void CWeapon_SLAM::Precache( void )
 	UTIL_PrecacheOther( "npc_satchel" );
 #endif
 
-	PrecacheScriptSound( "Weapon_SLAM.TripMineMode" );
 	PrecacheScriptSound( "Weapon_SLAM.SatchelDetonate" );
 	PrecacheScriptSound( "Weapon_SLAM.SatchelThrow" );
 }
@@ -145,6 +156,14 @@ void CWeapon_SLAM::Precache( void )
 void CWeapon_SLAM::SetPickupTouch( void )
 {
 	SetTouch(&CWeapon_SLAM::SlamTouch);
+
+#ifdef GAME_DLL
+	if (GetSpawnFlags() & SF_NORESPAWN)
+	{
+		SetThink(&CWeapon_SLAM::SUB_Remove);
+		SetNextThink(gpGlobals->curtime + 30.0f);
+	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -176,6 +195,7 @@ void CWeapon_SLAM::SlamTouch( CBaseEntity *pOther )
 bool CWeapon_SLAM::Holster( CBaseCombatWeapon *pSwitchingTo )
 {
 	SetThink(NULL);
+	m_bAttachTripmine = false;
 	return BaseClass::Holster(pSwitchingTo);
 }
 
@@ -211,10 +231,7 @@ void CWeapon_SLAM::PrimaryAttack( void )
 	switch (m_tSlamState)
 	{
 		case SLAM_TRIPMINE_READY:
-			if (CanAttachSLAM())
-			{
-				StartTripmineAttach();
-			}
+			StartTripmineAttach();
 			break;
 		case SLAM_SATCHEL_THROW:
 			StartSatchelThrow();
@@ -302,28 +319,29 @@ bool CWeapon_SLAM::AnyUndetonatedCharges(void)
 //-----------------------------------------------------------------------------
 void CWeapon_SLAM::StartSatchelDetonate()
 {
+	Activity activity = GetActivity();
+	if ( activity != ACT_SLAM_STICKWALL_IDLE && activity != ACT_SLAM_THROW_TO_STICKWALL )
+	{
+		if (GetActivity() != ACT_SLAM_STICKWALL_IDLE
+			&& GetActivity() != ACT_SLAM_DETONATOR_IDLE && GetActivity() != ACT_SLAM_THROW_IDLE)
+			return;
 
-	if ( GetActivity() != ACT_SLAM_DETONATOR_IDLE && GetActivity() != ACT_SLAM_THROW_IDLE )
-		 return;
-	
-	// -----------------------------------------
-	//  Play detonate animation
-	// -----------------------------------------
-	if (m_bNeedReload)
-	{
-		SendWeaponAnim(ACT_SLAM_DETONATOR_DETONATE);
-	}
-	else if (m_tSlamState == SLAM_SATCHEL_ATTACH)
-	{
-		SendWeaponAnim(ACT_SLAM_STICKWALL_DETONATE);
-	}
-	else if (m_tSlamState == SLAM_SATCHEL_THROW)
-	{
-		SendWeaponAnim(ACT_SLAM_THROW_DETONATE);
+
+		// -----------------------------------------
+		//  Play detonate animation
+		// -----------------------------------------
+		if (m_bNeedReload || m_tSlamState == SLAM_TRIPMINE_READY)
+		{
+			SendWeaponAnim( ACT_SLAM_DETONATOR_DETONATE );
+		}
+		else
+		{
+			SendWeaponAnim(m_tSlamState == SLAM_SATCHEL_THROW ? ACT_SLAM_THROW_DETONATE : ACT_SLAM_STICKWALL_DETONATE);
+		}
 	}
 	else
 	{
-		return;
+		SendWeaponAnim( ACT_SLAM_STICKWALL_DETONATE );
 	}
 	SatchelDetonate();
 
@@ -358,23 +376,35 @@ void CWeapon_SLAM::TripmineAttach( void )
 
 	trace_t tr;
 
-	UTIL_TraceLine( vecSrc, vecSrc + (vecAiming * 128), MASK_SOLID, pOwner, COLLISION_GROUP_NONE, &tr );
-	
-	if (tr.fraction < 1.0)
+	if (CanAttachSLAM(&tr))
 	{
 		CBaseEntity *pEntity = tr.m_pEnt;
 		if (pEntity && !(pEntity->GetFlags() & FL_CONVEYOR))
 		{
 
 #ifndef CLIENT_DLL
+			CBaseEntity *pEntity = tr.m_pEnt;
+			CBaseCombatCharacter *pBCC = ToBaseCombatCharacter(pEntity);
+			if (pBCC)
+			{
+				return;
+			}
+
 			QAngle angles;
 			VectorAngles(tr.plane.normal, angles);
 
 			angles.x += 90;
 
 			CBaseEntity *pEnt = CBaseEntity::Create( "npc_tripmine", tr.endpos + tr.plane.normal * 3, angles, NULL );
-
 			CTripmineGrenade *pMine = (CTripmineGrenade *)pEnt;
+#if !defined(NO_STEAM)
+			CBasePlayer* pPlayer = dynamic_cast< CBasePlayer* >( pOwner );
+			if ( pPlayer )
+			{
+				pMine->SetSteamID( pPlayer->GetSteamIDAsUInt64() );
+			}
+#endif
+			pMine->AttachToEntity(pEntity);
 			pMine->m_hOwner = GetOwner();
 
 #endif
@@ -409,9 +439,7 @@ void CWeapon_SLAM::StartTripmineAttach( void )
 
 	trace_t tr;
 
-	UTIL_TraceLine( vecSrc, vecSrc + (vecAiming * 128), MASK_SOLID, pPlayer, COLLISION_GROUP_NONE, &tr );
-	
-	if (tr.fraction < 1.0)
+	if (CanAttachSLAM(&tr))
 	{
 		// ALERT( at_console, "hit %f\n", tr.flFraction );
 
@@ -484,6 +512,9 @@ void CWeapon_SLAM::SatchelThrow( void )
 
 	if ( pSatchel )
 	{
+#if !defined(NO_STEAM)
+		pSatchel->SetSteamID( pPlayer->GetSteamIDAsUInt64() );
+#endif
 		pSatchel->SetThrower( GetOwner() );
 		pSatchel->ApplyAbsVelocityImpulse( vecThrow );
 		pSatchel->SetLocalAngularVelocity( QAngle( 0, 400, 0 ) );
@@ -552,9 +583,7 @@ void CWeapon_SLAM::SatchelAttach( void )
 
 	trace_t tr;
 
-	UTIL_TraceLine( vecSrc, vecSrc + (vecAiming * 128), MASK_SOLID, pOwner, COLLISION_GROUP_NONE, &tr );
-	
-	if (tr.fraction < 1.0)
+	if (CanAttachSLAM(&tr))
 	{
 		CBaseEntity *pEntity = tr.m_pEnt;
 		if (pEntity && !(pEntity->GetFlags() & FL_CONVEYOR))
@@ -566,6 +595,13 @@ void CWeapon_SLAM::SatchelAttach( void )
 			tr.endpos.z -= 6.0f;
 					
 			CSatchelCharge *pSatchel	= (CSatchelCharge*)CBaseEntity::Create( "npc_satchel", tr.endpos + tr.plane.normal * 3, angles, NULL );
+#if !defined(NO_STEAM)
+			CBasePlayer* pPlayer = dynamic_cast< CBasePlayer* >( pOwner );
+			if ( pPlayer )
+			{
+				pSatchel->SetSteamID( pPlayer->GetSteamIDAsUInt64() );
+			}
+#endif
 			pSatchel->SetMoveType( MOVETYPE_FLY ); // no gravity
 			pSatchel->m_bIsAttached		= true;
 			pSatchel->m_bIsLive			= true;
@@ -685,7 +721,7 @@ void CWeapon_SLAM::SLAMThink( void )
 				int iAnim =	m_bDetonatorArmed ? ACT_SLAM_STICKWALL_TO_THROW : ACT_SLAM_TRIPMINE_TO_THROW_ND;
 				SendWeaponAnim( iAnim );
 				m_flWallSwitchTime = gpGlobals->curtime + SequenceDuration();
-				m_bNeedReload = false;
+				m_bNeedReload = m_bAttachTripmine = false;
 			}
 		}
 	}
@@ -696,7 +732,7 @@ void CWeapon_SLAM::SLAMThink( void )
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
-bool CWeapon_SLAM::CanAttachSLAM( void )
+bool CWeapon_SLAM::CanAttachSLAM(trace_t* pTrace)
 {
 	CHL2MP_Player *pOwner = ToHL2MPPlayer( GetOwner() );
 
@@ -730,7 +766,18 @@ bool CWeapon_SLAM::CanAttachSLAM( void )
 			{
 				return false;
 			}
+			//block attaching to another SLAM
+			CBaseGrenade* pGrenade = dynamic_cast< CBaseGrenade* >( pEntity );
+			if ( pGrenade )
+			{
+				return false;
+			}
 		}
+		if (pTrace != NULL)
+		{
+			*pTrace = tr;
+		}
+
 		return true;
 	}
 	else
@@ -754,6 +801,11 @@ void CWeapon_SLAM::ItemPostFrame( void )
 	}
 
 	SLAMThink();
+
+	if (AnyUndetonatedCharges())
+		m_bDetonatorArmed = true;
+	else
+		m_bDetonatorArmed = false;
 
 	if ((pOwner->m_nButtons & IN_ATTACK2) && (m_flNextSecondaryAttack <= gpGlobals->curtime))
 	{
@@ -1031,6 +1083,16 @@ bool CWeapon_SLAM::Deploy( void )
 	}
 
 	return DefaultDeploy( (char*)GetViewModel(), (char*)GetWorldModel(), iActivity, (char*)GetAnimPrefix() );
+}
+
+bool CWeapon_SLAM::HasAnyAmmo(void)
+{
+	if (AnyUndetonatedCharges() || m_iClip2 > 0)
+		return true;
+	else
+		return false;
+
+	return BaseClass::HasAnyAmmo();
 }
 
 //-----------------------------------------------------------------------------

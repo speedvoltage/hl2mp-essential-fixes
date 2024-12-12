@@ -3621,8 +3621,8 @@ void CNPC_Citizen::Heal()
 		{
 			if ( pTarget->IsPlayer() && npc_citizen_medic_emit_sound.GetBool() )
 			{
-				CPASAttenuationFilter filter( pTarget, "HealthKit.Touch" );
-				EmitSound( filter, pTarget->entindex(), "HealthKit.Touch" );
+				CPASAttenuationFilter filter( pTarget, "HealthKit.Take" );
+				EmitSound( filter, pTarget->entindex(), "HealthKit.Take" );
 			}
 
 			pTarget->TakeHealth( healAmt, DMG_GENERIC );

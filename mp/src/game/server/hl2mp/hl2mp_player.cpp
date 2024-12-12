@@ -18,6 +18,7 @@
 #include "team.h"
 #include "weapon_hl2mpbase.h"
 #include "grenade_satchel.h"
+#include "grenade_tripmine.h"
 #include "eventqueue.h"
 #include "gamestats.h"
 
@@ -122,6 +123,11 @@ CHL2MP_Player::~CHL2MP_Player( void )
 
 void CHL2MP_Player::UpdateOnRemove( void )
 {
+	if (auto p = GetLadderMove())
+	{
+		UTIL_Remove((CBaseEntity*)(p->m_hReservedSpot.Get()));
+		p->m_hReservedSpot = NULL;
+	}
 	if ( m_hRagdoll )
 	{
 		UTIL_RemoveImmediate( m_hRagdoll );
@@ -165,10 +171,14 @@ void CHL2MP_Player::GiveAllItems( void )
 	CBasePlayer::GiveAmmo( 255,	"AR2" );
 	CBasePlayer::GiveAmmo( 5,	"AR2AltFire" );
 	CBasePlayer::GiveAmmo( 255,	"SMG1");
-	CBasePlayer::GiveAmmo( 1,	"smg1_grenade");
+	CBasePlayer::GiveAmmo( 3,	"smg1_grenade");
 	CBasePlayer::GiveAmmo( 255,	"Buckshot");
 	CBasePlayer::GiveAmmo( 32,	"357" );
-	CBasePlayer::GiveAmmo( 3,	"rpg_round");
+	CBasePlayer::GiveAmmo( 3, "rpg_round" );
+	CBasePlayer::GiveAmmo(10, "XBowBolt");
+
+	CBasePlayer::GiveAmmo( 5,	"grenade" );
+	CBasePlayer::GiveAmmo( 5,	"slam" );
 
 	CBasePlayer::GiveAmmo( 1,	"grenade" );
 	CBasePlayer::GiveAmmo( 2,	"slam" );
@@ -301,7 +311,9 @@ void CHL2MP_Player::Spawn(void)
 
 		RemoveEffects( EF_NODRAW );
 		
+		SetAllowPickupWeaponThroughObstacle( true );
 		GiveDefaultItems();
+		SetAllowPickupWeaponThroughObstacle( false );
 	}
 
 	SetNumAnimOverlays( 3 );
@@ -514,7 +526,7 @@ void CHL2MP_Player::ResetAnimation( void )
 
 		if (!GetAbsVelocity().x && !GetAbsVelocity().y)
 			SetAnimation( PLAYER_IDLE );
-		else if ((GetAbsVelocity().x || GetAbsVelocity().y) && ( GetFlags() & FL_ONGROUND ))
+		else if ((GetAbsVelocity().x || GetAbsVelocity().y))//Fixed model's T-Pose while realoding in jump 
 			SetAnimation( PLAYER_WALK );
 		else if (GetWaterLevel() > 1)
 			SetAnimation( PLAYER_WALK );
@@ -586,7 +598,7 @@ void CHL2MP_Player::PlayerDeathThink()
 void CHL2MP_Player::FireBullets ( const FireBulletsInfo_t &info )
 {
 	// Move other players back to history positions based on local player's lag
-	lagcompensation->StartLagCompensation( this, this->GetCurrentCommand() );
+	lagcompensation->StartLagCompensation( this, LAG_COMPENSATE_HITBOXES );
 
 	FireBulletsInfo_t modinfo = info;
 
@@ -620,7 +632,8 @@ bool CHL2MP_Player::WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, co
 {
 	// No need to lag compensate at all if we're not attacking in this command and
 	// we haven't attacked recently.
-	if ( !( pCmd->buttons & IN_ATTACK ) && (pCmd->command_number - m_iLastWeaponFireUsercmd > 5) )
+	//SHOTGUN SECONDARY ATTACK PREDICTION FIX
+	if ( !( ( pCmd->buttons & IN_ATTACK ) || ( pCmd->buttons & IN_ATTACK2 ) ) && (pCmd->command_number - m_iLastWeaponFireUsercmd > 5) )
 		return false;
 
 	// If this entity hasn't been transmitted to us and acked, then don't bother lag compensating it.
@@ -858,10 +871,13 @@ bool CHL2MP_Player::BumpWeapon( CBaseCombatWeapon *pWeapon )
 		return false;
 	}
 
-	// Don't let the player fetch weapons through walls (use MASK_SOLID so that you can't pickup through windows)
-	if( !pWeapon->FVisible( this, MASK_SOLID ) && !(GetFlags() & FL_NOTARGET) )
-	{
-		return false;
+	if( !GetAllowPickupWeaponThroughObstacle() )
+	{ 
+		// Don't let the player fetch weapons through walls (use MASK_SOLID so that you can't pickup through windows)
+		if( !pWeapon->FVisible( this, MASK_SOLID ) && !(GetFlags() & FL_NOTARGET) )
+		{
+			return false;
+		}
 	}
 
 	bool bOwnsWeaponAlready = !!Weapon_OwnsThisType( pWeapon->GetClassname(), pWeapon->GetSubType());
@@ -890,16 +906,10 @@ bool CHL2MP_Player::BumpWeapon( CBaseCombatWeapon *pWeapon )
 
 void CHL2MP_Player::ChangeTeam( int iTeam )
 {
-/*	if ( GetNextTeamChangeTime() >= gpGlobals->curtime )
-	{
-		char szReturnString[128];
-		Q_snprintf( szReturnString, sizeof( szReturnString ), "Please wait %d more seconds before trying to switch teams again.\n", (int)(GetNextTeamChangeTime() - gpGlobals->curtime) );
-
-		ClientPrint( this, HUD_PRINTTALK, szReturnString );
-		return;
-	}*/
+	LadderRespawnFix();
 
 	bool bKill = false;
+	bool bWasSpectator = false;
 
 	if ( HL2MPRules()->IsTeamplay() != true && iTeam != TEAM_SPECTATOR )
 	{
@@ -915,6 +925,11 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 		}
 	}
 
+	if (this->GetTeamNumber() == TEAM_SPECTATOR)
+	{
+		bWasSpectator = true;
+	}
+
 	BaseClass::ChangeTeam( iTeam );
 
 	m_flNextTeamChangeTime = gpGlobals->curtime + TEAM_CHANGE_INTERVAL;
@@ -922,15 +937,50 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	if ( HL2MPRules()->IsTeamplay() == true )
 	{
 		SetPlayerTeamModel();
+
+		if (iTeam == TEAM_REBELS)
+		{
+			int iHumanModel = random->RandomInt( 1, 2 );
+
+			if ( iHumanModel == 1 )
+				engine->ClientCommand( edict(), UTIL_VarArgs( "cl_playermodel models/humans/group03/female_0%d.mdl\n", random->RandomInt( 1, 7 ) ) );
+			else
+				engine->ClientCommand( edict(), UTIL_VarArgs( "cl_playermodel models/humans/group03/male_0%d.mdl\n", random->RandomInt( 1, 9 ) ) );
+		}
+		else if (iTeam == TEAM_COMBINE)
+		{
+			engine->ClientCommand(edict(), "cl_playermodel models/combine_soldier.mdl\n");
+		}
 	}
 	else
 	{
 		SetPlayerModel();
 	}
 
+	if (bWasSpectator)
+	{
+		Spawn();
+		return; // everything is useless afterwards
+	}
+
+	DetonateTripmines();
+	ClearUseEntity();
+
 	if ( iTeam == TEAM_SPECTATOR )
 	{
+		ForceDropOfCarriedPhysObjects(NULL);
 		RemoveAllItems( true );
+		StopZooming();
+
+		if (FlashlightIsOn())
+		{
+			FlashlightTurnOff();
+		}
+
+		if (IsInAVehicle())
+		{
+			LeaveVehicle();
+		}
 
 		State_Transition( STATE_OBSERVER_MODE );
 	}
@@ -943,10 +993,33 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 
 bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 {
+	if ( team == TEAM_SPECTATOR && IsHLTV() )
+	{
+		ChangeTeam( TEAM_SPECTATOR );
+		ResetDeathCount();
+		ResetFragCount();
+		return true;
+	}
+
 	if ( !GetGlobalTeam( team ) || team == 0 )
 	{
-		Warning( "HandleCommand_JoinTeam( %d ) - invalid team index.\n", team );
+		char szReturnString[128];
+		Q_snprintf(szReturnString, sizeof(szReturnString), "Please enter a valid team index.\n");
+		ClientPrint(this, HUD_PRINTTALK, szReturnString);
 		return false;
+	}
+
+	// Don't do anything if you join your own team
+	if ( team == GetTeamNumber() )
+	{
+		return false;
+	}
+
+	// end early
+	if ( this->GetTeamNumber() == TEAM_SPECTATOR )
+	{
+		ChangeTeam( team );
+		return true;
 	}
 
 	if ( team == TEAM_SPECTATOR )
@@ -975,7 +1048,7 @@ bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 	else
 	{
 		StopObserverMode();
-		State_Transition(STATE_ACTIVE);
+		State_Transition( STATE_ACTIVE );
 	}
 
 	// Switch their actual team...
@@ -997,11 +1070,6 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 	}
 	else if ( FStrEq( args[0], "jointeam" ) ) 
 	{
-		if ( args.ArgC() < 2 )
-		{
-			Warning( "Player sent bad jointeam syntax\n" );
-		}
-
 		if ( ShouldRunRateLimitedCommand( args ) )
 		{
 			int iTeam = atoi( args[1] );
@@ -1011,6 +1079,9 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 	}
 	else if ( FStrEq( args[0], "joingame" ) )
 	{
+		if (IsObserver())
+			ChangeTeam(random->RandomInt(2, 3));
+
 		return true;
 	}
 
@@ -1214,13 +1285,29 @@ void CHL2MP_Player::DetonateTripmines( void )
 			g_EventQueue.AddEvent( pSatchel, "Explode", 0.20, this, this );
 		}
 	}
+}
 
-	// Play sound for pressing the detonator
-	EmitSound( "Weapon_SLAM.SatchelDetonate" );
+void CHL2MP_Player::LadderRespawnFix()
+{
+	if ( auto lm = GetLadderMove() )
+	{
+		if ( lm->m_bForceLadderMove )
+		{
+			lm->m_bForceLadderMove = false;
+			if ( lm->m_hReservedSpot )
+			{
+				UTIL_Remove((CBaseEntity*)lm->m_hReservedSpot.Get());
+				lm->m_hReservedSpot = NULL;
+			}
+		}
+	}
 }
 
 void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 {
+	//Ladder respawn fix
+	LadderRespawnFix();
+
 	//update damage info with our accumulated physics force
 	CTakeDamageInfo subinfo = info;
 	subinfo.SetDamageForce( m_vecTotalBulletForce );
@@ -1314,7 +1401,7 @@ CBaseEntity* CHL2MP_Player::EntSelectSpawnPoint( void )
 {
 	CBaseEntity *pSpot = NULL;
 	CBaseEntity *pLastSpawnPoint = g_pLastSpawn;
-	edict_t		*player = edict();
+
 	const char *pSpawnpointName = "info_player_deathmatch";
 
 	if ( HL2MPRules()->IsTeamplay() == true )
@@ -1368,24 +1455,9 @@ CBaseEntity* CHL2MP_Player::EntSelectSpawnPoint( void )
 	} while ( pSpot != pFirstSpot ); // loop if we're not back to the start
 
 	// we haven't found a place to spawn yet,  so kill any guy at the first spawn point and spawn there
-	if ( pSpot )
+	if ( pSpot && ( TEAM_SPECTATOR != GetPlayerInfo()->GetTeamIndex() ) )
 	{
-		CBaseEntity *ent = NULL;
-		for ( CEntitySphereQuery sphere( pSpot->GetAbsOrigin(), 128 ); (ent = sphere.GetCurrentEntity()) != NULL; sphere.NextEntity() )
-		{
-			// if ent is a client, kill em (unless they are ourselves)
-			if ( ent->IsPlayer() && !(ent->edict() == player) )
-				ent->TakeDamage( CTakeDamageInfo( GetContainingEntity(INDEXENT(0)), GetContainingEntity(INDEXENT(0)), 300, DMG_GENERIC ) );
-		}
 		goto ReturnSpot;
-	}
-
-	if ( !pSpot  )
-	{
-		pSpot = gEntList.FindEntityByClassname( pSpot, "info_player_start" );
-
-		if ( pSpot )
-			goto ReturnSpot;
 	}
 
 ReturnSpot:
@@ -1402,12 +1474,57 @@ ReturnSpot:
 		}
 	}
 
+	if (!pSpot)
+	{
+		pSpot = gEntList.FindEntityByClassname(pSpot, "info_player_start");
+
+		if (pSpot)
+			goto ReturnSpot;
+		else
+			return CBaseEntity::Instance(INDEXENT(0));
+	}
+
 	g_pLastSpawn = pSpot;
 
-	m_flSlamProtectTime = gpGlobals->curtime + 0.5;
+	m_flSlamProtectTime = gpGlobals->curtime + 0.9;
 
 	return pSpot;
-} 
+}
+void CHL2MP_Player::InitialSpawn( void )
+{
+	BaseClass::InitialSpawn();
+#if !defined(NO_STEAM)
+	uint64 thisSteamID = GetSteamIDAsUInt64();
+	const CEntInfo* pInfo = gEntList.FirstEntInfo();
+
+	for ( ; pInfo; pInfo = pInfo->m_pNext )
+	{
+		CBaseEntity* pEntity = ( CBaseEntity* ) pInfo->m_pEntity;
+		if ( !pEntity )
+		{
+			DevWarning( "NULL entity in global entity list!\n" );
+			continue;
+		}
+		if ( pEntity->ClassMatches( "npc_satchel" ) )
+		{
+			CSatchelCharge* pSatchel = dynamic_cast< CSatchelCharge* >( pEntity );
+			if ( pSatchel && pSatchel->m_bIsLive && !pSatchel->GetThrower() && pSatchel->GetSteamID() == thisSteamID )
+			{
+				pSatchel->SetThrower( this );
+			}
+		}
+		else if ( pEntity->ClassMatches( "npc_tripmine" ) )
+		{
+			CTripmineGrenade* pMine = dynamic_cast< CTripmineGrenade* >( pEntity );
+			if ( pMine && pMine->m_bIsLive && !pMine->GetThrower() && pMine->GetSteamID() == thisSteamID )
+			{
+				pMine->SetThrower( this );
+				pMine->m_hOwner = this;
+			}
+		}
+	}
+#endif
+}
 
 
 CON_COMMAND( timeleft, "prints the time remaining in the match" )

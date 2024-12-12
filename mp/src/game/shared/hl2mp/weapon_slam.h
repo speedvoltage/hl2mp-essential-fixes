@@ -27,7 +27,14 @@ enum
 #ifdef CLIENT_DLL
 #define CWeapon_SLAM C_Weapon_SLAM
 #endif
-
+class CSteamIDWeapon
+{
+	uint64 m_nSteamID;
+public:
+	CSteamIDWeapon();
+	uint64 GetSteamID()const;
+	void SetSteamID( uint64 steamID );
+};
 class CWeapon_SLAM : public CBaseHL2MPCombatWeapon
 {
 public:
@@ -61,7 +68,7 @@ public:
 	void				ItemPostFrame( void );	
 	bool				Reload( void );
 	void				SetSlamState( int newState );
-	bool				CanAttachSLAM(void);		// In position where can attach SLAM?
+	bool				CanAttachSLAM(trace_t* = NULL);		// In position where can attach SLAM?
 	bool				AnyUndetonatedCharges(void);
 	void				StartTripmineAttach( void );
 	void				TripmineAttach( void );
@@ -74,7 +81,7 @@ public:
 	void				SatchelAttach( void );
 	bool				Deploy( void );
 	bool				Holster( CBaseCombatWeapon *pSwitchingTo = NULL );
-
+	bool				HasAnyAmmo(void);
 
 	CWeapon_SLAM();
 

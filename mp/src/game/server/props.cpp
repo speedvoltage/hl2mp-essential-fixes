@@ -41,6 +41,7 @@
 #include "physics_collisionevent.h"
 #include "gamestats.h"
 #include "vehicle_base.h"
+#include "usermessages.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -651,7 +652,7 @@ void CBreakableProp::StickAtPosition( const Vector &stickPosition, const Vector 
 
 	VPhysicsGetObject()->EnableMotion( false );
 	AddSpawnFlags( SF_PHYSPROP_ENABLE_ON_PHYSCANNON );
-	SetCollisionGroup( COLLISION_GROUP_DEBRIS );
+	SetCollisionGroup( COLLISION_GROUP_INTERACTIVE );
 }
 
 //-----------------------------------------------------------------------------
@@ -833,11 +834,7 @@ void CBreakableProp::Spawn()
 	m_flDmgModClub = 1.0;
 	m_flDmgModExplosive = 1.0;
 	
-	//jmd: I am guessing that the call to Spawn will set any flags that should be set anyway; this
-	//clears flags we don't want (specifically the FL_ONFIRE for explosive barrels in HL2MP)]
-#ifdef HL2MP
-	ClearFlags();
-#endif 
+	ClearFlags(); // Clear flags we don't want (specifically FL_ONFIRE for explosive barrels)
 
 	BaseClass::Spawn();
 	
@@ -1046,7 +1043,7 @@ int CBreakableProp::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		return 1;
 	}
 
-	if( info.GetAttacker() && info.GetAttacker()->MyCombatCharacterPointer() )
+	if (!IsOnFire() && ToBaseCombatCharacter(info.GetAttacker()) != NULL)
 	{
 		m_hLastAttacker.Set( info.GetAttacker() );
 	}
@@ -1160,6 +1157,12 @@ int CBreakableProp::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	float flRatio = clamp( (float)m_iHealth / (float)m_iMaxHealth, 0.f, 1.f );
 	m_OnHealthChanged.Set( flRatio, info.GetAttacker(), this );
 	m_OnTakeDamage.FireOutput( info.GetAttacker(), this );
+
+	// If attacker hasn't ignited us (at least), consider the damage insufficient to keep it in a future explosion
+	if (!IsOnFire())
+	{
+		m_hLastAttacker.Term();
+	}
 
 	return ret;
 }
@@ -1597,9 +1600,9 @@ IPhysicsObject *CBreakableProp::GetRootPhysicsObjectForBreak()
 	return VPhysicsGetObject();
 }
 
-void CBreakableProp::Break( CBaseEntity *pBreaker, const CTakeDamageInfo &info )
+void CBreakableProp::Break( CBaseEntity* pBreaker, const CTakeDamageInfo& info )
 {
-	const char *pModelName = STRING( GetModelName() );
+	const char* pModelName = STRING( GetModelName() );
 	if ( pModelName && Q_stristr( pModelName, "crate" ) )
 	{
 		bool bSmashed = false;
@@ -1611,10 +1614,10 @@ void CBreakableProp::Break( CBaseEntity *pBreaker, const CTakeDamageInfo &info )
 		{
 			bSmashed = true;
 		}
-		else if ( pBreaker && dynamic_cast< CPropVehicleDriveable * >( pBreaker ) )
+		else if ( pBreaker && dynamic_cast< CPropVehicleDriveable* >( pBreaker ) )
 		{
-			CPropVehicleDriveable *veh = static_cast< CPropVehicleDriveable * >( pBreaker );
-			CBaseEntity *driver = veh->GetDriver();
+			CPropVehicleDriveable* veh = static_cast< CPropVehicleDriveable* >( pBreaker );
+			CBaseEntity* driver = veh->GetDriver();
 			if ( driver && driver->IsPlayer() )
 			{
 				bSmashed = true;
@@ -1626,7 +1629,7 @@ void CBreakableProp::Break( CBaseEntity *pBreaker, const CTakeDamageInfo &info )
 		}
 	}
 
-	IGameEvent * event = gameeventmanager->CreateEvent( "break_prop" );
+	IGameEvent* event = gameeventmanager->CreateEvent( "break_prop" );
 
 	if ( event )
 	{
@@ -1647,7 +1650,7 @@ void CBreakableProp::Break( CBaseEntity *pBreaker, const CTakeDamageInfo &info )
 
 	Vector velocity;
 	AngularImpulse angVelocity;
-	IPhysicsObject *pPhysics = GetRootPhysicsObjectForBreak();
+	IPhysicsObject* pPhysics = GetRootPhysicsObjectForBreak();
 
 	Vector origin;
 	QAngle angles;
@@ -1670,33 +1673,30 @@ void CBreakableProp::Break( CBaseEntity *pBreaker, const CTakeDamageInfo &info )
 
 	bool bExploded = false;
 
-	CBaseEntity *pAttacker = info.GetAttacker();
-	if ( m_hLastAttacker )
-	{
-		// Pass along the person who made this explosive breakable explode.
-		// This way the player allies can get immunity from barrels exploded by the player.
-		pAttacker = m_hLastAttacker;
-	}
-	else if( m_hPhysicsAttacker )
+	CBaseEntity* pAttacker = info.GetAttacker();
+	if ( HasPhysicsAttacker() )
 	{
 		// If I have a physics attacker and was influenced in the last 2 seconds,
 		// Make the attacker my physics attacker. This helps protect citizens from dying
 		// in the explosion of a physics object that was thrown by the player's physgun
 		// and exploded on impact.
-		if( gpGlobals->curtime - m_flLastPhysicsInfluenceTime <= 2.0f )
-		{
-			pAttacker = m_hPhysicsAttacker;
-		}
+		pAttacker = m_hPhysicsAttacker;
+	}
+	else if ( m_hLastAttacker )
+	{
+		// Pass along the person who made this explosive breakable explode.
+		// This way the player allies can get immunity from barrels exploded by the player.
+		pAttacker = m_hLastAttacker;
 	}
 
 	if ( m_explodeDamage > 0 || m_explodeRadius > 0 )
 	{
-		if( HasInteraction( PROPINTER_PHYSGUN_BREAK_EXPLODE ) )
+		if ( HasInteraction( PROPINTER_PHYSGUN_BREAK_EXPLODE ) )
 		{
-			ExplosionCreate( WorldSpaceCenter(), angles, pAttacker, m_explodeDamage, m_explodeRadius, 
+			ExplosionCreate( WorldSpaceCenter(), angles, pAttacker, m_explodeDamage, m_explodeRadius,
 				SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE | SF_ENVEXPLOSION_SURFACEONLY | SF_ENVEXPLOSION_NOSOUND,
 				0.0f, this );
-			EmitSound("PropaneTank.Burst");
+			EmitSound( "PropaneTank.Burst" );
 		}
 		else
 		{
@@ -1719,23 +1719,35 @@ void CBreakableProp::Break( CBaseEntity *pBreaker, const CTakeDamageInfo &info )
 	{
 		// don't automatically make anything COLLISION_GROUP_NONE or it will
 		// collide with debris being ejected by breaking
-		params.defCollisionGroup = COLLISION_GROUP_INTERACTIVE;
+		// Use the debris flag only for item_item_crate this is for purely gameplay
+		// purposes
+		if ( FClassnameIs( this, "item_item_crate" ) )
+		{
+			params.defCollisionGroup = COLLISION_GROUP_DEBRIS;
+		}
+		else
+		{
+			params.defCollisionGroup = COLLISION_GROUP_INTERACTIVE;
+		}
 	}
 	params.defBurstScale = 100;
 
 	if ( m_iszBreakModelMessage != NULL_STRING )
 	{
-		CPVSFilter filter( GetAbsOrigin() );
-		UserMessageBegin( filter, STRING( m_iszBreakModelMessage ) );
-		WRITE_SHORT( GetModelIndex() );
-		WRITE_VEC3COORD( GetAbsOrigin() );
-		WRITE_ANGLES( GetAbsAngles() );
-		MessageEnd();
-
-#ifndef HL2MP
-		UTIL_Remove( this );
-#endif
-		return;
+		int breakmodelmessage = usermessages->LookupUserMessage( STRING( m_iszBreakModelMessage ) );
+		if ( breakmodelmessage == -1 )
+		{
+			Warning( "CBreakableProp::Break invalid break model message: (%s)\n", m_iszBreakModelMessage );
+		}
+		else
+		{
+			CPVSFilter filter( GetAbsOrigin() );
+			UserMessageBegin( filter, STRING( m_iszBreakModelMessage ) );
+			WRITE_SHORT( GetModelIndex() );
+			WRITE_VEC3COORD( GetAbsOrigin() );
+			WRITE_ANGLES( GetAbsAngles() );
+			return MessageEnd();
+		}
 	}
 
 	// in multiplayer spawn break models as clientside temp ents
@@ -1775,19 +1787,19 @@ void CBreakableProp::Break( CBaseEntity *pBreaker, const CTakeDamageInfo &info )
 		PropBreakableCreateAll( GetModelIndex(), pPhysics, params, this, -1, ( m_PerformanceMode == PM_FULL_GIBS ) );
 	}
 
-	if( HasInteraction( PROPINTER_PHYSGUN_BREAK_EXPLODE ) )
+	if ( HasInteraction( PROPINTER_PHYSGUN_BREAK_EXPLODE ) )
 	{
 		if ( bExploded == false )
 		{
-			ExplosionCreate( origin, angles, pAttacker, 1, m_explodeRadius, 
-				SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this );			
+			ExplosionCreate( origin, angles, pAttacker, 1, m_explodeRadius,
+				SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this );
 		}
 
 		// Find and ignite all NPC's within the radius
-		CBaseEntity *pEntity = NULL;
+		CBaseEntity* pEntity = NULL;
 		for ( CEntitySphereQuery sphere( origin, m_explodeRadius ); ( pEntity = sphere.GetCurrentEntity() ) != NULL; sphere.NextEntity() )
 		{
-			if( pEntity && pEntity->MyCombatCharacterPointer() )
+			if ( pEntity && pEntity->MyCombatCharacterPointer() )
 			{
 				// Check damage filters so we don't ignite friendlies
 				if ( pEntity->PassesDamageFilter( info ) )
@@ -1797,10 +1809,11 @@ void CBreakableProp::Break( CBaseEntity *pBreaker, const CTakeDamageInfo &info )
 			}
 		}
 	}
+}
 
-#ifndef HL2MP
-	UTIL_Remove( this );
-#endif
+void CBreakableProp::OnBreak(const Vector&, const AngularImpulse&, CBaseEntity*)
+{
+	Remove();
 }
 
 
@@ -2487,6 +2500,8 @@ void CPhysicsProp::Spawn( )
 	{
 		SetClassname( "prop_physics" );
 	}
+	
+	ClearThrownState();
 
 	BaseClass::Spawn();
 
@@ -2661,6 +2676,16 @@ void CPhysicsProp::InputWake( inputdata_t &inputdata )
 		pPhysicsObject->Wake();
 	}
 }
+//Fix:barrel explodes on respawn after being destroyed by bullets
+void CPhysicsProp::Break(CBaseEntity* pBreaker, const CTakeDamageInfo& info)
+{
+	m_bFirstCollisionAfterLaunch = false;
+
+	// Setup the think function to remove the flags
+	RegisterThinkContext("PROP_CLEARFLAGS");
+	SetContextThink(&CPhysicsProp::ClearFlagsThink, gpGlobals->curtime, "PROP_CLEARFLAGS");
+	CBreakableProp::Break(pBreaker, info);
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: Input handler to stop the physics prop simulating.
@@ -2746,7 +2771,13 @@ void CPhysicsProp::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t r
 			SetCollisionGroup( COLLISION_GROUP_INTERACTIVE_DEBRIS );
 		}
 	}
+	if ( pPhysicsObject && ( pPhysicsObject->GetGameFlags() & FVPHYSICS_WAS_THROWN ) )
+	{
+		PhysClearGameFlags( pPhysicsObject, FVPHYSICS_WAS_THROWN );
+		m_bFirstCollisionAfterLaunch = false;
+	}
 
+	m_bFirstCollisionAfterLaunch = false;
 	m_OnPhysGunPickup.FireOutput( pPhysGunUser, this );
 
 	if( reason == PICKED_UP_BY_CANNON )
@@ -2761,6 +2792,7 @@ void CPhysicsProp::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t r
 
 	if ( reason == PICKED_UP_BY_CANNON || reason == PICKED_UP_BY_PLAYER )
 	{
+		ClearThrownState();
 		m_OnPlayerPickup.FireOutput( pPhysGunUser, this );
 	}
 
@@ -2953,6 +2985,10 @@ void CPhysicsProp::ClearFlagsThink( void )
 	SetContextThink( NULL, 0, "PROP_CLEARFLAGS" );
 }
 
+void CPhysicsProp::ClearThrownState()
+{
+	m_bThrownByPlayer = m_bFirstCollisionAfterLaunch = false;
+}
 
 //-----------------------------------------------------------------------------
 // Compute impulse to apply to the enabled entity.
@@ -3023,7 +3059,7 @@ void CPhysicsProp::VPhysicsCollision( int index, gamevcollisionevent_t *pEvent )
 		HandleFirstCollisionInteractions( index, pEvent );
 	}
 
-	if ( HasPhysicsAttacker( 2.0f ) )
+	if (HasPhysicsAttacker())
 	{
 		HandleAnyCollisionInteractions( index, pEvent );
 	}
@@ -5691,6 +5727,7 @@ public:
 	void	Materialize( void );
 
 private:
+	void OnBreak(const Vector&, const AngularImpulse&, CBaseEntity*) OVERRIDE {}
 
 	Vector m_vOriginalSpawnOrigin;
 	QAngle m_vOriginalSpawnAngles;
@@ -5721,8 +5758,27 @@ void CPhysicsPropRespawnable::Spawn( void )
 {
 	BaseClass::Spawn();
 
+	// Fix for barrels clipping through the floor for some reason
+	Vector fixorigin = GetLocalOrigin();
+
+	fixorigin.z += 1.0;
+
+	if (FStrEq(STRING(gpGlobals->mapname), "dm_lockdown"))
+	{
+		IPhysicsObject* pPhysics = VPhysicsGetObject();
+		if (pPhysics)
+		{
+			pPhysics->SetPosition(fixorigin, GetLocalAngles(), true);
+		}
+	}
+
 	m_vOriginalSpawnOrigin = GetAbsOrigin();
 	m_vOriginalSpawnAngles = GetAbsAngles();
+
+	if (FStrEq(STRING(gpGlobals->mapname), "dm_lockdown"))
+	{
+		m_vOriginalSpawnOrigin.z += 1.0;
+	}
 
 	m_vOriginalMins = CollisionProp()->OBBMins();
 	m_vOriginalMaxs = CollisionProp()->OBBMaxs();
@@ -5749,6 +5805,8 @@ void CPhysicsPropRespawnable::Event_Killed( const CTakeDamageInfo &info )
 	PhysCleanupFrictionSounds( this );
 
 	VPhysicsDestroyObject();
+
+	RemoveAllDecals();
 
 	CBaseEntity::PhysicsRemoveTouchedList( this );
 	CBaseEntity::PhysicsRemoveGroundList( this );

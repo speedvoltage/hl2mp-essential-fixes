@@ -21,6 +21,9 @@
 
 #ifndef CLIENT_DLL
 #include "hl2mp_player.h"
+#include <networkstringtable_gamedll.h>
+#include "filesystem.h"
+#include "networkstringtabledefs.h"
 #endif
 
 #define VEC_CROUCH_TRACE_MIN	HL2MPRules()->GetHL2MPViewVectors()->m_vCrouchTraceMin
@@ -103,6 +106,7 @@ public:
 	virtual float FlWeaponRespawnTime( CBaseCombatWeapon *pWeapon );
 	virtual float FlWeaponTryRespawn( CBaseCombatWeapon *pWeapon );
 	virtual Vector VecWeaponRespawnSpot( CBaseCombatWeapon *pWeapon );
+	virtual QAngle DefaultWeaponRespawnAngle( CBaseCombatWeapon* pWeapon );
 	virtual int WeaponShouldRespawn( CBaseCombatWeapon *pWeapon );
 	virtual void Think( void );
 	virtual void CreateStandardEntities( void );
@@ -120,6 +124,8 @@ public:
 	void CleanUpMap();
 	void CheckRestartGame();
 	void RestartGame();
+	bool IsGameReset() const { return m_bCompleteReset; }
+	void GameReset( bool reset ) { m_bCompleteReset = reset; }
 	
 #ifndef CLIENT_DLL
 	virtual Vector VecItemRespawnSpot( CItem *pItem );
@@ -147,6 +153,12 @@ public:
 	void	CheckAllPlayersReady( void );
 
 	virtual bool IsConnectedUserInfoChangeAllowed( CBasePlayer *pPlayer );
+
+	void InitExcludedExtensions();
+#ifndef CLIENT_DLL
+	void RegisterDownloadableFiles( char* path, FileFindHandle_t findHandle, INetworkStringTable* pDownloadables );
+	void HandleSoundFix();
+#endif
 	
 private:
 	
@@ -168,5 +180,4 @@ inline CHL2MPRules* HL2MPRules()
 {
 	return static_cast<CHL2MPRules*>(g_pGameRules);
 }
-
 #endif //HL2MP_GAMERULES_H

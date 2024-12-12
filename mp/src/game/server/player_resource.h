@@ -21,25 +21,35 @@ public:
 	DECLARE_DATADESC();
 
 	virtual void Spawn( void );
-	virtual	int	 ObjectCaps( void ) { return BaseClass::ObjectCaps() | FCAP_DONT_SAVE; }
+	virtual void Init( int iIndex );
+	virtual	int	 ObjectCaps( void )
+	{
+		return BaseClass::ObjectCaps() | FCAP_DONT_SAVE;
+	}
 	virtual void ResourceThink( void );
 	virtual void UpdatePlayerData( void );
-	virtual int  UpdateTransmitState(void);
+	virtual int  UpdateTransmitState( void );
 
 protected:
+	virtual void UpdateConnectedPlayer( int iIndex, CBasePlayer* pPlayer );
+	virtual void UpdateDisconnectedPlayer( int iIndex );
+
 	// Data for each player that's propagated to all clients
 	// Stored in individual arrays so they can be sent down via datatables
-	CNetworkArray( int, m_iPing, MAX_PLAYERS+1 );
-	CNetworkArray( int, m_iScore, MAX_PLAYERS+1 );
-	CNetworkArray( int, m_iDeaths, MAX_PLAYERS+1 );
-	CNetworkArray( int, m_bConnected, MAX_PLAYERS+1 );
-	CNetworkArray( int, m_iTeam, MAX_PLAYERS+1 );
-	CNetworkArray( int, m_bAlive, MAX_PLAYERS+1 );
-	CNetworkArray( int, m_iHealth, MAX_PLAYERS+1 );
-		
+	CNetworkArray( int, m_iPing, MAX_PLAYERS + 1 );
+	CNetworkArray( int, m_iScore, MAX_PLAYERS + 1 );
+	CNetworkArray( int, m_iDeaths, MAX_PLAYERS + 1 );
+	CNetworkArray( int, m_bConnected, MAX_PLAYERS + 1 );
+	CNetworkArray( int, m_iTeam, MAX_PLAYERS + 1 );
+	CNetworkArray( int, m_bAlive, MAX_PLAYERS + 1 );
+	CNetworkArray( int, m_iHealth, MAX_PLAYERS + 1 );
+	CNetworkArray( uint32, m_iAccountID, MAX_PLAYERS + 1 );
+	CNetworkArray( int, m_bValid, MAX_PLAYERS + 1 );
+	CNetworkArray( int, m_iUserID, MAX_PLAYERS + 1 );
+
 	int	m_nUpdateCounter;
 };
 
-extern CPlayerResource *g_pPlayerResource;
+extern CPlayerResource* g_pPlayerResource;
 
 #endif // PLAYER_RESOURCE_H

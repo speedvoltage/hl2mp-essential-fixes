@@ -40,9 +40,9 @@ public:
 
 	CNetworkVar( int,	m_iHideHUD );		// bitfields containing sections of the HUD to hide
 	CNetworkVar( float, m_flFOVRate );		// rate at which the FOV changes (defaults to 0)
-		
+
 	Vector				m_vecOverViewpoint;			// Viewpoint overriding the real player's viewpoint
-	
+
 	// Fully ducked
 	CNetworkVar( bool, m_bDucked );
 	// In process of ducking
@@ -72,7 +72,9 @@ public:
 	// Is the player wearing the HEV suit
 	CNetworkVar( bool, m_bWearingSuit );
 	CNetworkVar( bool, m_bPoisoned );
+	CNetworkVar( bool, m_bForceLocalPlayerDraw );
 	CNetworkVar( float, m_flStepSize );
+	CNetworkString( m_szScriptOverlayMaterial, MAX_PATH );
 	CNetworkVar( bool, m_bAllowAutoMovement );
 
 	// 3d skybox

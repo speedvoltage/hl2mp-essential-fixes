@@ -509,6 +509,9 @@ void CPropCrane::SetupMove( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper *pH
 //-----------------------------------------------------------------------------
 void CPropCrane::DriveCrane( int iDriverButtons, int iButtonsPressed, float flNPCSteering )
 {
+	if (m_hCraneTip == NULL)
+		return;
+
 	bool bWasExtending = m_bExtending;
 
 	// Handle rotation of the crane
@@ -643,6 +646,8 @@ void CPropCrane::DriveCrane( int iDriverButtons, int iButtonsPressed, float flNP
 //-----------------------------------------------------------------------------
 void CPropCrane::RecalculateCraneTip( void )
 {
+	if (m_hCraneTip == NULL)
+		return;
 	Vector vecOrigin;
 	QAngle vecAngles;
 	GetCraneTipPosition( &vecOrigin, &vecAngles );
@@ -662,6 +667,9 @@ void CPropCrane::RecalculateCraneTip( void )
 //-----------------------------------------------------------------------------
 void CPropCrane::RunCraneMovement( float flTime )
 {
+	if (m_hCraneMagnet == NULL || m_hCraneTip == NULL)
+		return;
+
 	if ( m_flExtensionRate )
 	{
 		// Extend / Retract the crane

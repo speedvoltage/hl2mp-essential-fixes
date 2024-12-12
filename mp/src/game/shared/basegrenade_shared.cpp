@@ -15,6 +15,7 @@
 #include "soundent.h"
 #include "entitylist.h"
 #include "gamestats.h"
+#include "grenade_satchel.h"
 
 #endif
 
@@ -139,7 +140,7 @@ void CBaseGrenade::Explode( trace_t *pTrace, int bitsDamageType )
 	{
 		Vector vecNormal = pTrace->plane.normal;
 		surfacedata_t *pdata = physprops->GetSurfaceData( pTrace->surface.surfaceProps );	
-		CPASFilter filter( vecAbsOrigin );
+		CBroadcastRecipientFilter filter;
 
 		te->Explosion( filter, -1.0, // don't apply cl_interp delay
 			&vecAbsOrigin,
@@ -154,7 +155,7 @@ void CBaseGrenade::Explode( trace_t *pTrace, int bitsDamageType )
 	}
 	else
 	{
-		CPASFilter filter( vecAbsOrigin );
+		CBroadcastRecipientFilter filter;
 		te->Explosion( filter, -1.0, // don't apply cl_interp delay
 			&vecAbsOrigin, 
 			!( contents & MASK_WATER ) ? g_sModelIndexFireball : g_sModelIndexWExplosion,
@@ -165,9 +166,17 @@ void CBaseGrenade::Explode( trace_t *pTrace, int bitsDamageType )
 			m_flDamage );
 	}
 
-#if !defined( CLIENT_DLL )
-	CSoundEnt::InsertSound ( SOUND_COMBAT, GetAbsOrigin(), BASEGRENADE_EXPLOSION_VOLUME, 3.0 );
-#endif
+	CBroadcastRecipientFilter soundFilter;
+	EmitSound_t ep;
+	ep.m_nChannel = CHAN_STATIC;
+	ep.m_pSoundName = "BaseGrenade.Explode";
+	ep.m_flVolume = 1.0f;
+	ep.m_SoundLevel = SNDLVL_140dB;
+	ep.m_nFlags = SND_NOFLAGS;
+
+	EmitSound( soundFilter, entindex(), ep );
+
+	CSoundEnt::InsertSound( SOUND_COMBAT, GetAbsOrigin(), BASEGRENADE_EXPLOSION_VOLUME, 3.0 );
 
 	// Use the thrower's position as the reported position
 	Vector vecReported = m_hThrower ? m_hThrower->GetAbsOrigin() : vec3_origin;
@@ -177,8 +186,6 @@ void CBaseGrenade::Explode( trace_t *pTrace, int bitsDamageType )
 	RadiusDamage( info, GetAbsOrigin(), m_DmgRadius, CLASS_NONE, NULL );
 
 	UTIL_DecalTrace( pTrace, "Scorch" );
-
-	EmitSound( "BaseGrenade.Explode" );
 
 	SetThink( &CBaseGrenade::SUB_Remove );
 	SetTouch( NULL );
@@ -298,7 +305,20 @@ void CBaseGrenade::Detonate( void )
 		UTIL_TraceLine( GetAbsOrigin(), GetAbsOrigin() + Vector( 0, 0, -32), MASK_SHOT_HULL, this, COLLISION_GROUP_NONE, &tr );
 	}
 
-	Explode( &tr, DMG_BLAST );
+#ifndef CLIENT_DLL	
+
+	CSatchelCharge* pSlam = dynamic_cast<CSatchelCharge*>(this);
+	if (pSlam)
+	{
+		Explode(&tr, DMG_BLAST * 2);
+	}
+	else
+	{
+		Explode(&tr, DMG_BLAST);
+	}
+#else
+	Explode(&tr, DMG_BLAST);
+#endif
 
 	if ( GetShakeAmplitude() )
 	{

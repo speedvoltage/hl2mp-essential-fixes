@@ -134,7 +134,14 @@ void CServerNetworkProperty::MarkForDeletion()
 
 bool CServerNetworkProperty::IsMarkedForDeletion() const
 {
-	return ( m_pOuter->GetEFlags() & EFL_KILLME ) != 0;
+	if (m_pOuter)
+	{
+		return (m_pOuter->GetEFlags() & EFL_KILLME) != 0;
+	}
+	else
+	{
+		return FALSE;
+	}
 }
 
 

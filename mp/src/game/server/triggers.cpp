@@ -43,6 +43,7 @@
 #include "tier0/memdbgon.h"
 
 #define DEBUG_TRANSITIONS_VERBOSE	2
+
 ConVar g_debug_transitions( "g_debug_transitions", "0", FCVAR_NONE, "Set to 1 and restart the map to be warned if the map has no trigger_transition volumes. Set to 2 to see a dump of all entities & associated results during a transition." );
 
 // Global list of triggers that care about weapon fire
@@ -827,14 +828,17 @@ int CTriggerHurt::HurtAllTouchers( float dt )
 	touchlink_t *root = ( touchlink_t * )GetDataObject( TOUCHLINK );
 	if ( root )
 	{
-		for ( touchlink_t *link = root->nextLink; link != root; link = link->nextLink )
+		for ( touchlink_t* link = root->nextLink; link != root && link != nullptr; link = link->nextLink )
 		{
-			CBaseEntity *pTouch = link->entityTouched;
-			if ( pTouch )
+			if ( link )
 			{
-				if ( HurtEntity( pTouch, fldmg ) )
+				CBaseEntity* pTouch = link->entityTouched;
+				if ( pTouch )
 				{
-					hurtCount++;
+					if ( HurtEntity( pTouch, fldmg ) )
+					{
+						hurtCount++;
+					}
 				}
 			}
 		}
@@ -2239,36 +2243,36 @@ void CTriggerPush::Activate()
 // Purpose: 
 // Input  : *pOther - 
 //-----------------------------------------------------------------------------
-void CTriggerPush::Touch( CBaseEntity *pOther )
+void CTriggerPush::Touch ( CBaseEntity* pOther )
 {
-	if ( !pOther->IsSolid() || (pOther->GetMoveType() == MOVETYPE_PUSH || pOther->GetMoveType() == MOVETYPE_NONE ) )
+	if ( !pOther->IsSolid ( ) || ( pOther->GetMoveType ( ) == MOVETYPE_PUSH || pOther->GetMoveType ( ) == MOVETYPE_NONE ) )
 		return;
 
-	if (!PassesTriggerFilters(pOther))
+	if ( !PassesTriggerFilters ( pOther ) )
 		return;
 
 	// FIXME: If something is hierarchically attached, should we try to push the parent?
-	if (pOther->GetMoveParent())
+	if ( pOther->GetMoveParent ( ) )
 		return;
 
 	// Transform the push dir into global space
 	Vector vecAbsDir;
-	VectorRotate( m_vecPushDir, EntityToWorldTransform(), vecAbsDir );
+	VectorRotate ( m_vecPushDir, EntityToWorldTransform ( ), vecAbsDir );
 
 	// Instant trigger, just transfer velocity and remove
-	if (HasSpawnFlags(SF_TRIG_PUSH_ONCE))
+	if ( HasSpawnFlags ( SF_TRIG_PUSH_ONCE ) )
 	{
-		pOther->ApplyAbsVelocityImpulse( m_flPushSpeed * vecAbsDir );
+		pOther->ApplyAbsVelocityImpulse ( m_flPushSpeed * vecAbsDir );
 
 		if ( vecAbsDir.z > 0 )
 		{
-			pOther->SetGroundEntity( NULL );
+			pOther->SetGroundEntity ( NULL );
 		}
-		UTIL_Remove( this );
+		UTIL_Remove ( this );
 		return;
 	}
 
-	switch( pOther->GetMoveType() )
+	switch ( pOther->GetMoveType ( ) )
 	{
 	case MOVETYPE_NONE:
 	case MOVETYPE_PUSH:
@@ -2276,59 +2280,65 @@ void CTriggerPush::Touch( CBaseEntity *pOther )
 		break;
 
 	case MOVETYPE_VPHYSICS:
+	{
+		const float DEFAULT_MASS = 100.0f;
+		if ( HasSpawnFlags ( SF_TRIGGER_DISALLOW_BOTS ) )
 		{
-			IPhysicsObject *pPhys = pOther->VPhysicsGetObject();
+			// New-style code (Ep3 and beyond), affects all physobjs and accounts for mass
+			IPhysicsObject* ppPhysObjs [ VPHYSICS_MAX_OBJECT_LIST_COUNT ];
+			int nNumPhysObjs = pOther->VPhysicsGetObjectList ( ppPhysObjs, VPHYSICS_MAX_OBJECT_LIST_COUNT );
+			for ( int i = 0; i < nNumPhysObjs; i++ )
+			{
+				Vector force = m_flPushSpeed * vecAbsDir * DEFAULT_MASS * gpGlobals->frametime;
+				force *= ppPhysObjs [ i ]->GetMass ( ) / DEFAULT_MASS;
+				ppPhysObjs [ i ]->ApplyForceCenter ( force );
+			}
+		}
+		else
+		{
+			// Old-style code (Ep2 and before), affects the first physobj and assumes the mass is 100kg
+			IPhysicsObject* pPhys = pOther->VPhysicsGetObject ( );
 			if ( pPhys )
 			{
-				// UNDONE: Assume the velocity is for a 100kg object, scale with mass
-				pPhys->ApplyForceCenter( m_flPushSpeed * vecAbsDir * 100.0f * gpGlobals->frametime );
+				pPhys->ApplyForceCenter ( m_flPushSpeed * vecAbsDir * DEFAULT_MASS * gpGlobals->frametime );
 				return;
 			}
 		}
-		break;
+	}
+	break;
 
 	default:
-		{
+	{
 #if defined( HL2_DLL )
-			// HACK HACK  HL2 players on ladders will only be disengaged if the sf is set, otherwise no push occurs.
-			if ( pOther->IsPlayer() && 
-				 pOther->GetMoveType() == MOVETYPE_LADDER )
+		// HACK HACK  HL2 players on ladders will only be disengaged if the sf is set, otherwise no push occurs.
+		if ( pOther->IsPlayer ( ) &&
+			pOther->GetMoveType ( ) == MOVETYPE_LADDER )
+		{
+			if ( !HasSpawnFlags ( SF_TRIG_PUSH_AFFECT_PLAYER_ON_LADDER ) )
 			{
-				if ( !HasSpawnFlags(SF_TRIG_PUSH_AFFECT_PLAYER_ON_LADDER) )
-				{
-					// Ignore the push
-					return;
-				}
+				// Ignore the push
+				return;
 			}
+		}
 #endif
 
-			Vector vecPush = (m_flPushSpeed * vecAbsDir);
-			if ( ( pOther->GetFlags() & FL_BASEVELOCITY ) && !lagcompensation->IsCurrentlyDoingLagCompensation() )
-			{
-				vecPush = vecPush + pOther->GetBaseVelocity();
-			}
-			if ( vecPush.z > 0 && (pOther->GetFlags() & FL_ONGROUND) )
-			{
-				pOther->SetGroundEntity( NULL );
-				Vector origin = pOther->GetAbsOrigin();
-				origin.z += 1.0f;
-				pOther->SetAbsOrigin( origin );
-			}
-
-#ifdef HL1_DLL
-			// Apply the z velocity as a force so it counteracts gravity properly
-			Vector vecImpulse( 0, 0, vecPush.z * 0.025 );//magic hack number
-
-			pOther->ApplyAbsVelocityImpulse( vecImpulse );
-
-			// apply x, y as a base velocity so we travel at constant speed on conveyors
-			vecPush.z = 0;
-#endif			
-
-			pOther->SetBaseVelocity( vecPush );
-			pOther->AddFlag( FL_BASEVELOCITY );
+		Vector vecPush = ( m_flPushSpeed * vecAbsDir );
+		if ( pOther->GetFlags ( ) & FL_BASEVELOCITY )
+		{
+			vecPush = vecPush + pOther->GetBaseVelocity ( );
 		}
-		break;
+		if ( vecPush.z > 0 && ( pOther->GetFlags ( ) & FL_ONGROUND ) )
+		{
+			pOther->SetGroundEntity ( NULL );
+			Vector origin = pOther->GetAbsOrigin ( );
+			origin.z += 16.0f;
+			pOther->SetAbsOrigin ( origin );
+		}
+
+		pOther->SetBaseVelocity ( vecPush );
+		pOther->AddFlag ( FL_BASEVELOCITY );
+		}
+	break;
 	}
 }
 
@@ -2834,7 +2844,7 @@ void CAI_ChangeHintGroup::InputActivate( inputdata_t &inputdata )
 #define SF_CAMERA_PLAYER_SNAP_TO		16
 #define SF_CAMERA_PLAYER_NOT_SOLID		32
 #define SF_CAMERA_PLAYER_INTERRUPT		64
-
+#define SF_CAMERA_PLAYER_LOOK			128 // Allow player look to pan/tilt the point_viewcontrol
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -2878,7 +2888,7 @@ private:
 	float m_deceleration;
 	int	  m_state;
 	Vector m_vecMoveDir;
-
+	QAngle m_angOldPlrView; // To save & restore the player's view for the new SF
 
 	string_t m_iszTargetAttachment;
 	int	  m_iAttachmentIndex;
@@ -3155,9 +3165,13 @@ void CTriggerCamera::Enable( void )
 		if ( m_pPath->m_flSpeed != 0 )
 			m_targetSpeed = m_pPath->m_flSpeed;
 		
-		m_flStopTime += m_pPath->GetDelay();
+		// Compute the distance to the next path already:
+		m_vecMoveDir = m_pPath->GetLocalOrigin() - GetLocalOrigin();
+		m_moveDistance = VectorNormalize(m_vecMoveDir);
+		m_flStopTime = gpGlobals->curtime + m_pPath->GetDelay();
 	}
-
+	else
+		m_moveDistance = 0.0f;
 
 	// copy over player information. If we're interpolating from
 	// the player position, do something more elaborate.
@@ -3186,6 +3200,12 @@ void CTriggerCamera::Enable( void )
 		SetAbsVelocity( vec3_origin );
 	}
 
+	// If we borrow their look then save the player's old view and point them our way.
+	if (HasSpawnFlags(SF_CAMERA_PLAYER_LOOK))
+	{
+		m_angOldPlrView = m_hPlayer->EyeAngles();
+		((CBasePlayer*)m_hPlayer.Get())->SnapEyeAngles(GetAbsAngles());
+	}
 
 	pPlayer->SetViewEntity( this );
 
@@ -3195,8 +3215,8 @@ void CTriggerCamera::Enable( void )
 		pPlayer->GetActiveWeapon()->AddEffects( EF_NODRAW );
 	}
 
-	// Only track if we have a target
-	if ( m_hTarget )
+	// Only track if we have a target or we need to track the player's look
+	if (m_hTarget || HasSpawnFlags(SF_CAMERA_PLAYER_LOOK))
 	{
 		// follow the player down
 		SetThink( &CTriggerCamera::FollowTarget );
@@ -3219,6 +3239,12 @@ void CTriggerCamera::Disable( void )
 		if ( HasSpawnFlags( SF_CAMERA_PLAYER_NOT_SOLID ) )
 		{
 			m_hPlayer->RemoveSolidFlags( FSOLID_NOT_SOLID );
+		}
+
+		// If we borrowed their look then put back the player's old view.
+		if (HasSpawnFlags(SF_CAMERA_PLAYER_LOOK))
+		{
+			((CBasePlayer*)m_hPlayer.Get())->SnapEyeAngles(m_angOldPlrView);
 		}
 
 		((CBasePlayer*)m_hPlayer.Get())->SetViewEntity( m_hPlayer );
@@ -3271,15 +3297,24 @@ void CTriggerCamera::FollowTarget( )
 	if (m_hPlayer == NULL)
 		return;
 
-	if ( m_hTarget == NULL )
+	// Disable if there's no target and this camera isn't tracking player look
+	if (m_hTarget == NULL && !HasSpawnFlags(SF_CAMERA_PLAYER_LOOK))
 	{
 		Disable();
 		return;
 	}
 
-	if ( !HasSpawnFlags(SF_CAMERA_PLAYER_INFINITE_WAIT) && (!m_hTarget || m_flReturnTime < gpGlobals->curtime) )
+	if ((!HasSpawnFlags(SF_CAMERA_PLAYER_INFINITE_WAIT) && (m_flReturnTime < gpGlobals->curtime)) || (!m_hTarget && !m_pPath))
 	{
 		Disable();
+		return;
+	}
+
+	// New camera SF can track the player's look direction // TODO: Limit yaw to <360?
+	if (HasSpawnFlags(SF_CAMERA_PLAYER_LOOK))
+	{
+		SetAbsAngles(m_hPlayer->EyeAngles());
+		SetNextThink(gpGlobals->curtime);
 		return;
 	}
 
@@ -3349,9 +3384,9 @@ void CTriggerCamera::FollowTarget( )
 		}
 	}
 
-	SetNextThink( gpGlobals->curtime );
-
 	Move();
+
+	SetNextThink( gpGlobals->curtime );
 }
 
 void CTriggerCamera::Move()

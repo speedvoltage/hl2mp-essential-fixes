@@ -25,6 +25,7 @@
 // Datatable
 IMPLEMENT_SERVERCLASS_ST( CVoteController, DT_VoteController )
 	SendPropInt( SENDINFO( m_iActiveIssueIndex ) ),
+	SendPropInt( SENDINFO( m_nVoteIdx ) ),
 	SendPropInt( SENDINFO( m_iOnlyTeamToVote ) ),
 	SendPropArray3( SENDINFO_ARRAY3( m_nVoteOptionCount ), SendPropInt( SENDINFO_ARRAY( m_nVoteOptionCount ), 8, SPROP_UNSIGNED ) ),
 	SendPropInt( SENDINFO( m_nPotentialVotes ) ),

@@ -105,7 +105,7 @@ void CBaseHL2MPBludgeonWeapon::PrimaryAttack()
 #ifndef CLIENT_DLL
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer( GetPlayerOwner() );
 	// Move other players back to history positions based on local player's lag
-	lagcompensation->StartLagCompensation( pPlayer, pPlayer->GetCurrentCommand() );
+	lagcompensation->StartLagCompensation( pPlayer, LAG_COMPENSATE_HITBOXES );
 #endif
 	Swing( false );
 #ifndef CLIENT_DLL
@@ -134,7 +134,7 @@ void CBaseHL2MPBludgeonWeapon::Hit( trace_t &traceHit, Activity nHitActivity )
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 	
 	//Do view kick
-//	AddViewKick();
+	AddViewKick();
 
 	CBaseEntity	*pHitEntity = traceHit.m_pEnt;
 
@@ -346,6 +346,7 @@ void CBaseHL2MPBludgeonWeapon::Swing( int bIsSecondary )
 		
 		// See if we happened to hit water
 		ImpactWater( swingStart, testEnd );
+		IPredictionSystem::SuppressHostEvents(NULL);
 	}
 	else
 	{

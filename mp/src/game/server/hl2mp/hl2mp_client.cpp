@@ -33,6 +33,7 @@
 
 void Host_Say( edict_t *pEdict, bool teamonly );
 
+ConVar sv_showmotd( "sv_showmotd", "1" );
 ConVar sv_motd_unload_on_dismissal( "sv_motd_unload_on_dismissal", "0", 0, "If enabled, the MOTD contents will be unloaded when the player closes the MOTD." );
 
 extern CBaseEntity*	FindPickerEntityClass( CBasePlayer *pPlayer, char *classname );
@@ -43,6 +44,15 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 	pPlayer->InitialSpawn();
 	pPlayer->Spawn();
 
+	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+	{
+		pPlayer->SetObserverMode(OBS_MODE_ROAMING);
+	}
+
+	if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
+	{
+		pPlayer->RemoveAllItems(true);
+	}
 
 	char sName[128];
 	Q_strncpy( sName, pPlayer->GetPlayerName(), sizeof( sName ) );
@@ -56,7 +66,7 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 	}
 
 	// notify other clients of player joining the game
-	UTIL_ClientPrintAll( HUD_PRINTNOTIFY, "#Game_connected", sName[0] != 0 ? sName : "<unconnected>" );
+	UTIL_ClientPrintAll( HUD_PRINTTALK, "#Game_connected", sName[0] != 0 ? sName : "<unconnected>" );
 
 	if ( HL2MPRules()->IsTeamplay() == true )
 	{
@@ -72,7 +82,8 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 	data->SetString( "msg",	"motd" );		// use this stringtable entry
 	data->SetBool( "unload", sv_motd_unload_on_dismissal.GetBool() );
 
-	pPlayer->ShowViewPortPanel( PANEL_INFO, true, data );
+	if ( sv_showmotd.GetBool() )
+		pPlayer->ShowViewPortPanel( PANEL_INFO, true, data );
 
 	data->deleteThis();
 }

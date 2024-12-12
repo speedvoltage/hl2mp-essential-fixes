@@ -705,7 +705,7 @@ void CPropCombineBall::WhizSoundThink()
 
 	pPhysicsObject->GetPosition( &vecPosition, NULL );
 	pPhysicsObject->GetVelocity( &vecVelocity, NULL );
-	
+
 	if ( gpGlobals->maxClients == 1 )
 	{
 		CBasePlayer *pPlayer = UTIL_GetLocalPlayer();
@@ -772,6 +772,12 @@ void CPropCombineBall::SetBallAsLaunched( void )
 //-----------------------------------------------------------------------------
 // Lighten the mass so it's zippy toget to the gun
 //-----------------------------------------------------------------------------
+bool CPropCombineBall::OnAttemptPhysGunPickup(CBasePlayer* pPhysGunUser, PhysGunPickup_t reason)
+{
+	return (!m_bHeld || pPhysGunUser == GetOwnerEntity() ?
+		CDefaultPlayerPickupVPhysics::OnAttemptPhysGunPickup(pPhysGunUser, reason) : false);
+}
+
 void CPropCombineBall::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t reason )
 {
 	CDefaultPlayerPickupVPhysics::OnPhysGunPickup( pPhysGunUser, reason );
@@ -1566,6 +1572,20 @@ void CPropCombineBall::VPhysicsCollision( int index, gamevcollisionevent_t *pEve
 {
 	Vector preVelocity = pEvent->preVelocity[index];
 	float flSpeed = VectorNormalize( preVelocity );
+	CBaseEntity* pHitEntity = pEvent->pEntities[!index];
+
+	if (FClassnameIs(pHitEntity, "npc_satchel") || // don't slow down on satchel charges
+		FClassnameIs(pHitEntity, "npc_grenade_frag") || // not on frag grenades either
+		StringHasPrefix(pHitEntity->GetClassname(), "weapon_") || // much less on weapons
+		StringHasPrefix(pHitEntity->GetClassname(), "item_")) // the same for items
+	{
+		Vector vecBounceVelocity = -preVelocity;
+		vecBounceVelocity *= GetSpeed();
+
+		PhysCallbackSetVelocity(pEvent->pObjects[index], vecBounceVelocity);
+
+		return;
+	}
 
 	if ( m_nMaxBounces == -1 )
 	{
@@ -1573,7 +1593,6 @@ void CPropCombineBall::VPhysicsCollision( int index, gamevcollisionevent_t *pEve
 
 		if( pHit->game.material != CHAR_TEX_FLESH || !hl2_episodic.GetBool() )
 		{
-			CBaseEntity *pHitEntity = pEvent->pEntities[!index];
 			if ( pHitEntity && IsHittableEntity( pHitEntity ) )
 			{
 				OnHitEntity( pHitEntity, flSpeed, index, pEvent );
@@ -1610,7 +1629,6 @@ void CPropCombineBall::VPhysicsCollision( int index, gamevcollisionevent_t *pEve
 	vecFinalVelocity *= GetSpeed();
 	PhysCallbackSetVelocity( pEvent->pObjects[index], vecFinalVelocity ); 
 
-	CBaseEntity *pHitEntity = pEvent->pEntities[!index];
 	if ( pHitEntity && IsHittableEntity( pHitEntity ) )
 	{
 		OnHitEntity( pHitEntity, flSpeed, index, pEvent );

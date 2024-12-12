@@ -345,8 +345,6 @@ void CGameRules::RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrc
 		}
 	}
 #endif // HL2_DLL
-	
-	vecSrc.z += 1;// in case grenade is lying on the ground
 
 	float flHalfRadiusSqr = Square( flRadius / 2.0f );
 

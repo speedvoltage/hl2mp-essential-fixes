@@ -822,12 +822,17 @@ void CItem_AmmoCrate::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 	if ( pPlayer == NULL )
 		return;
 
+	if (m_flCloseTime > gpGlobals->curtime)
+		return;
+	if (!pPlayer->IsAlive())
+		return;
+
 	m_OnUsed.FireOutput( pActivator, this );
 
 	int iSequence = LookupSequence( "Open" );
 
 	// See if we're not opening already
-	if ( GetSequence() != iSequence )
+	if (GetSequence() != iSequence && pPlayer->IsAlive())
 	{
 		Vector mins, maxs;
 		trace_t tr;
@@ -874,7 +879,7 @@ int CItem_AmmoCrate::OnTakeDamage( const CTakeDamageInfo &info )
 	{
 		CBaseCombatWeapon *weapon = player->GetActiveWeapon();
 
-		if (weapon && !stricmp(weapon->GetName(), "weapon_crowbar"))
+		if ( weapon && !stricmp( weapon->GetName(), "weapon_crowbar" ) && ( info.GetDamageType() & DMG_CLUB ) )
 		{
 			// play the normal use sound
 			player->EmitSound( "HL2Player.Use" );
