@@ -38,29 +38,29 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-static ConVar sv_soundemitter_trace ( "sv_soundemitter_trace", "0", FCVAR_REPLICATED, "Show all EmitSound calls including their symbolic name and the actual wave file they resolved to\n" );
+static ConVar sv_soundemitter_trace( "sv_soundemitter_trace", "0", FCVAR_REPLICATED, "Show all EmitSound calls including their symbolic name and the actual wave file they resolved to\n" );
 #ifdef STAGING_ONLY
-static ConVar sv_snd_filter ( "sv_snd_filter", "", FCVAR_REPLICATED, "Filters out all sounds not containing the specified string before being emitted\n" );
+static ConVar sv_snd_filter( "sv_snd_filter", "", FCVAR_REPLICATED, "Filters out all sounds not containing the specified string before being emitted\n" );
 #endif // STAGING_ONLY
 
-extern ISoundEmitterSystemBase* soundemitterbase;
-static ConVar* g_pClosecaption = NULL;
+extern ISoundEmitterSystemBase *soundemitterbase;
+static ConVar *g_pClosecaption = NULL;
 
 #ifdef _XBOX
-int LookupStringFromCloseCaptionToken ( char const* token );
-const wchar_t* GetStringForIndex ( int index );
+int LookupStringFromCloseCaptionToken( char const *token );
+const wchar_t *GetStringForIndex( int index );
 #endif
 static bool g_bPermitDirectSoundPrecache = false;
 
 #if !defined( CLIENT_DLL )
 
-void ClearModelSoundsCache ();
+void ClearModelSoundsCache();
 
 #endif // !CLIENT_DLL
 
-void WaveTrace ( char const* wavname, char const* funcname )
+void WaveTrace( char const *wavname, char const *funcname )
 {
-	if ( IsX360 () && !IsDebug () )
+	if ( IsX360() && !IsDebug() )
 	{
 		return;
 	}
@@ -68,11 +68,11 @@ void WaveTrace ( char const* wavname, char const* funcname )
 	static CUtlSymbolTable s_WaveTrace;
 
 	// Make sure we only show the message once
-	if ( UTL_INVAL_SYMBOL == s_WaveTrace.Find ( wavname ) )
+	if ( UTL_INVAL_SYMBOL == s_WaveTrace.Find( wavname ) )
 	{
-		DevMsg ( "%s directly referenced wave %s (should use game_sounds.txt system instead)\n",
+		DevMsg( "%s directly referenced wave %s (should use game_sounds.txt system instead)\n",
 			funcname, wavname );
-		s_WaveTrace.AddString ( wavname );
+		s_WaveTrace.AddString( wavname );
 	}
 }
 
@@ -80,7 +80,7 @@ void WaveTrace ( char const* wavname, char const* funcname )
 // Purpose: 
 // Input  : &src - 
 //-----------------------------------------------------------------------------
-EmitSound_t::EmitSound_t ( const CSoundParameters& src )
+EmitSound_t::EmitSound_t( const CSoundParameters &src )
 {
 	m_nChannel = src.channel;
 	m_pSoundName = src.soundname;
@@ -98,12 +98,12 @@ EmitSound_t::EmitSound_t ( const CSoundParameters& src )
 	m_nSpeakerEntity = -1;
 }
 
-void Hack_FixEscapeChars ( char* str )
+void Hack_FixEscapeChars( char *str )
 {
-	int len = Q_strlen ( str ) + 1;
-	char* i = str;
-	char* o = ( char* ) _alloca ( len );
-	char* osave = o;
+	int len = Q_strlen( str ) + 1;
+	char *i = str;
+	char *o = ( char * ) _alloca( len );
+	char *osave = o;
 	while ( *i )
 	{
 		if ( *i == '\\' )
@@ -128,7 +128,7 @@ void Hack_FixEscapeChars ( char* str )
 		++o;
 	}
 	*o = 0;
-	Q_strncpy ( str, osave, len );
+	Q_strncpy( str, osave, len );
 }
 
 //-----------------------------------------------------------------------------
@@ -137,51 +137,51 @@ void Hack_FixEscapeChars ( char* str )
 class CSoundEmitterSystem : public CBaseGameSystem
 {
 public:
-	virtual char const* Name () { return "CSoundEmitterSystem"; }
+	virtual char const *Name() { return "CSoundEmitterSystem"; }
 
 #if !defined( CLIENT_DLL )
 	bool			m_bLogPrecache;
 	FileHandle_t	m_hPrecacheLogFile;
 	CUtlSymbolTable m_PrecachedScriptSounds;
 public:
-	CSoundEmitterSystem ( char const* pszName ) :
-		m_bLogPrecache ( false ),
-		m_hPrecacheLogFile ( FILESYSTEM_INVALID_HANDLE )
+	CSoundEmitterSystem( char const *pszName ) :
+		m_bLogPrecache( false ),
+		m_hPrecacheLogFile( FILESYSTEM_INVALID_HANDLE )
 	{
 	}
 
-	void LogPrecache ( char const* soundname )
+	void LogPrecache( char const *soundname )
 	{
 		if ( !m_bLogPrecache )
 			return;
 
 		// Make sure we only show the message once
-		if ( UTL_INVAL_SYMBOL != m_PrecachedScriptSounds.Find ( soundname ) )
+		if ( UTL_INVAL_SYMBOL != m_PrecachedScriptSounds.Find( soundname ) )
 			return;
 
 		if ( m_hPrecacheLogFile == FILESYSTEM_INVALID_HANDLE )
 		{
-			StartLog ();
+			StartLog();
 		}
 
-		m_PrecachedScriptSounds.AddString ( soundname );
+		m_PrecachedScriptSounds.AddString( soundname );
 
 		if ( m_hPrecacheLogFile != FILESYSTEM_INVALID_HANDLE )
 		{
-			filesystem->Write ( "\"", 1, m_hPrecacheLogFile );
-			filesystem->Write ( soundname, Q_strlen ( soundname ), m_hPrecacheLogFile );
-			filesystem->Write ( "\"\n", 2, m_hPrecacheLogFile );
+			filesystem->Write( "\"", 1, m_hPrecacheLogFile );
+			filesystem->Write( soundname, Q_strlen( soundname ), m_hPrecacheLogFile );
+			filesystem->Write( "\"\n", 2, m_hPrecacheLogFile );
 		}
 		else
 		{
-			Warning ( "Disabling precache logging due to file i/o problem!!!\n" );
+			Warning( "Disabling precache logging due to file i/o problem!!!\n" );
 			m_bLogPrecache = false;
 		}
 	}
 
-	void StartLog ()
+	void StartLog()
 	{
-		m_PrecachedScriptSounds.RemoveAll ();
+		m_PrecachedScriptSounds.RemoveAll();
 
 		if ( !m_bLogPrecache )
 			return;
@@ -191,171 +191,171 @@ public:
 			return;
 		}
 
-		filesystem->CreateDirHierarchy ( "reslists", "DEFAULT_WRITE_PATH" );
+		filesystem->CreateDirHierarchy( "reslists", "DEFAULT_WRITE_PATH" );
 
 		// open the new level reslist
 		char path[ _MAX_PATH ];
-		Q_snprintf ( path, sizeof ( path ), "reslists\\%s.snd", gpGlobals->mapname.ToCStr () );
-		m_hPrecacheLogFile = filesystem->Open ( path, "wt", "GAME" );
+		Q_snprintf( path, sizeof( path ), "reslists\\%s.snd", gpGlobals->mapname.ToCStr() );
+		m_hPrecacheLogFile = filesystem->Open( path, "wt", "GAME" );
 	}
 
-	void FinishLog ()
+	void FinishLog()
 	{
 		if ( FILESYSTEM_INVALID_HANDLE != m_hPrecacheLogFile )
 		{
-			filesystem->Close ( m_hPrecacheLogFile );
+			filesystem->Close( m_hPrecacheLogFile );
 			m_hPrecacheLogFile = FILESYSTEM_INVALID_HANDLE;
 		}
 
-		m_PrecachedScriptSounds.RemoveAll ();
+		m_PrecachedScriptSounds.RemoveAll();
 	}
 #else
-	CSoundEmitterSystem ( char const* name )
+	CSoundEmitterSystem( char const *name )
 	{
 	}
 
 #endif
 
 	// IServerSystem stuff
-	virtual bool Init ()
+	virtual bool Init()
 	{
-		Assert ( soundemitterbase );
+		Assert( soundemitterbase );
 #if !defined( CLIENT_DLL )
-		m_bLogPrecache = CommandLine ()->CheckParm ( "-makereslists" ) ? true : false;
+		m_bLogPrecache = CommandLine()->CheckParm( "-makereslists" ) ? true : false;
 #endif
-		g_pClosecaption = cvar->FindVar ( "closecaption" );
-		Assert ( g_pClosecaption );
-		return soundemitterbase->ModInit ();
+		g_pClosecaption = cvar->FindVar( "closecaption" );
+		Assert( g_pClosecaption );
+		return soundemitterbase->ModInit();
 	}
 
-	virtual void Shutdown ()
+	virtual void Shutdown()
 	{
-		Assert ( soundemitterbase );
+		Assert( soundemitterbase );
 #if !defined( CLIENT_DLL )
-		FinishLog ();
+		FinishLog();
 #endif
-		soundemitterbase->ModShutdown ();
+		soundemitterbase->ModShutdown();
 	}
 
-	void ReloadSoundEntriesInList ( IFileList* pFilesToReload )
+	void ReloadSoundEntriesInList( IFileList *pFilesToReload )
 	{
-		soundemitterbase->ReloadSoundEntriesInList ( pFilesToReload );
+		soundemitterbase->ReloadSoundEntriesInList( pFilesToReload );
 	}
 
-	virtual void TraceEmitSound ( char const* fmt, ... )
+	virtual void TraceEmitSound( char const *fmt, ... )
 	{
-		if ( !sv_soundemitter_trace.GetBool () )
+		if ( !sv_soundemitter_trace.GetBool() )
 			return;
 
 		va_list	argptr;
 		char string[ 256 ];
-		va_start ( argptr, fmt );
-		Q_vsnprintf ( string, sizeof ( string ), fmt, argptr );
-		va_end ( argptr );
+		va_start( argptr, fmt );
+		Q_vsnprintf( string, sizeof( string ), fmt, argptr );
+		va_end( argptr );
 
 		// Spew to console
-		Msg ( "%s %s", CBaseEntity::IsServer () ? "(sv)" : "(cl)", string );
+		Msg( "%s %s", CBaseEntity::IsServer() ? "(sv)" : "(cl)", string );
 	}
 
 	// Precache all wave files referenced in wave or rndwave keys
-	virtual void LevelInitPreEntity ()
+	virtual void LevelInitPreEntity()
 	{
 		char mapname[ 256 ];
 #if !defined( CLIENT_DLL )
-		StartLog ();
-		Q_snprintf ( mapname, sizeof ( mapname ), "maps/%s", STRING ( gpGlobals->mapname ) );
+		StartLog();
+		Q_snprintf( mapname, sizeof( mapname ), "maps/%s", STRING( gpGlobals->mapname ) );
 #else
-		Q_strncpy ( mapname, engine->GetLevelName (), sizeof ( mapname ) );
+		Q_strncpy( mapname, engine->GetLevelName(), sizeof( mapname ) );
 #endif
 
-		Q_FixSlashes ( mapname );
-		Q_strlower ( mapname );
+		Q_FixSlashes( mapname );
+		Q_strlower( mapname );
 
 		// Load in any map specific overrides
 		char scriptfile[ 512 ];
 #if defined( TF_CLIENT_DLL ) || defined( TF_DLL )
-		if ( V_stristr ( mapname, "mvm" ) )
+		if ( V_stristr( mapname, "mvm" ) )
 		{
-			V_strncpy ( scriptfile, "scripts/mvm_level_sounds.txt", sizeof ( scriptfile ) );
-			if ( filesystem->FileExists ( "scripts/mvm_level_sounds.txt", "GAME" ) )
+			V_strncpy( scriptfile, "scripts/mvm_level_sounds.txt", sizeof( scriptfile ) );
+			if ( filesystem->FileExists( "scripts/mvm_level_sounds.txt", "GAME" ) )
 			{
-				soundemitterbase->AddSoundOverrides ( "scripts/mvm_level_sounds.txt" );
+				soundemitterbase->AddSoundOverrides( "scripts/mvm_level_sounds.txt" );
 			}
-			if ( filesystem->FileExists ( "scripts/mvm_level_sound_tweaks.txt", "GAME" ) )
+			if ( filesystem->FileExists( "scripts/mvm_level_sound_tweaks.txt", "GAME" ) )
 			{
-				soundemitterbase->AddSoundOverrides ( "scripts/mvm_level_sound_tweaks.txt" );
+				soundemitterbase->AddSoundOverrides( "scripts/mvm_level_sound_tweaks.txt" );
 			}
-			if ( filesystem->FileExists ( "scripts/game_sounds_vo_mvm.txt", "GAME" ) )
+			if ( filesystem->FileExists( "scripts/game_sounds_vo_mvm.txt", "GAME" ) )
 			{
-				soundemitterbase->AddSoundOverrides ( "scripts/game_sounds_vo_mvm.txt", true );
+				soundemitterbase->AddSoundOverrides( "scripts/game_sounds_vo_mvm.txt", true );
 			}
-			if ( filesystem->FileExists ( "scripts/game_sounds_vo_mvm_mighty.txt", "GAME" ) )
+			if ( filesystem->FileExists( "scripts/game_sounds_vo_mvm_mighty.txt", "GAME" ) )
 			{
-				soundemitterbase->AddSoundOverrides ( "scripts/game_sounds_vo_mvm_mighty.txt", true );
+				soundemitterbase->AddSoundOverrides( "scripts/game_sounds_vo_mvm_mighty.txt", true );
 			}
-			g_pTFPlayerClassDataMgr->AddAdditionalPlayerDeathSounds ();
+			g_pTFPlayerClassDataMgr->AddAdditionalPlayerDeathSounds();
 		}
 		else
 		{
-			Q_StripExtension ( mapname, scriptfile, sizeof ( scriptfile ) );
-			Q_strncat ( scriptfile, "_level_sounds.txt", sizeof ( scriptfile ), COPY_ALL_CHARACTERS );
-			if ( filesystem->FileExists ( scriptfile, "GAME" ) )
+			Q_StripExtension( mapname, scriptfile, sizeof( scriptfile ) );
+			Q_strncat( scriptfile, "_level_sounds.txt", sizeof( scriptfile ), COPY_ALL_CHARACTERS );
+			if ( filesystem->FileExists( scriptfile, "GAME" ) )
 			{
-				soundemitterbase->AddSoundOverrides ( scriptfile );
+				soundemitterbase->AddSoundOverrides( scriptfile );
 			}
 		}
 #else
-		Q_StripExtension ( mapname, scriptfile, sizeof ( scriptfile ) );
-		Q_strncat ( scriptfile, "_level_sounds.txt", sizeof ( scriptfile ), COPY_ALL_CHARACTERS );
+		Q_StripExtension( mapname, scriptfile, sizeof( scriptfile ) );
+		Q_strncat( scriptfile, "_level_sounds.txt", sizeof( scriptfile ), COPY_ALL_CHARACTERS );
 
-		if ( filesystem->FileExists ( scriptfile, "GAME" ) )
+		if ( filesystem->FileExists( scriptfile, "GAME" ) )
 		{
-			soundemitterbase->AddSoundOverrides ( scriptfile );
+			soundemitterbase->AddSoundOverrides( scriptfile );
 		}
 #endif
 
 #if !defined( CLIENT_DLL )
-		for ( int i = soundemitterbase->First (); i != soundemitterbase->InvalidIndex (); i = soundemitterbase->Next ( i ) )
+		for ( int i = soundemitterbase->First(); i != soundemitterbase->InvalidIndex(); i = soundemitterbase->Next( i ) )
 		{
-			CSoundParametersInternal* pParams = soundemitterbase->InternalGetParametersForSound ( i );
-			if ( pParams->ShouldPreload () )
+			CSoundParametersInternal *pParams = soundemitterbase->InternalGetParametersForSound( i );
+			if ( pParams->ShouldPreload() )
 			{
-				InternalPrecacheWaves ( i );
+				InternalPrecacheWaves( i );
 			}
 		}
 #endif
 	}
 
-	virtual void LevelInitPostEntity ()
+	virtual void LevelInitPostEntity()
 	{
 #ifndef CLIENT_DLL
-		if ( sv_soundfix.GetBool () )
+		if ( sv_soundfix.GetBool() )
 		{
 			if ( !soundemitterbase )
 			{
-				DevMsg ( "Sound emitter system not initialized.\n" );
+				DevMsg( "Sound emitter system not initialized.\n" );
 				return;
 			}
 
-			int soundCount = soundemitterbase->GetSoundCount ();
+			int soundCount = soundemitterbase->GetSoundCount();
 			for ( int i = 0; i < soundCount; ++i )
 			{
-				const char *soundName = soundemitterbase->GetSoundName ( i );
+				const char *soundName = soundemitterbase->GetSoundName( i );
 				if ( !soundName )
 					continue;
 
-				CSoundParametersInternal *soundParamsInternal = soundemitterbase->InternalGetParametersForSound ( i );
+				CSoundParametersInternal *soundParamsInternal = soundemitterbase->InternalGetParametersForSound( i );
 				if ( soundParamsInternal )
 				{
-					if ( soundParamsInternal->GetPitch ().start == PITCH_HIGH || 
-						soundParamsInternal->GetPitch ().start == PITCH_LOW || 
-						soundParamsInternal->GetPitch ().start == PITCH_NORM )
+					if ( soundParamsInternal->GetPitch().start == PITCH_HIGH ||
+						soundParamsInternal->GetPitch().start == PITCH_LOW ||
+						soundParamsInternal->GetPitch().start == PITCH_NORM )
 					{
-						pitch_interval_t pitch = soundParamsInternal->GetPitch ();
-						soundParamsInternal->SetPitch ( pitch.start - 1, pitch.range );
-						DevMsg ( "Adjusted pitch for sound: %s\n", soundName );
+						pitch_interval_t pitch = soundParamsInternal->GetPitch();
+						soundParamsInternal->SetPitch( pitch.start - 1, pitch.range );
+						DevMsg( "Adjusted pitch for sound: %s\n", soundName );
 
-						soundemitterbase->UpdateSoundParameters ( soundName, *soundParamsInternal );
+						soundemitterbase->UpdateSoundParameters( soundName, *soundParamsInternal );
 					}
 				}
 			}
@@ -363,35 +363,35 @@ public:
 #endif // CLIENT_DLL
 	}
 
-	virtual void LevelShutdownPostEntity ()
+	virtual void LevelShutdownPostEntity()
 	{
-		soundemitterbase->ClearSoundOverrides ();
+		soundemitterbase->ClearSoundOverrides();
 
 #if !defined( CLIENT_DLL )
-		FinishLog ();
+		FinishLog();
 #endif
 	}
 
-	void Flush ()
+	void Flush()
 	{
-		Assert ( soundemitterbase );
+		Assert( soundemitterbase );
 #if !defined( CLIENT_DLL )
-		FinishLog ();
+		FinishLog();
 #endif
-		soundemitterbase->Flush ();
+		soundemitterbase->Flush();
 	}
 
-	void InternalPrecacheWaves ( int soundIndex )
+	void InternalPrecacheWaves( int soundIndex )
 	{
-		CSoundParametersInternal* internal = soundemitterbase->InternalGetParametersForSound ( soundIndex );
+		CSoundParametersInternal *internal = soundemitterbase->InternalGetParametersForSound( soundIndex );
 		if ( !internal )
 			return;
 
-		int waveCount = internal->NumSoundNames ();
+		int waveCount = internal->NumSoundNames();
 		if ( !waveCount )
 		{
-			DevMsg ( "CSoundEmitterSystem:  sounds.txt entry '%s' has no waves listed under 'wave' or 'rndwave' key!!!\n",
-				soundemitterbase->GetSoundName ( soundIndex ) );
+			DevMsg( "CSoundEmitterSystem:  sounds.txt entry '%s' has no waves listed under 'wave' or 'rndwave' key!!!\n",
+				soundemitterbase->GetSoundName( soundIndex ) );
 		}
 		else
 		{
@@ -399,44 +399,44 @@ public:
 
 			for ( int wave = 0; wave < waveCount; wave++ )
 			{
-				CBaseEntity::PrecacheSound ( soundemitterbase->GetWaveName ( internal->GetSoundNames ()[ wave ].symbol ) );
+				CBaseEntity::PrecacheSound( soundemitterbase->GetWaveName( internal->GetSoundNames()[ wave ].symbol ) );
 			}
 
 			g_bPermitDirectSoundPrecache = false;
 		}
 	}
 
-	void InternalPrefetchWaves ( int soundIndex )
+	void InternalPrefetchWaves( int soundIndex )
 	{
-		CSoundParametersInternal* internal = soundemitterbase->InternalGetParametersForSound ( soundIndex );
+		CSoundParametersInternal *internal = soundemitterbase->InternalGetParametersForSound( soundIndex );
 		if ( !internal )
 			return;
 
-		int waveCount = internal->NumSoundNames ();
+		int waveCount = internal->NumSoundNames();
 		if ( !waveCount )
 		{
-			DevMsg ( "CSoundEmitterSystem:  sounds.txt entry '%s' has no waves listed under 'wave' or 'rndwave' key!!!\n",
-				soundemitterbase->GetSoundName ( soundIndex ) );
+			DevMsg( "CSoundEmitterSystem:  sounds.txt entry '%s' has no waves listed under 'wave' or 'rndwave' key!!!\n",
+				soundemitterbase->GetSoundName( soundIndex ) );
 		}
 		else
 		{
 			for ( int wave = 0; wave < waveCount; wave++ )
 			{
-				CBaseEntity::PrefetchSound ( soundemitterbase->GetWaveName ( internal->GetSoundNames ()[ wave ].symbol ) );
+				CBaseEntity::PrefetchSound( soundemitterbase->GetWaveName( internal->GetSoundNames()[ wave ].symbol ) );
 			}
 		}
 	}
 
-	HSOUNDSCRIPTHANDLE PrecacheScriptSound ( const char* soundname )
+	HSOUNDSCRIPTHANDLE PrecacheScriptSound( const char *soundname )
 	{
-		int soundIndex = soundemitterbase->GetSoundIndex ( soundname );
-		if ( !soundemitterbase->IsValidIndex ( soundIndex ) )
+		int soundIndex = soundemitterbase->GetSoundIndex( soundname );
+		if ( !soundemitterbase->IsValidIndex( soundIndex ) )
 		{
-			if ( Q_stristr ( soundname, ".wav" ) || Q_strstr ( soundname, ".mp3" ) )
+			if ( Q_stristr( soundname, ".wav" ) || Q_strstr( soundname, ".mp3" ) )
 			{
 				g_bPermitDirectSoundPrecache = true;
 
-				CBaseEntity::PrecacheSound ( soundname );
+				CBaseEntity::PrecacheSound( soundname );
 
 				g_bPermitDirectSoundPrecache = false;
 				return SOUNDEMITTER_INVALID_HANDLE;
@@ -448,54 +448,54 @@ public:
 				static CUtlSymbolTable s_PrecacheScriptSoundFailures;
 
 				// Make sure we only show the message once
-				if ( UTL_INVAL_SYMBOL == s_PrecacheScriptSoundFailures.Find ( soundname ) )
+				if ( UTL_INVAL_SYMBOL == s_PrecacheScriptSoundFailures.Find( soundname ) )
 				{
-					DevMsg ( "PrecacheScriptSound '%s' failed, no such sound script entry\n", soundname );
-					s_PrecacheScriptSoundFailures.AddString ( soundname );
+					DevMsg( "PrecacheScriptSound '%s' failed, no such sound script entry\n", soundname );
+					s_PrecacheScriptSoundFailures.AddString( soundname );
 				}
 			}
 #endif
 			return ( HSOUNDSCRIPTHANDLE ) soundIndex;
 		}
 #if !defined( CLIENT_DLL )
-		LogPrecache ( soundname );
+		LogPrecache( soundname );
 #endif
 
-		InternalPrecacheWaves ( soundIndex );
+		InternalPrecacheWaves( soundIndex );
 		return ( HSOUNDSCRIPTHANDLE ) soundIndex;
 	}
 
-	void PrefetchScriptSound ( const char* soundname )
+	void PrefetchScriptSound( const char *soundname )
 	{
-		int soundIndex = soundemitterbase->GetSoundIndex ( soundname );
-		if ( !soundemitterbase->IsValidIndex ( soundIndex ) )
+		int soundIndex = soundemitterbase->GetSoundIndex( soundname );
+		if ( !soundemitterbase->IsValidIndex( soundIndex ) )
 		{
-			if ( Q_stristr ( soundname, ".wav" ) || Q_strstr ( soundname, ".mp3" ) )
+			if ( Q_stristr( soundname, ".wav" ) || Q_strstr( soundname, ".mp3" ) )
 			{
-				CBaseEntity::PrefetchSound ( soundname );
+				CBaseEntity::PrefetchSound( soundname );
 			}
 			return;
 		}
 
-		InternalPrefetchWaves ( soundIndex );
+		InternalPrefetchWaves( soundIndex );
 	}
 public:
 
-	void EmitSoundByHandle ( IRecipientFilter& filter, int entindex, const EmitSound_t& ep, HSOUNDSCRIPTHANDLE& handle )
+	void EmitSoundByHandle( IRecipientFilter &filter, int entindex, const EmitSound_t &ep, HSOUNDSCRIPTHANDLE &handle )
 	{
 		// Pull data from parameters
 		CSoundParameters params;
 
 		// Try to deduce the actor's gender
 		gender_t gender = GENDER_NONE;
-		CBaseEntity* ent = CBaseEntity::Instance ( entindex );
+		CBaseEntity *ent = CBaseEntity::Instance( entindex );
 		if ( ent )
 		{
-			char const* actorModel = STRING ( ent->GetModelName () );
-			gender = soundemitterbase->GetActorGender ( actorModel );
+			char const *actorModel = STRING( ent->GetModelName() );
+			gender = soundemitterbase->GetActorGender( actorModel );
 		}
 
-		if ( !soundemitterbase->GetParametersForSoundEx ( ep.m_pSoundName, handle, params, gender, true ) )
+		if ( !soundemitterbase->GetParametersForSoundEx( ep.m_pSoundName, handle, params, gender, true ) )
 		{
 			return;
 		}
@@ -504,17 +504,17 @@ public:
 			return;
 
 #ifdef STAGING_ONLY
-		if ( sv_snd_filter.GetString ()[ 0 ] && !V_stristr ( params.soundname, sv_snd_filter.GetString () ) )
+		if ( sv_snd_filter.GetString()[ 0 ] && !V_stristr( params.soundname, sv_snd_filter.GetString() ) )
 		{
 			return;
 		}
 
-		if ( !Q_strncasecmp ( params.soundname, "vo", 2 ) &&
+		if ( !Q_strncasecmp( params.soundname, "vo", 2 ) &&
 			!( params.channel == CHAN_STREAM ||
 				params.channel == CHAN_VOICE ||
 				params.channel == CHAN_VOICE2 ) )
 		{
-			DevMsg ( "EmitSound:  Voice wave file %s doesn't specify CHAN_VOICE, CHAN_VOICE2 or CHAN_STREAM for sound %s\n",
+			DevMsg( "EmitSound:  Voice wave file %s doesn't specify CHAN_VOICE, CHAN_VOICE2 or CHAN_STREAM for sound %s\n",
 				params.soundname, ep.m_pSoundName );
 		}
 #endif // STAGING_ONLY
@@ -532,7 +532,7 @@ public:
 		}
 
 #if !defined( CLIENT_DLL )
-		bool bSwallowed = CEnvMicrophone::OnSoundPlayed (
+		bool bSwallowed = CEnvMicrophone::OnSoundPlayed(
 			entindex,
 			params.soundname,
 			params.soundlevel,
@@ -547,9 +547,9 @@ public:
 #endif
 
 #if defined( _DEBUG ) && !defined( CLIENT_DLL )
-		if ( !enginesound->IsSoundPrecached ( params.soundname ) )
+		if ( !enginesound->IsSoundPrecached( params.soundname ) )
 		{
-			Msg ( "Sound %s:%s was not precached\n", ep.m_pSoundName, params.soundname );
+			Msg( "Sound %s:%s was not precached\n", ep.m_pSoundName, params.soundname );
 		}
 #endif
 
@@ -560,7 +560,7 @@ public:
 			st = gpGlobals->curtime + ( float ) params.delay_msec / 1000.f;
 		}
 
-		enginesound->EmitSound (
+		enginesound->EmitSound(
 			filter,
 			entindex,
 			params.channel,
@@ -578,41 +578,41 @@ public:
 			ep.m_nSpeakerEntity );
 		if ( ep.m_pflSoundDuration )
 		{
-			*ep.m_pflSoundDuration = enginesound->GetSoundDuration ( params.soundname );
+			*ep.m_pflSoundDuration = enginesound->GetSoundDuration( params.soundname );
 		}
 
-		TraceEmitSound ( "EmitSound:  '%s' emitted as '%s' (ent %i)\n",
+		TraceEmitSound( "EmitSound:  '%s' emitted as '%s' (ent %i)\n",
 			ep.m_pSoundName, params.soundname, entindex );
 
 
 		// Don't caption modulations to the sound
 		if ( !( ep.m_nFlags & ( SND_CHANGE_PITCH | SND_CHANGE_VOL ) ) )
 		{
-			EmitCloseCaption ( filter, entindex, params, ep );
+			EmitCloseCaption( filter, entindex, params, ep );
 		}
 #if defined( WIN32 ) && !defined( _X360 )
 		// NVNT notify the haptics system of this sound
-		HapticProcessSound ( ep.m_pSoundName, entindex );
+		HapticProcessSound( ep.m_pSoundName, entindex );
 #endif
 	}
-	void EmitSound ( IRecipientFilter& filter, int entindex, const EmitSound_t& ep )
+	void EmitSound( IRecipientFilter &filter, int entindex, const EmitSound_t &ep )
 	{
-		VPROF ( "CSoundEmitterSystem::EmitSound (calls engine)" );
+		VPROF( "CSoundEmitterSystem::EmitSound (calls engine)" );
 
 #ifdef STAGING_ONLY
-		if ( sv_snd_filter.GetString ()[ 0 ] && !V_stristr ( ep.m_pSoundName, sv_snd_filter.GetString () ) )
+		if ( sv_snd_filter.GetString()[ 0 ] && !V_stristr( ep.m_pSoundName, sv_snd_filter.GetString() ) )
 		{
 			return;
 		}
 #endif // STAGING_ONLY
 
 		if ( ep.m_pSoundName &&
-			( Q_stristr ( ep.m_pSoundName, ".wav" ) ||
-				Q_stristr ( ep.m_pSoundName, ".mp3" ) ||
+			( Q_stristr( ep.m_pSoundName, ".wav" ) ||
+				Q_stristr( ep.m_pSoundName, ".mp3" ) ||
 				ep.m_pSoundName[ 0 ] == '!' ) )
 		{
 #if !defined( CLIENT_DLL )
-			bool bSwallowed = CEnvMicrophone::OnSoundPlayed (
+			bool bSwallowed = CEnvMicrophone::OnSoundPlayed(
 				entindex,
 				ep.m_pSoundName,
 				ep.m_SoundLevel,
@@ -627,18 +627,18 @@ public:
 #endif
 
 			if ( ep.m_bWarnOnDirectWaveReference &&
-				Q_stristr ( ep.m_pSoundName, ".wav" ) )
+				Q_stristr( ep.m_pSoundName, ".wav" ) )
 			{
-				WaveTrace ( ep.m_pSoundName, "Emitsound" );
+				WaveTrace( ep.m_pSoundName, "Emitsound" );
 			}
 
 #if defined( _DEBUG ) && !defined( CLIENT_DLL )
-			if ( !enginesound->IsSoundPrecached ( ep.m_pSoundName ) )
+			if ( !enginesound->IsSoundPrecached( ep.m_pSoundName ) )
 			{
-				Msg ( "Sound %s was not precached\n", ep.m_pSoundName );
+				Msg( "Sound %s was not precached\n", ep.m_pSoundName );
 			}
 #endif
-			enginesound->EmitSound (
+			enginesound->EmitSound(
 				filter,
 				entindex,
 				ep.m_nChannel,
@@ -656,29 +656,29 @@ public:
 				ep.m_nSpeakerEntity );
 			if ( ep.m_pflSoundDuration )
 			{
-				*ep.m_pflSoundDuration = enginesound->GetSoundDuration ( ep.m_pSoundName );
+				*ep.m_pflSoundDuration = enginesound->GetSoundDuration( ep.m_pSoundName );
 			}
 
-			TraceEmitSound ( "EmitSound:  Raw wave emitted '%s' (ent %i)\n",
+			TraceEmitSound( "EmitSound:  Raw wave emitted '%s' (ent %i)\n",
 				ep.m_pSoundName, entindex );
 			return;
 		}
 
 		if ( ep.m_hSoundScriptHandle == SOUNDEMITTER_INVALID_HANDLE )
 		{
-			ep.m_hSoundScriptHandle = ( HSOUNDSCRIPTHANDLE ) soundemitterbase->GetSoundIndex ( ep.m_pSoundName );
+			ep.m_hSoundScriptHandle = ( HSOUNDSCRIPTHANDLE ) soundemitterbase->GetSoundIndex( ep.m_pSoundName );
 		}
 
 		if ( ep.m_hSoundScriptHandle == -1 )
 			return;
 
-		EmitSoundByHandle ( filter, entindex, ep, ep.m_hSoundScriptHandle );
+		EmitSoundByHandle( filter, entindex, ep, ep.m_hSoundScriptHandle );
 	}
 
-	void EmitCloseCaption ( IRecipientFilter& filter, int entindex, bool fromplayer, char const* token, CUtlVector< Vector >& originlist, float duration, bool warnifmissing /*= false*/ )
+	void EmitCloseCaption( IRecipientFilter &filter, int entindex, bool fromplayer, char const *token, CUtlVector< Vector > &originlist, float duration, bool warnifmissing /*= false*/ )
 	{
 		// No close captions in multiplayer...
-		if ( gpGlobals->maxClients > 1 || ( gpGlobals->maxClients == 1 && !g_pClosecaption->GetBool () ) )
+		if ( gpGlobals->maxClients > 1 || ( gpGlobals->maxClients == 1 && !g_pClosecaption->GetBool() ) )
 		{
 			return;
 		}
@@ -686,10 +686,10 @@ public:
 		// A negative duration means fill it in from the wav file if possible
 		if ( duration < 0.0f )
 		{
-			char const* wav = soundemitterbase->GetWavFileForSound ( token, GENDER_NONE );
+			char const *wav = soundemitterbase->GetWavFileForSound( token, GENDER_NONE );
 			if ( wav )
 			{
-				duration = enginesound->GetSoundDuration ( wav );
+				duration = enginesound->GetSoundDuration( wav );
 			}
 			else
 			{
@@ -698,47 +698,47 @@ public:
 		}
 
 		char lowercase[ 256 ];
-		Q_strncpy ( lowercase, token, sizeof ( lowercase ) );
-		Q_strlower ( lowercase );
-		if ( Q_strstr ( lowercase, "\\" ) )
+		Q_strncpy( lowercase, token, sizeof( lowercase ) );
+		Q_strlower( lowercase );
+		if ( Q_strstr( lowercase, "\\" ) )
 		{
-			Hack_FixEscapeChars ( lowercase );
+			Hack_FixEscapeChars( lowercase );
 		}
 
 		// NOTE:  We must make a copy or else if the filter is owned by a SoundPatch, we'll end up destructively removing
 		//  all players from it!!!!
 		CRecipientFilter filterCopy;
-		filterCopy.CopyFrom ( ( CRecipientFilter& ) filter );
+		filterCopy.CopyFrom( ( CRecipientFilter & ) filter );
 
 		// Remove any players who don't want close captions
-		CBaseEntity::RemoveRecipientsIfNotCloseCaptioning ( ( CRecipientFilter& ) filterCopy );
+		CBaseEntity::RemoveRecipientsIfNotCloseCaptioning( ( CRecipientFilter & ) filterCopy );
 
 #if !defined( CLIENT_DLL )
 		{
 			// Defined in sceneentity.cpp
-			bool AttenuateCaption ( const char* token, const Vector & listener, CUtlVector< Vector >&soundorigins );
+			bool AttenuateCaption( const char *token, const Vector & listener, CUtlVector< Vector >&soundorigins );
 
-			if ( filterCopy.GetRecipientCount () > 0 )
+			if ( filterCopy.GetRecipientCount() > 0 )
 			{
-				int c = filterCopy.GetRecipientCount ();
+				int c = filterCopy.GetRecipientCount();
 				for ( int i = c - 1; i >= 0; --i )
 				{
-					CBasePlayer* player = UTIL_PlayerByIndex ( filterCopy.GetRecipientIndex ( i ) );
+					CBasePlayer *player = UTIL_PlayerByIndex( filterCopy.GetRecipientIndex( i ) );
 					if ( !player )
 						continue;
 
-					Vector playerOrigin = player->GetAbsOrigin ();
+					Vector playerOrigin = player->GetAbsOrigin();
 
-					if ( AttenuateCaption ( lowercase, playerOrigin, originlist ) )
+					if ( AttenuateCaption( lowercase, playerOrigin, originlist ) )
 					{
-						filterCopy.RemoveRecipient ( player );
+						filterCopy.RemoveRecipient( player );
 					}
 				}
 			}
 		}
 #endif
 		// Anyone left?
-		if ( filterCopy.GetRecipientCount () > 0 )
+		if ( filterCopy.GetRecipientCount() > 0 )
 		{
 
 #if !defined( CLIENT_DLL )
@@ -753,11 +753,11 @@ public:
 				byteflags |= CLOSE_CAPTION_FROMPLAYER;
 			}
 
-			CBaseEntity* pActor = CBaseEntity::Instance ( entindex );
+			CBaseEntity *pActor = CBaseEntity::Instance( entindex );
 			if ( pActor )
 			{
-				char const* pszActorModel = STRING ( pActor->GetModelName () );
-				gender_t gender = soundemitterbase->GetActorGender ( pszActorModel );
+				char const *pszActorModel = STRING( pActor->GetModelName() );
+				gender_t gender = soundemitterbase->GetActorGender( pszActorModel );
 
 				if ( gender == GENDER_MALE )
 				{
@@ -770,26 +770,26 @@ public:
 			}
 
 			// Send caption and duration hint down to client
-			UserMessageBegin ( filterCopy, "CloseCaption" );
-			WRITE_STRING ( lowercase );
-			WRITE_SHORT ( MIN ( 255, ( int ) ( duration * 10.0f ) ) ),
-				WRITE_BYTE ( byteflags ),
-				MessageEnd ();
+			UserMessageBegin( filterCopy, "CloseCaption" );
+			WRITE_STRING( lowercase );
+			WRITE_SHORT( MIN( 255, ( int ) ( duration * 10.0f ) ) ),
+				WRITE_BYTE( byteflags ),
+				MessageEnd();
 #else
 			// Direct dispatch
-			CHudCloseCaption* cchud = GET_HUDELEMENT ( CHudCloseCaption );
+			CHudCloseCaption *cchud = GET_HUDELEMENT( CHudCloseCaption );
 			if ( cchud )
 			{
-				cchud->ProcessCaption ( lowercase, duration, fromplayer );
+				cchud->ProcessCaption( lowercase, duration, fromplayer );
 			}
 #endif
 		}
 	}
 
-	void EmitCloseCaption ( IRecipientFilter& filter, int entindex, const CSoundParameters& params, const EmitSound_t& ep )
+	void EmitCloseCaption( IRecipientFilter &filter, int entindex, const CSoundParameters &params, const EmitSound_t &ep )
 	{
 		// No close captions in multiplayer...
-		if ( gpGlobals->maxClients > 1 || ( gpGlobals->maxClients == 1 && !g_pClosecaption->GetBool () ) )
+		if ( gpGlobals->maxClients > 1 || ( gpGlobals->maxClients == 1 && !g_pClosecaption->GetBool() ) )
 		{
 			return;
 		}
@@ -802,13 +802,13 @@ public:
 		// NOTE:  We must make a copy or else if the filter is owned by a SoundPatch, we'll end up destructively removing
 		//  all players from it!!!!
 		CRecipientFilter filterCopy;
-		filterCopy.CopyFrom ( ( CRecipientFilter& ) filter );
+		filterCopy.CopyFrom( ( CRecipientFilter & ) filter );
 
 		// Remove any players who don't want close captions
-		CBaseEntity::RemoveRecipientsIfNotCloseCaptioning ( ( CRecipientFilter& ) filterCopy );
+		CBaseEntity::RemoveRecipientsIfNotCloseCaptioning( ( CRecipientFilter & ) filterCopy );
 
 		// Anyone left?
-		if ( filterCopy.GetRecipientCount () <= 0 )
+		if ( filterCopy.GetRecipientCount() <= 0 )
 		{
 			return;
 		}
@@ -820,39 +820,39 @@ public:
 		}
 		else
 		{
-			duration = enginesound->GetSoundDuration ( params.soundname );
+			duration = enginesound->GetSoundDuration( params.soundname );
 		}
 
 		bool fromplayer = false;
-		CBaseEntity* ent = CBaseEntity::Instance ( entindex );
+		CBaseEntity *ent = CBaseEntity::Instance( entindex );
 		if ( ent )
 		{
 			while ( ent )
 			{
-				if ( ent->IsPlayer () )
+				if ( ent->IsPlayer() )
 				{
 					fromplayer = true;
 					break;
 				}
 
-				ent = ent->GetOwnerEntity ();
+				ent = ent->GetOwnerEntity();
 			}
 		}
-		EmitCloseCaption ( filter, entindex, fromplayer, ep.m_pSoundName, ep.m_UtlVecSoundOrigin, duration, ep.m_bWarnOnMissingCloseCaption );
+		EmitCloseCaption( filter, entindex, fromplayer, ep.m_pSoundName, ep.m_UtlVecSoundOrigin, duration, ep.m_bWarnOnMissingCloseCaption );
 	}
 
-	void EmitAmbientSound ( int entindex, const Vector& origin, const char* soundname, float flVolume, int iFlags, int iPitch, float soundtime /*= 0.0f*/, float* duration /*=NULL*/ )
+	void EmitAmbientSound( int entindex, const Vector &origin, const char *soundname, float flVolume, int iFlags, int iPitch, float soundtime /*= 0.0f*/, float *duration /*=NULL*/ )
 	{
 		// Pull data from parameters
 		CSoundParameters params;
 
-		if ( !soundemitterbase->GetParametersForSound ( soundname, params, GENDER_NONE ) )
+		if ( !soundemitterbase->GetParametersForSound( soundname, params, GENDER_NONE ) )
 		{
 			return;
 		}
 
 #ifdef STAGING_ONLY
-		if ( sv_snd_filter.GetString ()[ 0 ] && !V_stristr ( params.soundname, sv_snd_filter.GetString () ) )
+		if ( sv_snd_filter.GetString()[ 0 ] && !V_stristr( params.soundname, sv_snd_filter.GetString() ) )
 		{
 			return;
 		}
@@ -869,9 +869,9 @@ public:
 		}
 
 #if defined( CLIENT_DLL )
-		enginesound->EmitAmbientSound ( params.soundname, params.volume, params.pitch, iFlags, soundtime );
+		enginesound->EmitAmbientSound( params.soundname, params.volume, params.pitch, iFlags, soundtime );
 #else
-		engine->EmitAmbientSound ( entindex, origin, params.soundname, params.volume, params.soundlevel, iFlags, params.pitch, soundtime );
+		engine->EmitAmbientSound( entindex, origin, params.soundname, params.volume, params.soundlevel, iFlags, params.pitch, soundtime );
 #endif
 
 		bool needsCC = !( iFlags & ( SND_STOP | SND_CHANGE_VOL | SND_CHANGE_PITCH ) );
@@ -880,96 +880,96 @@ public:
 
 		if ( duration || needsCC )
 		{
-			soundduration = enginesound->GetSoundDuration ( params.soundname );
+			soundduration = enginesound->GetSoundDuration( params.soundname );
 			if ( duration )
 			{
 				*duration = soundduration;
 			}
 		}
 
-		TraceEmitSound ( "EmitAmbientSound:  '%s' emitted as '%s' (ent %i)\n",
+		TraceEmitSound( "EmitAmbientSound:  '%s' emitted as '%s' (ent %i)\n",
 			soundname, params.soundname, entindex );
 
 		// We only want to trigger the CC on the start of the sound, not on any changes or halting of the sound
 		if ( needsCC )
 		{
 			CRecipientFilter filter;
-			filter.AddAllPlayers ();
-			filter.MakeReliable ();
+			filter.AddAllPlayers();
+			filter.MakeReliable();
 
 			CUtlVector< Vector > dummy;
-			EmitCloseCaption ( filter, entindex, false, soundname, dummy, soundduration, false );
+			EmitCloseCaption( filter, entindex, false, soundname, dummy, soundduration, false );
 		}
 
 	}
 
-	void StopSoundByHandle ( int entindex, const char* soundname, HSOUNDSCRIPTHANDLE& handle )
+	void StopSoundByHandle( int entindex, const char *soundname, HSOUNDSCRIPTHANDLE &handle )
 	{
 		if ( handle == SOUNDEMITTER_INVALID_HANDLE )
 		{
-			handle = ( HSOUNDSCRIPTHANDLE ) soundemitterbase->GetSoundIndex ( soundname );
+			handle = ( HSOUNDSCRIPTHANDLE ) soundemitterbase->GetSoundIndex( soundname );
 		}
 
 		if ( handle == SOUNDEMITTER_INVALID_HANDLE )
 			return;
 
-		CSoundParametersInternal* params;
+		CSoundParametersInternal *params;
 
-		params = soundemitterbase->InternalGetParametersForSound ( ( int ) handle );
+		params = soundemitterbase->InternalGetParametersForSound( ( int ) handle );
 		if ( !params )
 		{
 			return;
 		}
 
 		// HACK:  we have to stop all sounds if there are > 1 in the rndwave section...
-		int c = params->NumSoundNames ();
+		int c = params->NumSoundNames();
 		for ( int i = 0; i < c; ++i )
 		{
-			char const* wavename = soundemitterbase->GetWaveName ( params->GetSoundNames ()[ i ].symbol );
-			Assert ( wavename );
+			char const *wavename = soundemitterbase->GetWaveName( params->GetSoundNames()[ i ].symbol );
+			Assert( wavename );
 
-			enginesound->StopSound (
+			enginesound->StopSound(
 				entindex,
-				params->GetChannel (),
+				params->GetChannel(),
 				wavename );
 
-			TraceEmitSound ( "StopSound:  '%s' stopped as '%s' (ent %i)\n",
+			TraceEmitSound( "StopSound:  '%s' stopped as '%s' (ent %i)\n",
 				soundname, wavename, entindex );
 		}
 	}
 
-	void StopSound ( int entindex, const char* soundname )
+	void StopSound( int entindex, const char *soundname )
 	{
-		HSOUNDSCRIPTHANDLE handle = ( HSOUNDSCRIPTHANDLE ) soundemitterbase->GetSoundIndex ( soundname );
+		HSOUNDSCRIPTHANDLE handle = ( HSOUNDSCRIPTHANDLE ) soundemitterbase->GetSoundIndex( soundname );
 		if ( handle == SOUNDEMITTER_INVALID_HANDLE )
 		{
 			return;
 		}
 
-		StopSoundByHandle ( entindex, soundname, handle );
+		StopSoundByHandle( entindex, soundname, handle );
 	}
 
 
-	void StopSound ( int iEntIndex, int iChannel, const char* pSample )
+	void StopSound( int iEntIndex, int iChannel, const char *pSample )
 	{
-		if ( pSample && ( Q_stristr ( pSample, ".wav" ) || Q_stristr ( pSample, ".mp3" ) || pSample[ 0 ] == '!' ) )
+		if ( pSample && ( Q_stristr( pSample, ".wav" ) || Q_stristr( pSample, ".mp3" ) || pSample[ 0 ] == '!' ) )
 		{
-			enginesound->StopSound ( iEntIndex, iChannel, pSample );
+			enginesound->StopSound( iEntIndex, iChannel, pSample );
 
-			TraceEmitSound ( "StopSound:  Raw wave stopped '%s' (ent %i)\n",
+			TraceEmitSound( "StopSound:  Raw wave stopped '%s' (ent %i)\n",
 				pSample, iEntIndex );
 		}
 		else
 		{
 			// Look it up in sounds.txt and ignore other parameters
-			StopSound ( iEntIndex, pSample );
+			StopSound( iEntIndex, pSample );
 		}
 	}
 
-	void EmitAmbientSound ( int entindex, const Vector& origin, const char* pSample, float volume, soundlevel_t soundlevel, int flags, int pitch, float soundtime /*= 0.0f*/, float* duration /*=NULL*/ )
+	void EmitAmbientSound( int entindex, const Vector &origin, const char *pSample, float volume, soundlevel_t soundlevel, int flags, int pitch, float soundtime /*= 0.0f*/, float *duration /*=NULL*/ )
 	{
 #ifdef STAGING_ONLY
-		if ( sv_snd_filter.GetString ()[ 0 ] && !V_stristr ( pSample, sv_snd_filter.GetString () ) )
+		if ( sv_snd_filter.GetString()[ 0 ] && !V_stristr( pSample, sv_snd_filter.GetString() ) )
 		{
 			return;
 		}
@@ -980,7 +980,7 @@ public:
 
 		// Loop through all registered microphones and tell them the sound was just played
 		// NOTE: This means that pitch shifts/sound changes on the original ambient will not be reflected in the re-broadcasted sound
-		bool bSwallowed = CEnvMicrophone::OnSoundPlayed (
+		bool bSwallowed = CEnvMicrophone::OnSoundPlayed(
 			entindex,
 			pSample,
 			soundlevel,
@@ -994,72 +994,72 @@ public:
 			return;
 #endif
 
-		if ( pSample && ( Q_stristr ( pSample, ".wav" ) || Q_stristr ( pSample, ".mp3" ) ) )
+		if ( pSample && ( Q_stristr( pSample, ".wav" ) || Q_stristr( pSample, ".mp3" ) ) )
 		{
 #if defined( CLIENT_DLL )
-			enginesound->EmitAmbientSound ( pSample, volume, pitch, flags, soundtime );
+			enginesound->EmitAmbientSound( pSample, volume, pitch, flags, soundtime );
 #else
-			engine->EmitAmbientSound ( entindex, origin, pSample, volume, soundlevel, flags, pitch, soundtime );
+			engine->EmitAmbientSound( entindex, origin, pSample, volume, soundlevel, flags, pitch, soundtime );
 #endif
 
 			if ( duration )
 			{
-				*duration = enginesound->GetSoundDuration ( pSample );
+				*duration = enginesound->GetSoundDuration( pSample );
 			}
 
-			TraceEmitSound ( "EmitAmbientSound:  Raw wave emitted '%s' (ent %i)\n",
+			TraceEmitSound( "EmitAmbientSound:  Raw wave emitted '%s' (ent %i)\n",
 				pSample, entindex );
 		}
 		else
 		{
-			EmitAmbientSound ( entindex, origin, pSample, volume, flags, pitch, soundtime, duration );
+			EmitAmbientSound( entindex, origin, pSample, volume, flags, pitch, soundtime, duration );
 		}
 	}
 };
 
-static CSoundEmitterSystem g_SoundEmitterSystem ( "CSoundEmitterSystem" );
+static CSoundEmitterSystem g_SoundEmitterSystem( "CSoundEmitterSystem" );
 
-IGameSystem* SoundEmitterSystem ()
+IGameSystem *SoundEmitterSystem()
 {
 	return &g_SoundEmitterSystem;
 }
 
 #if defined( CLIENT_DLL )
-void ReloadSoundEntriesInList ( IFileList* pFilesToReload )
+void ReloadSoundEntriesInList( IFileList *pFilesToReload )
 {
-	g_SoundEmitterSystem.ReloadSoundEntriesInList ( pFilesToReload );
+	g_SoundEmitterSystem.ReloadSoundEntriesInList( pFilesToReload );
 }
 #endif
 
-void S_SoundEmitterSystemFlush ( void )
+void S_SoundEmitterSystemFlush( void )
 {
 #if !defined( CLIENT_DLL )
-	if ( !UTIL_IsCommandIssuedByServerAdmin () )
+	if ( !UTIL_IsCommandIssuedByServerAdmin() )
 		return;
 #endif
 
 	// save the current soundscape
 	// kill the system
-	g_SoundEmitterSystem.Flush ();
+	g_SoundEmitterSystem.Flush();
 
 #if !defined( CLIENT_DLL )
 	// Redo precache all wave files... (this should work now that we have dynamic string tables)
-	g_SoundEmitterSystem.LevelInitPreEntity ();
+	g_SoundEmitterSystem.LevelInitPreEntity();
 
 	// These store raw sound indices for faster precaching, blow them away.
-	ClearModelSoundsCache ();
+	ClearModelSoundsCache();
 #endif
 
 	// TODO:  when we go to a handle system, we'll need to invalidate handles somehow
 }
 
 #if defined( CLIENT_DLL )
-CON_COMMAND_F ( cl_soundemitter_flush, "Flushes the sounds.txt system (client only)", FCVAR_CHEAT )
+CON_COMMAND_F( cl_soundemitter_flush, "Flushes the sounds.txt system (client only)", FCVAR_CHEAT )
 #else
-CON_COMMAND_F ( sv_soundemitter_flush, "Flushes the sounds.txt system (server only)", FCVAR_DEVELOPMENTONLY )
+CON_COMMAND_F( sv_soundemitter_flush, "Flushes the sounds.txt system (server only)", FCVAR_DEVELOPMENTONLY )
 #endif
 {
-	S_SoundEmitterSystemFlush ();
+	S_SoundEmitterSystemFlush();
 }
 
 #if !defined(_RETAIL)
@@ -1068,49 +1068,49 @@ CON_COMMAND_F ( sv_soundemitter_flush, "Flushes the sounds.txt system (server on
 
 #if !defined( _XBOX )
 
-CON_COMMAND_F ( sv_soundemitter_filecheck, "Report missing wave files for sounds and game_sounds files.", FCVAR_DEVELOPMENTONLY )
+CON_COMMAND_F( sv_soundemitter_filecheck, "Report missing wave files for sounds and game_sounds files.", FCVAR_DEVELOPMENTONLY )
 {
-	if ( !UTIL_IsCommandIssuedByServerAdmin () )
+	if ( !UTIL_IsCommandIssuedByServerAdmin() )
 		return;
 
-	int missing = soundemitterbase->CheckForMissingWavFiles ( true );
-	DevMsg ( "---------------------------\nTotal missing files %i\n", missing );
+	int missing = soundemitterbase->CheckForMissingWavFiles( true );
+	DevMsg( "---------------------------\nTotal missing files %i\n", missing );
 }
 
-CON_COMMAND_F ( sv_findsoundname, "Find sound names which reference the specified wave files.", FCVAR_DEVELOPMENTONLY )
+CON_COMMAND_F( sv_findsoundname, "Find sound names which reference the specified wave files.", FCVAR_DEVELOPMENTONLY )
 {
-	if ( !UTIL_IsCommandIssuedByServerAdmin () )
+	if ( !UTIL_IsCommandIssuedByServerAdmin() )
 		return;
 
-	if ( args.ArgC () != 2 )
+	if ( args.ArgC() != 2 )
 		return;
 
-	int c = soundemitterbase->GetSoundCount ();
+	int c = soundemitterbase->GetSoundCount();
 	int i;
 
-	char const* search = args[ 1 ];
+	char const *search = args[ 1 ];
 	if ( !search )
 		return;
 
 	for ( i = 0; i < c; i++ )
 	{
-		CSoundParametersInternal* internal = soundemitterbase->InternalGetParametersForSound ( i );
+		CSoundParametersInternal *internal = soundemitterbase->InternalGetParametersForSound( i );
 		if ( !internal )
 			continue;
 
-		int waveCount = internal->NumSoundNames ();
+		int waveCount = internal->NumSoundNames();
 		if ( waveCount > 0 )
 		{
 			for ( int wave = 0; wave < waveCount; wave++ )
 			{
-				char const* wavefilename = soundemitterbase->GetWaveName ( internal->GetSoundNames ()[ wave ].symbol );
+				char const *wavefilename = soundemitterbase->GetWaveName( internal->GetSoundNames()[ wave ].symbol );
 
-				if ( Q_stristr ( wavefilename, search ) )
+				if ( Q_stristr( wavefilename, search ) )
 				{
-					char const* soundname = soundemitterbase->GetSoundName ( i );
-					char const* scriptname = soundemitterbase->GetSourceFileForSound ( i );
+					char const *soundname = soundemitterbase->GetSoundName( i );
+					char const *scriptname = soundemitterbase->GetSourceFileForSound( i );
 
-					Msg ( "Referenced by '%s:%s' -- %s\n", scriptname, soundname, wavefilename );
+					Msg( "Referenced by '%s:%s' -- %s\n", scriptname, soundname, wavefilename );
 				}
 			}
 		}
@@ -1119,60 +1119,60 @@ CON_COMMAND_F ( sv_findsoundname, "Find sound names which reference the specifie
 #endif // !_XBOX
 
 #else
-void Playgamesound_f ( const CCommand& args )
+void Playgamesound_f( const CCommand &args )
 {
-	CBasePlayer* pPlayer = C_BasePlayer::GetLocalPlayer ();
+	CBasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
 	if ( pPlayer )
 	{
-		if ( args.ArgC () > 2 )
+		if ( args.ArgC() > 2 )
 		{
-			Vector position = pPlayer->EyePosition ();
+			Vector position = pPlayer->EyePosition();
 			Vector forward;
-			pPlayer->GetVectors ( &forward, NULL, NULL );
-			position += atof ( args[ 2 ] ) * forward;
-			CPASAttenuationFilter filter ( pPlayer );
+			pPlayer->GetVectors( &forward, NULL, NULL );
+			position += atof( args[ 2 ] ) * forward;
+			CPASAttenuationFilter filter( pPlayer );
 			EmitSound_t params;
 			params.m_pSoundName = args[ 1 ];
 			params.m_pOrigin = &position;
 			params.m_flVolume = 0.0f;
 			params.m_nPitch = 0;
-			g_SoundEmitterSystem.EmitSound ( filter, 0, params );
+			g_SoundEmitterSystem.EmitSound( filter, 0, params );
 		}
 		else
 		{
-			pPlayer->EmitSound ( args[ 1 ] );
+			pPlayer->EmitSound( args[ 1 ] );
 		}
 	}
 	else
 	{
-		Msg ( "Can't play until a game is started.\n" );
+		Msg( "Can't play until a game is started.\n" );
 		// UNDONE: Make something like this work?
 		//CBroadcastRecipientFilter filter;
 		//g_SoundEmitterSystem.EmitSound( filter, 1, args[1], 0.0, 0, 0, &vec3_origin, 0, NULL );
 	}
 }
 
-static int GamesoundCompletion ( const char* partial, char commands[ COMMAND_COMPLETION_MAXITEMS ][ COMMAND_COMPLETION_ITEM_LENGTH ] )
+static int GamesoundCompletion( const char *partial, char commands[ COMMAND_COMPLETION_MAXITEMS ][ COMMAND_COMPLETION_ITEM_LENGTH ] )
 {
 	int current = 0;
 
-	const char* cmdname = "playgamesound";
-	char* substring = NULL;
+	const char *cmdname = "playgamesound";
+	char *substring = NULL;
 	int substringLen = 0;
-	if ( Q_strstr ( partial, cmdname ) && strlen ( partial ) > strlen ( cmdname ) + 1 )
+	if ( Q_strstr( partial, cmdname ) && strlen( partial ) > strlen( cmdname ) + 1 )
 	{
-		substring = ( char* ) partial + strlen ( cmdname ) + 1;
-		substringLen = strlen ( substring );
+		substring = ( char * ) partial + strlen( cmdname ) + 1;
+		substringLen = strlen( substring );
 	}
 
-	for ( int i = soundemitterbase->GetSoundCount () - 1; i >= 0 && current < COMMAND_COMPLETION_MAXITEMS; i-- )
+	for ( int i = soundemitterbase->GetSoundCount() - 1; i >= 0 && current < COMMAND_COMPLETION_MAXITEMS; i-- )
 	{
-		const char* pSoundName = soundemitterbase->GetSoundName ( i );
+		const char *pSoundName = soundemitterbase->GetSoundName( i );
 		if ( pSoundName )
 		{
-			if ( !substring || !Q_strncasecmp ( pSoundName, substring, substringLen ) )
+			if ( !substring || !Q_strncasecmp( pSoundName, substring, substringLen ) )
 			{
-				Q_snprintf ( commands[ current ], sizeof ( commands[ current ] ), "%s %s", cmdname, pSoundName );
+				Q_snprintf( commands[ current ], sizeof( commands[ current ] ), "%s %s", cmdname, pSoundName );
 				current++;
 			}
 		}
@@ -1181,7 +1181,7 @@ static int GamesoundCompletion ( const char* partial, char commands[ COMMAND_COM
 	return current;
 }
 
-static ConCommand Command_Playgamesound ( "playgamesound", Playgamesound_f, "Play a sound from the game sounds txt file", FCVAR_CLIENTCMD_CAN_EXECUTE | FCVAR_SERVER_CAN_EXECUTE, GamesoundCompletion );
+static ConCommand Command_Playgamesound( "playgamesound", Playgamesound_f, "Play a sound from the game sounds txt file", FCVAR_CLIENTCMD_CAN_EXECUTE | FCVAR_SERVER_CAN_EXECUTE, GamesoundCompletion );
 #endif
 
 #endif
@@ -1190,9 +1190,9 @@ static ConCommand Command_Playgamesound ( "playgamesound", Playgamesound_f, "Pla
 // Purpose:  Non-static override for doing the general case of CPASAttenuationFilter( this ), and EmitSound( filter, entindex(), etc. );
 // Input  : *soundname - 
 //-----------------------------------------------------------------------------
-void CBaseEntity::EmitSound ( const char* soundname, float soundtime /*= 0.0f*/, float* duration /*=NULL*/ )
+void CBaseEntity::EmitSound( const char *soundname, float soundtime /*= 0.0f*/, float *duration /*=NULL*/ )
 {
-	VPROF_BUDGET ( "CBaseEntity::EmitSound", _T ( "CBaseEntity::EmitSound" ) );
+	VPROF_BUDGET( "CBaseEntity::EmitSound", _T( "CBaseEntity::EmitSound" ) );
 
 	CBroadcastRecipientFilter filter;
 
@@ -1202,7 +1202,7 @@ void CBaseEntity::EmitSound ( const char* soundname, float soundtime /*= 0.0f*/,
 	params.m_pflSoundDuration = duration;
 	params.m_bWarnOnDirectWaveReference = true;
 
-	EmitSound ( filter, entindex (), params );
+	EmitSound( filter, entindex(), params );
 }
 
 
@@ -1210,12 +1210,12 @@ void CBaseEntity::EmitSound ( const char* soundname, float soundtime /*= 0.0f*/,
 // Purpose:  Non-static override for doing the general case of CPASAttenuationFilter( this ), and EmitSound( filter, entindex(), etc. );
 // Input  : *soundname - 
 //-----------------------------------------------------------------------------
-void CBaseEntity::EmitSound ( const char* soundname, HSOUNDSCRIPTHANDLE& handle, float soundtime /*= 0.0f*/, float* duration /*=NULL*/ )
+void CBaseEntity::EmitSound( const char *soundname, HSOUNDSCRIPTHANDLE &handle, float soundtime /*= 0.0f*/, float *duration /*=NULL*/ )
 {
-	VPROF_BUDGET ( "CBaseEntity::EmitSound", _T ( "CBaseEntity::EmitSound" ) );
+	VPROF_BUDGET( "CBaseEntity::EmitSound", _T( "CBaseEntity::EmitSound" ) );
 
 	// VPROF( "CBaseEntity::EmitSound" );
-	CPASAttenuationFilter filter ( this, soundname, handle );
+	CPASAttenuationFilter filter( this, soundname, handle );
 
 	EmitSound_t params;
 	params.m_pSoundName = soundname;
@@ -1223,7 +1223,7 @@ void CBaseEntity::EmitSound ( const char* soundname, HSOUNDSCRIPTHANDLE& handle,
 	params.m_pflSoundDuration = duration;
 	params.m_bWarnOnDirectWaveReference = true;
 
-	EmitSound ( filter, entindex (), params, handle );
+	EmitSound( filter, entindex(), params, handle );
 }
 
 //-----------------------------------------------------------------------------
@@ -1233,12 +1233,12 @@ void CBaseEntity::EmitSound ( const char* soundname, HSOUNDSCRIPTHANDLE& handle,
 //			*soundname - 
 //			*pOrigin - 
 //-----------------------------------------------------------------------------
-void CBaseEntity::EmitSound ( IRecipientFilter& filter, int iEntIndex, const char* soundname, const Vector* pOrigin /*= NULL*/, float soundtime /*= 0.0f*/, float* duration /*=NULL*/ )
+void CBaseEntity::EmitSound( IRecipientFilter &filter, int iEntIndex, const char *soundname, const Vector *pOrigin /*= NULL*/, float soundtime /*= 0.0f*/, float *duration /*=NULL*/ )
 {
 	if ( !soundname )
 		return;
 
-	VPROF_BUDGET ( "CBaseEntity::EmitSound", _T ( "CBaseEntity::EmitSound" ) );
+	VPROF_BUDGET( "CBaseEntity::EmitSound", _T( "CBaseEntity::EmitSound" ) );
 
 	// VPROF( "CBaseEntity::EmitSound" );
 	EmitSound_t params;
@@ -1248,7 +1248,7 @@ void CBaseEntity::EmitSound ( IRecipientFilter& filter, int iEntIndex, const cha
 	params.m_pflSoundDuration = duration;
 	params.m_bWarnOnDirectWaveReference = true;
 
-	EmitSound ( filter, iEntIndex, params, params.m_hSoundScriptHandle );
+	EmitSound( filter, iEntIndex, params, params.m_hSoundScriptHandle );
 }
 
 //-----------------------------------------------------------------------------
@@ -1258,9 +1258,9 @@ void CBaseEntity::EmitSound ( IRecipientFilter& filter, int iEntIndex, const cha
 //			*soundname - 
 //			*pOrigin - 
 //-----------------------------------------------------------------------------
-void CBaseEntity::EmitSound ( IRecipientFilter& filter, int iEntIndex, const char* soundname, HSOUNDSCRIPTHANDLE& handle, const Vector* pOrigin /*= NULL*/, float soundtime /*= 0.0f*/, float* duration /*=NULL*/ )
+void CBaseEntity::EmitSound( IRecipientFilter &filter, int iEntIndex, const char *soundname, HSOUNDSCRIPTHANDLE &handle, const Vector *pOrigin /*= NULL*/, float soundtime /*= 0.0f*/, float *duration /*=NULL*/ )
 {
-	VPROF_BUDGET ( "CBaseEntity::EmitSound", _T ( "CBaseEntity::EmitSound" ) );
+	VPROF_BUDGET( "CBaseEntity::EmitSound", _T( "CBaseEntity::EmitSound" ) );
 
 	//VPROF( "CBaseEntity::EmitSound" );
 	EmitSound_t params;
@@ -1270,7 +1270,7 @@ void CBaseEntity::EmitSound ( IRecipientFilter& filter, int iEntIndex, const cha
 	params.m_pflSoundDuration = duration;
 	params.m_bWarnOnDirectWaveReference = true;
 
-	EmitSound ( filter, iEntIndex, params, handle );
+	EmitSound( filter, iEntIndex, params, handle );
 }
 
 //-----------------------------------------------------------------------------
@@ -1279,23 +1279,23 @@ void CBaseEntity::EmitSound ( IRecipientFilter& filter, int iEntIndex, const cha
 //			iEntIndex - 
 //			params - 
 //-----------------------------------------------------------------------------
-void CBaseEntity::EmitSound ( IRecipientFilter& filter, int iEntIndex, const EmitSound_t& params )
+void CBaseEntity::EmitSound( IRecipientFilter &filter, int iEntIndex, const EmitSound_t &params )
 {
-	VPROF_BUDGET ( "CBaseEntity::EmitSound", _T ( "CBaseEntity::EmitSound" ) );
+	VPROF_BUDGET( "CBaseEntity::EmitSound", _T( "CBaseEntity::EmitSound" ) );
 
 #ifdef GAME_DLL
-	CBaseEntity* pEntity = UTIL_EntityByIndex ( iEntIndex );
+	CBaseEntity *pEntity = UTIL_EntityByIndex( iEntIndex );
 #else
-	C_BaseEntity* pEntity = ClientEntityList ().GetEnt ( iEntIndex );
+	C_BaseEntity *pEntity = ClientEntityList().GetEnt( iEntIndex );
 #endif
 	if ( pEntity )
 	{
-		pEntity->ModifyEmitSoundParams ( const_cast< EmitSound_t& >( params ) );
+		pEntity->ModifyEmitSoundParams( const_cast< EmitSound_t & >( params ) );
 	}
 
 	// VPROF( "CBaseEntity::EmitSound" );
 	// Call into the sound emitter system...
-	g_SoundEmitterSystem.EmitSound ( filter, iEntIndex, params );
+	g_SoundEmitterSystem.EmitSound( filter, iEntIndex, params );
 }
 
 //-----------------------------------------------------------------------------
@@ -1304,59 +1304,59 @@ void CBaseEntity::EmitSound ( IRecipientFilter& filter, int iEntIndex, const Emi
 //			iEntIndex - 
 //			params - 
 //-----------------------------------------------------------------------------
-void CBaseEntity::EmitSound ( IRecipientFilter& filter, int iEntIndex, const EmitSound_t& params, HSOUNDSCRIPTHANDLE& handle )
+void CBaseEntity::EmitSound( IRecipientFilter &filter, int iEntIndex, const EmitSound_t &params, HSOUNDSCRIPTHANDLE &handle )
 {
-	VPROF_BUDGET ( "CBaseEntity::EmitSound", _T ( "CBaseEntity::EmitSound" ) );
+	VPROF_BUDGET( "CBaseEntity::EmitSound", _T( "CBaseEntity::EmitSound" ) );
 
 #ifdef GAME_DLL
-	CBaseEntity* pEntity = UTIL_EntityByIndex ( iEntIndex );
+	CBaseEntity *pEntity = UTIL_EntityByIndex( iEntIndex );
 #else
-	C_BaseEntity* pEntity = ClientEntityList ().GetEnt ( iEntIndex );
+	C_BaseEntity *pEntity = ClientEntityList().GetEnt( iEntIndex );
 #endif
 	if ( pEntity )
 	{
-		pEntity->ModifyEmitSoundParams ( const_cast< EmitSound_t& >( params ) );
+		pEntity->ModifyEmitSoundParams( const_cast< EmitSound_t & >( params ) );
 	}
 
 	// VPROF( "CBaseEntity::EmitSound" );
 	// Call into the sound emitter system...
-	g_SoundEmitterSystem.EmitSoundByHandle ( filter, iEntIndex, params, handle );
+	g_SoundEmitterSystem.EmitSoundByHandle( filter, iEntIndex, params, handle );
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : *soundname - 
 //-----------------------------------------------------------------------------
-void CBaseEntity::StopSound ( const char* soundname )
+void CBaseEntity::StopSound( const char *soundname )
 {
 #if defined( CLIENT_DLL )
-	if ( entindex () == -1 )
+	if ( entindex() == -1 )
 	{
 		// If we're a clientside entity, we need to use the soundsourceindex instead of the entindex
-		StopSound ( GetSoundSourceIndex (), soundname );
+		StopSound( GetSoundSourceIndex(), soundname );
 		return;
 	}
 #endif
 
-	StopSound ( entindex (), soundname );
+	StopSound( entindex(), soundname );
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : *soundname - 
 //-----------------------------------------------------------------------------
-void CBaseEntity::StopSound ( const char* soundname, HSOUNDSCRIPTHANDLE& handle )
+void CBaseEntity::StopSound( const char *soundname, HSOUNDSCRIPTHANDLE &handle )
 {
 #if defined( CLIENT_DLL )
-	if ( entindex () == -1 )
+	if ( entindex() == -1 )
 	{
 		// If we're a clientside entity, we need to use the soundsourceindex instead of the entindex
-		StopSound ( GetSoundSourceIndex (), soundname );
+		StopSound( GetSoundSourceIndex(), soundname );
 		return;
 	}
 #endif
 
-	g_SoundEmitterSystem.StopSoundByHandle ( entindex (), soundname, handle );
+	g_SoundEmitterSystem.StopSoundByHandle( entindex(), soundname, handle );
 }
 
 //-----------------------------------------------------------------------------
@@ -1364,25 +1364,25 @@ void CBaseEntity::StopSound ( const char* soundname, HSOUNDSCRIPTHANDLE& handle 
 // Input  : iEntIndex - 
 //			*soundname - 
 //-----------------------------------------------------------------------------
-void CBaseEntity::StopSound ( int iEntIndex, const char* soundname )
+void CBaseEntity::StopSound( int iEntIndex, const char *soundname )
 {
-	g_SoundEmitterSystem.StopSound ( iEntIndex, soundname );
+	g_SoundEmitterSystem.StopSound( iEntIndex, soundname );
 }
 
-void CBaseEntity::StopSound ( int iEntIndex, int iChannel, const char* pSample )
+void CBaseEntity::StopSound( int iEntIndex, int iChannel, const char *pSample )
 {
-	g_SoundEmitterSystem.StopSound ( iEntIndex, iChannel, pSample );
+	g_SoundEmitterSystem.StopSound( iEntIndex, iChannel, pSample );
 }
 
-soundlevel_t CBaseEntity::LookupSoundLevel ( const char* soundname )
+soundlevel_t CBaseEntity::LookupSoundLevel( const char *soundname )
 {
-	return soundemitterbase->LookupSoundLevel ( soundname );
+	return soundemitterbase->LookupSoundLevel( soundname );
 }
 
 
-soundlevel_t CBaseEntity::LookupSoundLevel ( const char* soundname, HSOUNDSCRIPTHANDLE& handle )
+soundlevel_t CBaseEntity::LookupSoundLevel( const char *soundname, HSOUNDSCRIPTHANDLE &handle )
 {
-	return soundemitterbase->LookupSoundLevelByHandle ( soundname, handle );
+	return soundemitterbase->LookupSoundLevelByHandle( soundname, handle );
 }
 
 //-----------------------------------------------------------------------------
@@ -1392,29 +1392,29 @@ soundlevel_t CBaseEntity::LookupSoundLevel ( const char* soundname, HSOUNDSCRIPT
 //			flags - 
 //			*soundname - 
 //-----------------------------------------------------------------------------
-void CBaseEntity::EmitAmbientSound ( int entindex, const Vector& origin, const char* soundname, int flags, float soundtime /*= 0.0f*/, float* duration /*=NULL*/ )
+void CBaseEntity::EmitAmbientSound( int entindex, const Vector &origin, const char *soundname, int flags, float soundtime /*= 0.0f*/, float *duration /*=NULL*/ )
 {
-	g_SoundEmitterSystem.EmitAmbientSound ( entindex, origin, soundname, 0.0, flags, 0, soundtime, duration );
+	g_SoundEmitterSystem.EmitAmbientSound( entindex, origin, soundname, 0.0, flags, 0, soundtime, duration );
 }
 
 // HACK HACK:  Do we need to pull the entire SENTENCEG_* wrapper over to the client .dll?
 #if defined( CLIENT_DLL )
-int SENTENCEG_Lookup ( const char* sample )
+int SENTENCEG_Lookup( const char *sample )
 {
-	return engine->SentenceIndexFromName ( sample + 1 );
+	return engine->SentenceIndexFromName( sample + 1 );
 }
 #endif
 
-void UTIL_EmitAmbientSound ( int entindex, const Vector& vecOrigin, const char* samp, float vol, soundlevel_t soundlevel, int fFlags, int pitch, float soundtime /*= 0.0f*/, float* duration /*=NULL*/ )
+void UTIL_EmitAmbientSound( int entindex, const Vector &vecOrigin, const char *samp, float vol, soundlevel_t soundlevel, int fFlags, int pitch, float soundtime /*= 0.0f*/, float *duration /*=NULL*/ )
 {
 #ifdef STAGING_ONLY
-	if ( sv_snd_filter.GetString ()[ 0 ] && !V_stristr ( samp, sv_snd_filter.GetString () ) )
+	if ( sv_snd_filter.GetString()[ 0 ] && !V_stristr( samp, sv_snd_filter.GetString() ) )
 	{
 		return;
 	}
 #endif // STAGING_ONLY
 #if !defined( CLIENT_DLL )
-	if ( sv_soundfix.GetBool () )
+	if ( sv_soundfix.GetBool() )
 	{
 		if ( pitch == PITCH_NORM || pitch == PITCH_HIGH || pitch == PITCH_LOW )
 		{
@@ -1424,78 +1424,78 @@ void UTIL_EmitAmbientSound ( int entindex, const Vector& vecOrigin, const char* 
 #endif
 	if ( samp && *samp == '!' )
 	{
-		int sentenceIndex = SENTENCEG_Lookup ( samp );
+		int sentenceIndex = SENTENCEG_Lookup( samp );
 		if ( sentenceIndex >= 0 )
 		{
 			char name[ 32 ];
-			Q_snprintf ( name, sizeof ( name ), "!%d", sentenceIndex );
+			Q_snprintf( name, sizeof( name ), "!%d", sentenceIndex );
 #if !defined( CLIENT_DLL )
-			engine->EmitAmbientSound ( entindex, vecOrigin, name, vol, soundlevel, fFlags, pitch, soundtime );
+			engine->EmitAmbientSound( entindex, vecOrigin, name, vol, soundlevel, fFlags, pitch, soundtime );
 #else
-			enginesound->EmitAmbientSound ( name, vol, pitch, fFlags, soundtime );
+			enginesound->EmitAmbientSound( name, vol, pitch, fFlags, soundtime );
 #endif
 			if ( duration )
 			{
-				*duration = enginesound->GetSoundDuration ( name );
+				*duration = enginesound->GetSoundDuration( name );
 			}
 
-			g_SoundEmitterSystem.TraceEmitSound ( "UTIL_EmitAmbientSound:  Sentence emitted '%s' (ent %i)\n",
+			g_SoundEmitterSystem.TraceEmitSound( "UTIL_EmitAmbientSound:  Sentence emitted '%s' (ent %i)\n",
 				name, entindex );
 		}
 	}
 	else
 	{
-		g_SoundEmitterSystem.EmitAmbientSound ( entindex, vecOrigin, samp, vol, soundlevel, fFlags, pitch, soundtime, duration );
+		g_SoundEmitterSystem.EmitAmbientSound( entindex, vecOrigin, samp, vol, soundlevel, fFlags, pitch, soundtime, duration );
 	}
 }
 
-static const char* UTIL_TranslateSoundName ( const char* soundname, const char* actormodel )
+static const char *UTIL_TranslateSoundName( const char *soundname, const char *actormodel )
 {
-	Assert ( soundname );
+	Assert( soundname );
 
-	if ( Q_stristr ( soundname, ".wav" ) || Q_stristr ( soundname, ".mp3" ) )
+	if ( Q_stristr( soundname, ".wav" ) || Q_stristr( soundname, ".mp3" ) )
 	{
-		if ( Q_stristr ( soundname, ".wav" ) )
+		if ( Q_stristr( soundname, ".wav" ) )
 		{
-			WaveTrace ( soundname, "UTIL_TranslateSoundName" );
+			WaveTrace( soundname, "UTIL_TranslateSoundName" );
 		}
 		return soundname;
 	}
 
-	return soundemitterbase->GetWavFileForSound ( soundname, actormodel );
+	return soundemitterbase->GetWavFileForSound( soundname, actormodel );
 }
 
-void CBaseEntity::GenderExpandString ( char const* in, char* out, int maxlen )
+void CBaseEntity::GenderExpandString( char const *in, char *out, int maxlen )
 {
-	soundemitterbase->GenderExpandString ( STRING ( GetModelName () ), in, out, maxlen );
+	soundemitterbase->GenderExpandString( STRING( GetModelName() ), in, out, maxlen );
 }
 
-bool CBaseEntity::GetParametersForSound ( const char* soundname, CSoundParameters& params, const char* actormodel )
+bool CBaseEntity::GetParametersForSound( const char *soundname, CSoundParameters &params, const char *actormodel )
 {
-	gender_t gender = soundemitterbase->GetActorGender ( actormodel );
+	gender_t gender = soundemitterbase->GetActorGender( actormodel );
 
-	return soundemitterbase->GetParametersForSound ( soundname, params, gender );
+	return soundemitterbase->GetParametersForSound( soundname, params, gender );
 }
 
-bool CBaseEntity::GetParametersForSound ( const char* soundname, HSOUNDSCRIPTHANDLE& handle, CSoundParameters& params, const char* actormodel )
+bool CBaseEntity::GetParametersForSound( const char *soundname, HSOUNDSCRIPTHANDLE &handle, CSoundParameters &params, const char *actormodel )
 {
-	gender_t gender = soundemitterbase->GetActorGender ( actormodel );
+	gender_t gender = soundemitterbase->GetActorGender( actormodel );
 
-	return soundemitterbase->GetParametersForSoundEx ( soundname, handle, params, gender );
+	return soundemitterbase->GetParametersForSoundEx( soundname, handle, params, gender );
 }
 
-HSOUNDSCRIPTHANDLE CBaseEntity::PrecacheScriptSound ( const char* soundname )
+HSOUNDSCRIPTHANDLE CBaseEntity::PrecacheScriptSound( const char *soundname )
 {
 #if !defined( CLIENT_DLL )
-	return g_SoundEmitterSystem.PrecacheScriptSound ( soundname );
+	return g_SoundEmitterSystem.PrecacheScriptSound( soundname );
 #else
-	return soundemitterbase->GetSoundIndex ( soundname );
+	return soundemitterbase->GetSoundIndex( soundname );
 #endif
 }
 
-void CBaseEntity::PrefetchScriptSound ( const char* soundname )
+void CBaseEntity::PrefetchScriptSound( const char *soundname )
 {
-	g_SoundEmitterSystem.PrefetchScriptSound ( soundname );
+	g_SoundEmitterSystem.PrefetchScriptSound( soundname );
 }
 
 //-----------------------------------------------------------------------------
@@ -1503,9 +1503,9 @@ void CBaseEntity::PrefetchScriptSound ( const char* soundname )
 // Input  : *soundname - 
 // Output : float
 //-----------------------------------------------------------------------------
-float CBaseEntity::GetSoundDuration ( const char* soundname, char const* actormodel )
+float CBaseEntity::GetSoundDuration( const char *soundname, char const *actormodel )
 {
-	return enginesound->GetSoundDuration ( PSkipSoundChars ( UTIL_TranslateSoundName ( soundname, actormodel ) ) );
+	return enginesound->GetSoundDuration( PSkipSoundChars( UTIL_TranslateSoundName( soundname, actormodel ) ) );
 }
 
 //-----------------------------------------------------------------------------
@@ -1515,21 +1515,21 @@ float CBaseEntity::GetSoundDuration ( const char* soundname, char const* actormo
 //			duration - 
 //			warnifmissing - 
 //-----------------------------------------------------------------------------
-void CBaseEntity::EmitCloseCaption ( IRecipientFilter& filter, int entindex, char const* token, CUtlVector< Vector >& soundorigin, float duration, bool warnifmissing /*= false*/ )
+void CBaseEntity::EmitCloseCaption( IRecipientFilter &filter, int entindex, char const *token, CUtlVector< Vector > &soundorigin, float duration, bool warnifmissing /*= false*/ )
 {
 	bool fromplayer = false;
-	CBaseEntity* ent = CBaseEntity::Instance ( entindex );
+	CBaseEntity *ent = CBaseEntity::Instance( entindex );
 	while ( ent )
 	{
-		if ( ent->IsPlayer () )
+		if ( ent->IsPlayer() )
 		{
 			fromplayer = true;
 			break;
 		}
-		ent = ent->GetOwnerEntity ();
+		ent = ent->GetOwnerEntity();
 	}
 
-	g_SoundEmitterSystem.EmitCloseCaption ( filter, entindex, fromplayer, token, soundorigin, duration, warnifmissing );
+	g_SoundEmitterSystem.EmitCloseCaption( filter, entindex, fromplayer, token, soundorigin, duration, warnifmissing );
 }
 
 //-----------------------------------------------------------------------------
@@ -1538,25 +1538,25 @@ void CBaseEntity::EmitCloseCaption ( IRecipientFilter& filter, int entindex, cha
 //			preload - 
 // Output : Returns true on success, false on failure.
 //-----------------------------------------------------------------------------
-bool CBaseEntity::PrecacheSound ( const char* name )
+bool CBaseEntity::PrecacheSound( const char *name )
 {
-	if ( IsPC () && !g_bPermitDirectSoundPrecache )
+	if ( IsPC() && !g_bPermitDirectSoundPrecache )
 	{
-		Warning ( "Direct precache of %s\n", name );
+		Warning( "Direct precache of %s\n", name );
 	}
 
 	// If this is out of order, warn
-	if ( !CBaseEntity::IsPrecacheAllowed () )
+	if ( !CBaseEntity::IsPrecacheAllowed() )
 	{
-		if ( !enginesound->IsSoundPrecached ( name ) )
+		if ( !enginesound->IsSoundPrecached( name ) )
 		{
-			Assert ( !"CBaseEntity::PrecacheSound:  too late" );
+			Assert( !"CBaseEntity::PrecacheSound:  too late" );
 
-			Warning ( "Late precache of %s\n", name );
+			Warning( "Late precache of %s\n", name );
 		}
 	}
 
-	bool bret = enginesound->PrecacheSound ( name, true );
+	bool bret = enginesound->PrecacheSound( name, true );
 	return bret;
 }
 
@@ -1564,8 +1564,8 @@ bool CBaseEntity::PrecacheSound ( const char* name )
 // Purpose: 
 // Input  : *name - 
 //-----------------------------------------------------------------------------
-void CBaseEntity::PrefetchSound ( const char* name )
+void CBaseEntity::PrefetchSound( const char *name )
 {
-	enginesound->PrefetchSound ( name );
+	enginesound->PrefetchSound( name );
 }
 
