@@ -1,10 +1,8 @@
 ![Server Binaries](https://i.imgur.com/xP3IFZh.jpeg)
 
+## As of 2/18/2025, a large update has been pushed to both the Source SDK and Source 1 games. As such, the binaries may not work anymore. An updated version of this repository here will be pushed in the future. No ETA as of now as a lot of work may be needed. Thanks for understanding.
+
 ### Frequently Asked Questions
-
-## Will this work with the anniversary update?
-
-As of 11/22/24, the code has been updated with all the bug fixes and the entirety of features which are compatible with the latest version of the game.
 
 ## Will Sourcemod work with the binaries?
 
@@ -142,7 +140,7 @@ Not all fixes and updates are listed here, only the most important ones.
 - Fixed incorrect model spawning for physics objects.
 - Fixed sound control issues with `ambient_generic`.
 - Fixed tank train damage issues.
-- Fixed `func_rot_button` ìStart lockedî setting.
+- Fixed `func_rot_button` ‚ÄúStart locked‚Äù setting.
 - Fixed `mp_flashlight` enforcement settings.
 - Fixed various NPC-related issues.
 - Fixed bypassing of forced respawn.
