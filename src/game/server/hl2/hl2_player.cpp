@@ -500,11 +500,25 @@ void CHL2_Player::HandleSpeedChanges( CMoveData *mv )
 	int nChangedButtons = mv->m_nButtons ^ mv->m_nOldButtons;
 
 	bool bJustPressedSpeed = !!( nChangedButtons & IN_SPEED );
+	bool bJustPressedDuck = !!( nChangedButtons & IN_DUCK );
 
-	const bool bWantSprint = ( CanSprint() && IsSuitEquipped() && ( mv->m_nButtons & IN_SPEED ) );
+	const bool bWantSprint = ( CanSprint() && IsSuitEquipped() && ( mv->m_nButtons & IN_SPEED ) && !( mv->m_nButtons & IN_DUCK ) );
 	const bool bWantsToChangeSprinting = ( m_HL2Local.m_bNewSprinting != bWantSprint ) && ( nChangedButtons & IN_SPEED ) != 0;
 
 	bool bSprinting = m_HL2Local.m_bNewSprinting;
+
+	if ( m_Local.m_bDucked && !m_Local.m_bDucking )
+	{
+		bSprinting = false;
+		m_HL2Local.m_bNewSprinting = false;
+	}
+
+	if ( !m_Local.m_bDucked && m_HL2Local.m_bNewSprinting == false && ( mv->m_nButtons & IN_SPEED ) )
+	{
+		bSprinting = true;
+		m_HL2Local.m_bNewSprinting = true;
+	}
+
 	if ( bWantsToChangeSprinting )
 	{
 		if ( bWantSprint )
