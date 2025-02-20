@@ -46,6 +46,7 @@ ConVar	teamlist( "mp_teamlist","hgrunt;scientist", FCVAR_NOTIFY );
 ConVar	teamoverride( "mp_teamoverride","1" );
 ConVar	defaultteam( "mp_defaultteam","0" );
 ConVar	allowNPCs( "mp_allowNPCs","1", FCVAR_NOTIFY );
+ConVar	sv_propflying( "sv_propflying", "1", FCVAR_NOTIFY );
 
 // Engine Cvars
 const ConVar	*g_pDeveloper = NULL;

@@ -1107,6 +1107,22 @@ bool CHL2_Player::HandleInteraction(int interactionType, void *data, CBaseCombat
 
 void CHL2_Player::PlayerRunCommand(CUserCmd *ucmd, IMoveHelper *moveHelper)
 {
+	float m_flcurrentTime = gpGlobals->curtime;
+
+	if ( !IsPenetrationOngoing( m_flcurrentTime ) && CheckForPenetration() )
+	{
+		// Reset the player's speed if penetration is no longer ongoing
+
+		if ( GetLaggedMovementValue() != 1.0f )
+		{
+			SetLaggedMovementValue( 1.0f );
+
+			DevMsg( "Reset player movement speed to default.\n" );
+		}
+
+		SetCheckForPenetration( false );
+	}
+
 	// Handle FL_FROZEN.
 	if ( m_afPhysicsFlags & PFLAG_ONBARNACLE )
 	{

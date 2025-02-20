@@ -8096,6 +8096,10 @@ void CMovementSpeedMod::InputSpeedMod(inputdata_t &data)
 				pPlayer->m_Local.m_iHideHUD &= ~HIDEHUD_ALL;
 			}
 		}
+		if ( pPlayer->GetLaggedMovementValue() != 1.0f )
+			pPlayer->SetPlayerSpeedmodActive( true );
+		else
+			pPlayer->SetPlayerSpeedmodActive( false );
 
 		pPlayer->SetLaggedMovementValue( data.value.Float() );
 	}

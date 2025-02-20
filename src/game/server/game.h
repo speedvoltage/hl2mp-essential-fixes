@@ -33,6 +33,7 @@ extern ConVar	teamlist;
 extern ConVar	teamoverride;
 extern ConVar	defaultteam;
 extern ConVar	allowNPCs;
+extern ConVar	sv_propflying;
 
 extern ConVar	suitvolume;
 

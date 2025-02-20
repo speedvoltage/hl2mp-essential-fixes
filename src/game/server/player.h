@@ -823,6 +823,13 @@ public:
 		}
 	}
 
+	void UpdatePenetrationTime( float currentTime ) { m_flPenetrationTime = currentTime; }
+	bool IsPenetrationOngoing( float currentTime ) const { return ( m_flPenetrationTime + 1.0f ) > currentTime; }
+	void SetPlayerSpeedmodActive( bool enabled ) { m_bSpeedmodActive = enabled; }
+	bool IsPlayerSpeedmodActive() const { return m_bSpeedmodActive; }
+	void SetCheckForPenetration( bool penetration ) { m_bCheckPenetration = penetration; }
+	bool CheckForPenetration() const { return m_bCheckPenetration; }
+
 private:
 	// How much of a movement time buffer can we process from this user?
 	int				m_nMovementTicksForUserCmdProcessingRemaining;
@@ -838,6 +845,10 @@ private:
 
 	int					DetermineSimulationTicks( void );
 	void				AdjustPlayerTimeBase( int simulation_ticks );
+
+	float m_flPenetrationTime = 0.0f;
+	bool m_bSpeedmodActive;
+	bool m_bCheckPenetration;
 
 public:
 	
