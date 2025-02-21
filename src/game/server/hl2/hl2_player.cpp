@@ -506,14 +506,17 @@ void CHL2_Player::HandleSpeedChanges( CMoveData *mv )
 
 	bool bSprinting = m_HL2Local.m_bNewSprinting;
 
-	
+	if ( m_Local.m_bDucked && !m_Local.m_bDucking && ( mv->m_nButtons & IN_DUCK ) && bSprinting )
+	{
+		bSprinting = false;
+		SetSpeedCrawl( false );
+	}
+
 	if ( m_Local.m_bDucked && !m_Local.m_bDucking && ( mv->m_nButtons & IN_DUCK ) && !IsSpeedcrawling() )
 	{
 		bSprinting = false;
-		m_HL2Local.m_bNewSprinting = false;
 	}
 	
-
 	if ( m_Local.m_bDucked && m_Local.m_bDucking && m_HL2Local.m_bNewSprinting == false && ( mv->m_nButtons & IN_SPEED ) )
 	{
 		bSprinting = true;

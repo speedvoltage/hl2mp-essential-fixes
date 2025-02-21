@@ -4126,7 +4126,7 @@ void CGameMovement::FinishUnDuck( void )
 	}
 
 	player->m_Local.m_bDucked = false;
-	player->RemoveFlag( FL_DUCKING );
+	player->RemoveFlag( FL_DUCKING | FL_ANIMDUCKING );
 	player->m_Local.m_bDucking  = false;
 	player->m_Local.m_bInDuckJump  = false;
 	player->SetViewOffset( GetPlayerViewOffset( false ) );
@@ -4181,7 +4181,7 @@ void CGameMovement::FinishUnDuckJump( trace_t &trace )
 	viewDelta.z *= trace.fraction;
 	flDeltaZ -= viewDelta.z;
 
-	player->RemoveFlag( FL_DUCKING );
+	player->RemoveFlag( FL_DUCKING | FL_ANIMDUCKING );
 	player->m_Local.m_bDucked = false;
 	player->m_Local.m_bDucking  = false;
 	player->m_Local.m_bInDuckJump = false;
@@ -4205,10 +4205,7 @@ void CGameMovement::FinishUnDuckJump( trace_t &trace )
 //-----------------------------------------------------------------------------
 void CGameMovement::FinishDuck( void )
 {
-	if ( player->GetFlags() & FL_DUCKING )
-		return;
-
-	player->AddFlag( FL_DUCKING );
+	player->AddFlag( FL_DUCKING | FL_ANIMDUCKING );
 	player->m_Local.m_bDucked = true;
 	player->m_Local.m_bDucking = false;
 
@@ -4251,6 +4248,7 @@ void CGameMovement::FinishDuck( void )
 void CGameMovement::StartUnDuckJump( void )
 {
 	player->AddFlag( FL_DUCKING );
+	player->RemoveFlag( FL_ANIMDUCKING );
 	player->m_Local.m_bDucked = true;
 	player->m_Local.m_bDucking = false;
 
@@ -4298,7 +4296,6 @@ void CGameMovement::SetDuckedEyeOffset( float duckFraction )
 //-----------------------------------------------------------------------------
 void CGameMovement::HandleDuckingSpeedCrop( void )
 {
-	// Cast the player to CHL2_Player to access m_HL2Local
 	CHL2_Player *pHL2Player = dynamic_cast< CHL2_Player * >( player );
 
 	if ( !( m_iSpeedCropped & SPEED_CROPPED_DUCK ) && ( player->GetFlags() & FL_DUCKING ) && ( player->GetGroundEntity() != NULL ) )
@@ -4383,38 +4380,50 @@ void CGameMovement::Duck( void )
 #endif
 
 	// If the player is holding down the duck button, the player is in duck transition, ducking, or duck-jumping.
-	if ( ( mv->m_nButtons & IN_DUCK ) || player->m_Local.m_bDucking  || bInDuck || bDuckJump )
+	if ( ( mv->m_nButtons & IN_DUCK ) || player->m_Local.m_bDucking || bInDuck || bDuckJump )
 	{
 		// DUCK
 		if ( ( mv->m_nButtons & IN_DUCK ) || bDuckJump )
 		{
-// XBOX SERVER ONLY
+			if ( buttonsPressed & IN_DUCK )
+			{
+				// XBOX SERVER ONLY
 #if !defined(CLIENT_DLL)
-			if ( IsX360() && buttonsPressed & IN_DUCK )
-			{
-				// Hinting logic
-				if ( player->GetToggledDuckState() && player->m_nNumCrouches < NUM_CROUCH_HINTS )
+				if ( IsX360() )
 				{
-					UTIL_HudHintText( player, "#Valve_Hint_Crouch" );
-					player->m_nNumCrouches++;
+					// Hinting logic
+					if ( player->GetToggledDuckState() && player->m_nNumCrouches < NUM_CROUCH_HINTS )
+					{
+						UTIL_HudHintText( player, "#Valve_Hint_Crouch" );
+						player->m_nNumCrouches++;
+					}
 				}
-			}
 #endif
-			// Have the duck button pressed, but the player currently isn't in the duck position.
-			if ( ( buttonsPressed & IN_DUCK ) && !bInDuck && !bDuckJump && !bDuckJumpTime )
-			{
-				player->m_Local.m_flDucktime = GAMEMOVEMENT_DUCK_TIME;
-				player->m_Local.m_bDucking = true;
+
+				if ( bInDuck )
+				{
+					// Invert time if press before fully unducked!!!
+					player->m_Local.m_flDucktime = GAMEMOVEMENT_DUCK_TIME * 2.0f - 200.0f
+						- player->m_Local.m_flDucktime - TIME_TO_DUCK_MS;
+				}
+				// Have the duck button pressed, but the player currently isn't in the duck position.
+				else if ( !bDuckJump && !bDuckJumpTime )
+				{
+					player->m_Local.m_flDucktime = GAMEMOVEMENT_DUCK_TIME;
+					player->m_Local.m_bDucking = true;
+				}
+
+				player->AddFlag( FL_ANIMDUCKING );
 			}
-			
+
 			// The player is in duck transition and not duck-jumping.
 			if ( player->m_Local.m_bDucking && !bDuckJump && !bDuckJumpTime )
 			{
-				float flDuckMilliseconds = MAX( 0.0f, GAMEMOVEMENT_DUCK_TIME - ( float )player->m_Local.m_flDucktime );
+				float flDuckMilliseconds = MAX( 0.0f, GAMEMOVEMENT_DUCK_TIME - ( float ) player->m_Local.m_flDucktime );
 				float flDuckSeconds = flDuckMilliseconds * 0.001f;
-				
-				// Finish in duck transition when transition time is over, in "duck", in air.
-				if ( ( flDuckSeconds > TIME_TO_DUCK ) || bInDuck || bInAir )
+
+				// Finish in duck transition when transition time is over, in air.
+				if ( ( flDuckSeconds > TIME_TO_DUCK ) || bInAir )
 				{
 					FinishDuck();
 				}
@@ -4454,13 +4463,13 @@ void CGameMovement::Duck( void )
 			if ( player->m_Local.m_bInDuckJump )
 			{
 				// Check for a crouch override.
-   				if ( !( mv->m_nButtons & IN_DUCK ) )
+				if ( !( mv->m_nButtons & IN_DUCK ) )
 				{
 					trace_t trace;
 					if ( CanUnDuckJump( trace ) )
 					{
 						FinishUnDuckJump( trace );
-					
+
 						if ( trace.fraction < 1.0f )
 						{
 							player->m_Local.m_flDuckJumpTime = ( GAMEMOVEMENT_TIME_TO_UNDUCK * ( 1.0f - trace.fraction ) ) + GAMEMOVEMENT_TIME_TO_UNDUCK_INV;
@@ -4500,7 +4509,7 @@ void CGameMovement::Duck( void )
 						player->m_Local.m_flDucktime = GAMEMOVEMENT_DUCK_TIME - unduckMilliseconds + remainingUnduckMilliseconds;
 					}
 				}
-				
+
 
 				// Check to see if we are capable of unducking.
 				if ( CanUnduck() )
@@ -4508,9 +4517,9 @@ void CGameMovement::Duck( void )
 					// or unducking
 					if ( ( player->m_Local.m_bDucking || player->m_Local.m_bDucked ) )
 					{
-						float flDuckMilliseconds = MAX( 0.0f, GAMEMOVEMENT_DUCK_TIME - (float)player->m_Local.m_flDucktime );
+						float flDuckMilliseconds = MAX( 0.0f, GAMEMOVEMENT_DUCK_TIME - ( float ) player->m_Local.m_flDucktime );
 						float flDuckSeconds = flDuckMilliseconds * 0.001f;
-						
+
 						// Finish ducking immediately if duck time is over or not on ground
 						if ( flDuckSeconds > TIME_TO_UNDUCK || ( bInAir && !bDuckJump ) )
 						{
@@ -4522,6 +4531,7 @@ void CGameMovement::Duck( void )
 							float flDuckFraction = SimpleSpline( 1.0f - ( flDuckSeconds / TIME_TO_UNDUCK ) );
 							SetDuckedEyeOffset( flDuckFraction );
 							player->m_Local.m_bDucking = true;
+							player->RemoveFlag( FL_ANIMDUCKING );
 						}
 					}
 				}
@@ -4531,11 +4541,11 @@ void CGameMovement::Duck( void )
 					//  that we'll unduck once we exit the tunnel, etc.
 					if ( player->m_Local.m_flDucktime != GAMEMOVEMENT_DUCK_TIME )
 					{
-						SetDuckedEyeOffset(1.0f);
+						SetDuckedEyeOffset( 1.0f );
 						player->m_Local.m_flDucktime = GAMEMOVEMENT_DUCK_TIME;
 						player->m_Local.m_bDucked = true;
 						player->m_Local.m_bDucking = false;
-						player->AddFlag( FL_DUCKING );
+						player->AddFlag( FL_DUCKING | FL_ANIMDUCKING );
 					}
 				}
 			}
