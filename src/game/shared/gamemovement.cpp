@@ -14,6 +14,7 @@
 #include "decals.h"
 #include "coordsize.h"
 #include "rumble_shared.h"
+#include "hl2_player.h"
 #ifdef CLIENT_DLL
 #include "prediction.h"
 #endif
@@ -4297,13 +4298,23 @@ void CGameMovement::SetDuckedEyeOffset( float duckFraction )
 //-----------------------------------------------------------------------------
 void CGameMovement::HandleDuckingSpeedCrop( void )
 {
+	// Cast the player to CHL2_Player to access m_HL2Local
+	CHL2_Player *pHL2Player = dynamic_cast< CHL2_Player * >( player );
+
 	if ( !( m_iSpeedCropped & SPEED_CROPPED_DUCK ) && ( player->GetFlags() & FL_DUCKING ) && ( player->GetGroundEntity() != NULL ) )
 	{
-		float frac = 0.33333333f;
-		mv->m_flForwardMove	*= frac;
-		mv->m_flSideMove	*= frac;
-		mv->m_flUpMove		*= frac;
-		m_iSpeedCropped		|= SPEED_CROPPED_DUCK;
+		if ( pHL2Player && pHL2Player->IsNewSprinting() )
+		{
+			// Restore speedcrawl
+		}
+		else
+		{
+			float frac = 0.33333333f;
+			mv->m_flForwardMove *= frac;
+			mv->m_flSideMove *= frac;
+			mv->m_flUpMove *= frac;
+			m_iSpeedCropped |= SPEED_CROPPED_DUCK;
+		}	
 	}
 }
 

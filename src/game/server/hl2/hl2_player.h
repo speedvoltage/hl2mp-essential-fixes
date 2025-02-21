@@ -171,6 +171,12 @@ public:
 	bool IsSprinting( void ) { return m_fIsSprinting; }
 	bool CanSprint( void );
 	void EnableSprint( bool bEnable);
+	bool IsNewSprinting() const
+	{
+		return m_HL2Local.m_bNewSprinting;
+	}
+	bool IsSpeedcrawling() const { return m_bSpeedcrawl; }
+	void SetSpeedCrawl( bool enabled ) { m_bSpeedcrawl = enabled; }
 
 	bool CanZoom( CBaseEntity *pRequester );
 	void ToggleZoom(void);
@@ -312,6 +318,8 @@ private:
 
 	CNetworkVar( bool, m_fIsSprinting );
 	CNetworkVarForDerived( bool, m_fIsWalking );
+
+	bool m_bSpeedcrawl;
 
 protected:	// Jeep: Portal_Player needs access to this variable to overload PlayerUse for picking up objects through portals
 	bool				m_bPlayUseDenySound;		// Signaled by PlayerUse, but can be unset by HL2 ladder code...
