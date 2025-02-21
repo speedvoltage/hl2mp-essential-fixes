@@ -235,6 +235,14 @@ bool CHL2GameMovement::ContinueForcedMove()
 	Assert( lm );
 	Assert( lm->m_bForceLadderMove );
 
+	if ( player->pl.deadflag && lm->m_hForceLadder.Get() )
+	{
+		SetLadder( NULL );
+		lm->m_bForceLadderMove = false;
+		lm->m_hForceLadder = NULL;
+		return false;
+	}
+
 	// Suppress regular motion
 	mv->m_flForwardMove = 0.0f;
 	mv->m_flSideMove = 0.0f;
@@ -468,8 +476,23 @@ bool CHL2GameMovement::ExitLadderViaDismountNode( CFuncLadder *ladder, bool stri
 			continue;
 		}
 
+		// Now perform a trace to ensure there is a clear line of sight
+		// between the player and the dismount node
+		trace_t losTrace;
+		Vector playerPos = mv->GetAbsOrigin() + player->GetViewOffset(); // Player's view position
+
+		UTIL_TraceLine( playerPos, org, MASK_PLAYERSOLID, player, COLLISION_GROUP_PLAYER_MOVEMENT, &losTrace );
+
+		// If there's an obstruction (a wall or other object) 
+		// between the player and the dismount node, skip it
+		if ( losTrace.fraction != 1.0f )
+		{
+			continue;
+		}
+
+
 		// Find the best dot product
-		Vector vecToSpot = org - ( mv->GetAbsOrigin() + player->GetViewOffset() );
+		Vector vecToSpot = org - playerPos;
 		vecToSpot.z = 0.0f;
 		float d = VectorNormalize( vecToSpot );
 
@@ -964,6 +987,14 @@ bool CHL2GameMovement::LadderMove( void )
 
 	if ( !ladder )
 	{
+#ifdef GAME_DLL
+		// Check if the player is still in the cooldown period after dismounting the ladder
+		if ( gpGlobals->curtime < GetHL2Player()->GetLadderCooldownTime() )
+		{
+			// Player is still in cooldown, prevent mounting
+			return false;
+		}
+#endif
 		Findladder( 64.0f, &bestLadder, bestOrigin, NULL );
 	}
 
@@ -1083,6 +1114,11 @@ bool CHL2GameMovement::LadderMove( void )
 		{
 			mv->m_vecVelocity.z = mv->m_vecVelocity.z + 50;
 		}
+
+#ifdef GAME_DLL
+		// Set cooldown time for remounting the ladder (0.5 seconds) - server-side only
+		GetHL2Player()->SetLadderCooldownTime( gpGlobals->curtime + 0.5f );
+#endif
 		return false;
 	}
 

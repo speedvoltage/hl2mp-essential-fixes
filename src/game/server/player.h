@@ -766,6 +766,9 @@ public:
 	float	GetFOVDistanceAdjustFactor(); // shared between client and server
 	float	GetFOVDistanceAdjustFactorForNetworking();
 
+	float GetLadderCooldownTime() const { return m_flLadderCooldownTime; }
+	void SetLadderCooldownTime( float cooldownTime ) { m_flLadderCooldownTime = cooldownTime; }
+
 	int		GetImpulse( void ) const { return m_nImpulse; }
 
 	// Movement constraints
@@ -849,6 +852,7 @@ private:
 	float m_flPenetrationTime = 0.0f;
 	bool m_bSpeedmodActive;
 	bool m_bCheckPenetration;
+	float m_flLadderCooldownTime;
 
 public:
 	
