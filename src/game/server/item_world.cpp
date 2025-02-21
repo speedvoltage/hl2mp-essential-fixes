@@ -303,15 +303,13 @@ void CItem::FallThink ( void )
 		shouldMaterialize = (GetFlags() & FL_ONGROUND) ? true : false;
 	}
 
-	if ( shouldMaterialize )
-	{
-		SetThink ( NULL );
+	SetThink ( NULL );
 
-		m_vOriginalSpawnOrigin = GetAbsOrigin();
-		m_vOriginalSpawnAngles = GetAbsAngles();
+	m_vOriginalSpawnOrigin = GetAbsOrigin();
+	m_vOriginalSpawnAngles = GetAbsAngles();
 
-		HL2MPRules()->AddLevelDesignerPlacedObject( this );
-	}
+	HL2MPRules()->AddLevelDesignerPlacedObject( this );
+
 #endif // HL2MP
 
 #if defined( TF_DLL )
