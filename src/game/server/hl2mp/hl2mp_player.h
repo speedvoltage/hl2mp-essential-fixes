@@ -145,6 +145,8 @@ public:
 	bool IsThreatFiringAtMe( CBaseEntity* threat ) const;
 private:
 
+	void LadderRespawnFix();
+
 	CNetworkQAngle( m_angEyeAngles );
 	CPlayerAnimState   m_PlayerAnimState;
 

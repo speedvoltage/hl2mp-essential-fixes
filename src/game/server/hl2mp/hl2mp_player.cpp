@@ -961,8 +961,25 @@ bool CHL2MP_Player::BumpWeapon( CBaseCombatWeapon *pWeapon )
 	return true;
 }
 
+void CHL2MP_Player::LadderRespawnFix()
+{
+	if ( auto lm = GetLadderMove() )
+	{
+		if ( lm->m_bForceLadderMove )
+		{
+			lm->m_bForceLadderMove = false;
+			if ( lm->m_hReservedSpot )
+			{
+				UTIL_Remove( ( CBaseEntity * ) lm->m_hReservedSpot.Get() );
+				lm->m_hReservedSpot = NULL;
+			}
+		}
+	}
+}
+
 void CHL2MP_Player::ChangeTeam( int iTeam )
 {
+	LadderRespawnFix();
 /*	if ( GetNextTeamChangeTime() >= gpGlobals->curtime )
 	{
 		char szReturnString[128];
@@ -1304,6 +1321,8 @@ void CHL2MP_Player::DetonateTripmines( void )
 
 void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 {
+	LadderRespawnFix();
+
 	//update damage info with our accumulated physics force
 	CTakeDamageInfo subinfo = info;
 	subinfo.SetDamageForce( m_vecTotalBulletForce );
