@@ -296,6 +296,13 @@ void CMissile::AccelerateThink( void )
 //---------------------------------------------------------
 void CMissile::AugerThink( void )
 {
+	// Peter Brev: Something doesn't seem right, so I'll revisit this later
+	if ( !m_hOwner )
+	{
+		UTIL_Remove( this );
+		return;
+	}
+
 	// If we've augered long enough, then just explode
 	if ( m_flAugerTime < gpGlobals->curtime )
 	{
