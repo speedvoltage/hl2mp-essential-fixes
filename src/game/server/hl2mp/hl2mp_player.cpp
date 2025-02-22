@@ -215,14 +215,14 @@ void CHL2MP_Player::GiveAllItems( void )
 	CBasePlayer::GiveAmmo( 255,	"AR2" );
 	CBasePlayer::GiveAmmo( 5,	"AR2AltFire" );
 	CBasePlayer::GiveAmmo( 255,	"SMG1");
-	CBasePlayer::GiveAmmo( 1,	"smg1_grenade");
+	CBasePlayer::GiveAmmo( 5,	"smg1_grenade");
 	CBasePlayer::GiveAmmo( 255,	"Buckshot");
 	CBasePlayer::GiveAmmo( 32,	"357" );
 	CBasePlayer::GiveAmmo( 3,	"rpg_round");
 	CBasePlayer::GiveAmmo( 16,	"XBowBolt");
 
-	CBasePlayer::GiveAmmo( 1,	"grenade" );
-	CBasePlayer::GiveAmmo( 2,	"slam" );
+	CBasePlayer::GiveAmmo( 5,	"grenade" );
+	CBasePlayer::GiveAmmo( 5,	"slam" );
 
 	GiveNamedItem( "weapon_crowbar" );
 	GiveNamedItem( "weapon_stunstick" );
