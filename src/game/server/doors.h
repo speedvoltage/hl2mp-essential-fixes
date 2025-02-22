@@ -35,8 +35,6 @@
 #define	SF_DOOR_USE_CLOSES			8192	// Door can be +used to close before its autoreturn delay has expired.
 #define SF_DOOR_SILENT_TO_NPCS		16384	// Does not alert NPC's when opened.
 #define SF_DOOR_IGNORE_USE			32768	// Completely ignores player +use commands.
-#define SF_DOOR_NEW_USE_RULES		65536	// For func_door entities, behave more like prop_door_rotating with respect to +USE (changelist 242482)
-
 
 enum FuncDoorSpawnPos_t
 {
