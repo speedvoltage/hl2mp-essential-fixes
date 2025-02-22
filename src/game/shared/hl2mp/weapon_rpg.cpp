@@ -458,6 +458,8 @@ void CMissile::IgniteThink( void )
 	SetModel("models/weapons/w_missile.mdl");
 	RemoveSolidFlags( FSOLID_NOT_SOLID );
 
+	AddEFlags( EFL_NO_WATER_VELOCITY_CHANGE );
+
 	//TODO: Play opening sound
 
 	Vector vecForward;
