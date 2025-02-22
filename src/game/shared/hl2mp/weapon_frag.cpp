@@ -552,6 +552,7 @@ void CWeaponFrag::RollGrenade( CBasePlayer *pPlayer )
 
 #endif
 
+	CDisablePredictionFiltering disablePred;
 	WeaponSound( SPECIAL1 );
 
 	// player "shoot" animation
