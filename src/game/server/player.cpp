@@ -2139,7 +2139,7 @@ void CBasePlayer::PlayerDeathThink(void)
 	}
 	
 	StopAnimation();
-
+	Extinguish();
 	IncrementInterpolationFrame();
 	m_flPlaybackRate = 0.0;
 	
