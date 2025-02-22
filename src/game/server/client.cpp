@@ -1052,12 +1052,9 @@ void CC_Player_PhysSwap( void )
 
 		if ( pWeapon )
 		{
-			// Tell the client to stop selecting weapons
-			engine->ClientCommand( UTIL_GetCommandClient()->edict(), "cancelselect" );
-
 			const char *strWeaponName = pWeapon->GetName();
 
-			if ( !Q_stricmp( strWeaponName, "weapon_physcannon" ) )
+			if ( !Q_stricmp( strWeaponName, "weapon_physcannon" ) && pWeapon->CanHolster() )
 			{
 				PhysCannonForceDrop( pWeapon, NULL );
 				pPlayer->SelectLastItem();
@@ -1085,9 +1082,6 @@ void CC_Player_BugBaitSwap( void )
 
 		if ( pWeapon )
 		{
-			// Tell the client to stop selecting weapons
-			engine->ClientCommand( UTIL_GetCommandClient()->edict(), "cancelselect" );
-
 			const char *strWeaponName = pWeapon->GetName();
 
 			if ( !Q_stricmp( strWeaponName, "weapon_bugbait" ) )
