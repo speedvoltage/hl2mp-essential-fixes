@@ -1027,7 +1027,8 @@ touchlink_t *CBaseEntity::PhysicsMarkEntityAsTouched( CBaseEntity *other )
 
 	// non-solid entities don't get touched
 	bool bShouldTouch = (IsSolid() && !IsSolidFlagSet(FSOLID_VOLUME_CONTENTS)) || IsSolidFlagSet(FSOLID_TRIGGER);
-	if ( bShouldTouch && !other->IsSolidFlagSet(FSOLID_TRIGGER) )
+	bool bShouldTouchOther = ( other->IsSolid() && !other->IsSolidFlagSet( FSOLID_VOLUME_CONTENTS ) ) || other->IsSolidFlagSet( FSOLID_TRIGGER );
+	if ( bShouldTouch && bShouldTouchOther )
 	{
 		link->flags |= FTOUCHLINK_START_TOUCH;
 		if ( !CBaseEntity::sm_bDisableTouchFuncs )

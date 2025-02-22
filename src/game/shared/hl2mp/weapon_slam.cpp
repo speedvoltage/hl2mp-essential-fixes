@@ -238,6 +238,7 @@ void CWeapon_SLAM::PrimaryAttack( void )
 			break;
 		case SLAM_SATCHEL_THROW:
 			StartSatchelThrow();
+			m_bThrowSatchel = true;
 			break;
 		case SLAM_SATCHEL_ATTACH:
 			StartSatchelAttach();
@@ -322,35 +323,42 @@ bool CWeapon_SLAM::AnyUndetonatedCharges(void)
 //-----------------------------------------------------------------------------
 void CWeapon_SLAM::StartSatchelDetonate()
 {
+	Activity activity = GetActivity();
+	if ( activity != ACT_SLAM_STICKWALL_IDLE && activity != ACT_SLAM_THROW_TO_STICKWALL )
+	{
+		if ( activity != ACT_SLAM_DETONATOR_IDLE && activity != ACT_SLAM_THROW_IDLE )
+			return;
 
-	if ( GetActivity() != ACT_SLAM_DETONATOR_IDLE && GetActivity() != ACT_SLAM_THROW_IDLE )
-		 return;
-	
-	// -----------------------------------------
-	//  Play detonate animation
-	// -----------------------------------------
-	if (m_bNeedReload)
-	{
-		SendWeaponAnim(ACT_SLAM_DETONATOR_DETONATE);
-	}
-	else if (m_tSlamState == SLAM_SATCHEL_ATTACH)
-	{
-		SendWeaponAnim(ACT_SLAM_STICKWALL_DETONATE);
-	}
-	else if (m_tSlamState == SLAM_SATCHEL_THROW)
-	{
-		SendWeaponAnim(ACT_SLAM_THROW_DETONATE);
+
+		// -----------------------------------------
+		//  Play detonate animation
+		// -----------------------------------------
+		if ( m_bNeedReload )
+		{
+			SendWeaponAnim( ACT_SLAM_DETONATOR_DETONATE );
+		}
+		else if ( m_tSlamState == SLAM_SATCHEL_ATTACH )
+		{
+			SendWeaponAnim( ACT_SLAM_STICKWALL_DETONATE );
+		}
+		else if ( m_tSlamState == SLAM_SATCHEL_THROW )
+		{
+			SendWeaponAnim( ACT_SLAM_THROW_DETONATE );
+		}
+		else
+		{
+			return;
+		}
 	}
 	else
 	{
-		return;
+		SendWeaponAnim( ACT_SLAM_STICKWALL_DETONATE );
 	}
 	SatchelDetonate();
 
-	m_flNextPrimaryAttack	= gpGlobals->curtime + SequenceDuration();
+	m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration();
 	m_flNextSecondaryAttack = gpGlobals->curtime + SequenceDuration();
 }
-
 
 //-----------------------------------------------------------------------------
 // Purpose:
@@ -395,6 +403,7 @@ void CWeapon_SLAM::TripmineAttach( void )
 			CBaseEntity *pEnt = CBaseEntity::Create( "npc_tripmine", tr.endpos + tr.plane.normal * 3, angles, NULL );
 
 			CTripmineGrenade *pMine = (CTripmineGrenade *)pEnt;
+			pMine->AttachToEntity( pEntity );
 			pMine->m_hOwner = GetOwner();
 
 #endif
@@ -750,6 +759,12 @@ bool CWeapon_SLAM::CanAttachSLAM( void )
 			{
 				return false;
 			}
+
+			CBaseGrenade *pGrenade = dynamic_cast< CBaseGrenade * >( pEntity );
+			if ( pGrenade )
+			{
+				return false;
+			}
 		}
 		return true;
 	}
@@ -998,6 +1013,9 @@ void CWeapon_SLAM::WeaponIdle( void )
 
 bool CWeapon_SLAM::Deploy( void )
 {
+	m_bThrowSatchel = false;
+	m_bAttachTripmine = false;
+
 	CBaseCombatCharacter *pOwner  = GetOwner();
 	if (!pOwner)
 	{
