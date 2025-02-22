@@ -1755,8 +1755,8 @@ void CBasePlayer::Event_Killed( const CTakeDamageInfo &info )
 void CBasePlayer::Event_Dying( const CTakeDamageInfo& info )
 {
 	// NOT GIBBED, RUN THIS CODE
-
-	DeathSound( info );
+	if ( !IsDisconnecting() )
+		DeathSound( info );
 
 	// The dead body rolls out of the vehicle.
 	if ( IsInAVehicle() )
@@ -9617,7 +9617,8 @@ void CBasePlayer::Event_KilledOther( CBaseEntity *pVictim, const CTakeDamageInfo
 	}
 	else
 	{
-		gamestats->Event_PlayerSuicide( this );
+		if ( !IsDisconnecting() )
+			gamestats->Event_PlayerSuicide( this );
 	}
 }
 
