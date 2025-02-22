@@ -584,6 +584,8 @@ CBasePlayer::CBasePlayer( )
 	pl.frags = 0;
 	pl.deaths = 0;
 
+	m_bAllowPickupWeaponThroughObstacle = false;
+
 	m_szNetname[0] = '\0';
 
 	m_iHealth = 0;

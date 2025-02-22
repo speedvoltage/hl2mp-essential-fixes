@@ -859,6 +859,8 @@ public:
 	// How long since this player last interacted with something the game considers an objective/target/goal
 	float				GetTimeSinceLastObjective( void ) const { return ( m_flLastObjectiveTime == -1.f ) ? 999.f : gpGlobals->curtime - m_flLastObjectiveTime; }
 	void				SetLastObjectiveTime( float flTime ) { m_flLastObjectiveTime = flTime; }
+	void           SetAllowPickupWeaponThroughObstacle( bool bValue ) { m_bAllowPickupWeaponThroughObstacle = bValue; }
+	bool           GetAllowPickupWeaponThroughObstacle() const { return m_bAllowPickupWeaponThroughObstacle; }
 
 	// Used by gamemovement to check if the entity is stuck.
 	int m_StuckLast;
@@ -917,6 +919,7 @@ public:
 	bool					m_bLagCompensation;	// user wants lag compenstation
 	bool					m_bPredictWeapons; //  user has client side predicted weapons
 	bool					m_bRequestPredict; //  user has client prediction enabled
+	bool					m_bAllowPickupWeaponThroughObstacle; // flag active only during givedefaultweapons
 	
 	float		GetDeathTime( void ) { return m_flDeathTime; }
 
