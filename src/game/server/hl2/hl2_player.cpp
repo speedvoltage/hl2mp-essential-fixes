@@ -531,6 +531,9 @@ void CHL2_Player::HandleSpeedChanges( CMoveData *mv )
 	if ( GetWaterLevel() == 3 )
 		bSprinting = false;
 
+	if ( GetGroundEntity() == NULL && ( mv->m_nButtons & IN_SPEED ) )
+		bSprinting = true;
+
 	if ( m_Local.m_bDucked && !m_Local.m_bDucking && ( mv->m_nButtons & IN_DUCK ) && bSprinting )
 	{
 		bSprinting = false;
