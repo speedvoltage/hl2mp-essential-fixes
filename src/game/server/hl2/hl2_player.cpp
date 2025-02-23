@@ -391,21 +391,42 @@ CHL2_Player::CHL2_Player()
 	m_iArmorReductionFrom = 0;
 }
 
+///////////////////////
+// NEW: Drain rates.
+///////////////////////
+#ifdef HL2MP
+#define STR_SPRINT_DRAIN_RATE "25"		// 100 units in 8 seconds
+#else
+#define STR_SPRINT_DRAIN_RATE "12.5"	// 100 units in 4 seconds
+#endif
+
+void callback_sv_sprint( IConVar *var, const char *pOldValue, float flOldValue );
+ConVar sv_sprint_drain_rate( "sv_sprint_drain_rate", STR_SPRINT_DRAIN_RATE, FCVAR_ARCHIVE, "Drain rate of sprint, in energy units per second.", true, 0, false, 0, &callback_sv_sprint );
+///////////////////////
+
 //
 // SUIT POWER DEVICES
 //
 #define SUITPOWER_CHARGE_RATE	12.5											// 100 units in 8 seconds
 
-#ifdef HL2MP
-	CSuitPowerDevice SuitDeviceSprint( bits_SUIT_DEVICE_SPRINT, 25.0f );				// 100 units in 4 seconds
+/*#ifdef HL2MP
+CSuitPowerDevice SuitDeviceSprint(bits_SUIT_DEVICE_SPRINT, sv_sprint_drain_rate.GetFloat());				// 100 units in 4 seconds
 #else
 	CSuitPowerDevice SuitDeviceSprint( bits_SUIT_DEVICE_SPRINT, 12.5f );				// 100 units in 8 seconds
-#endif
+#endif*/
+
+CSuitPowerDevice SuitDeviceSprint( bits_SUIT_DEVICE_SPRINT, sv_sprint_drain_rate.GetFloat() );
+
+void callback_sv_sprint( IConVar *var, const char *pOldValue, float flOldValue )
+{
+	// We need to recreate SuitDeviceSprint with the new value.
+	SuitDeviceSprint = CSuitPowerDevice( bits_SUIT_DEVICE_SPRINT, sv_sprint_drain_rate.GetFloat() );
+}
 
 #ifdef HL2_EPISODIC
-	CSuitPowerDevice SuitDeviceFlashlight( bits_SUIT_DEVICE_FLASHLIGHT, 1.111 );	// 100 units in 90 second
+CSuitPowerDevice SuitDeviceFlashlight( bits_SUIT_DEVICE_FLASHLIGHT, 1.111 );	// 100 units in 90 second
 #else
-	CSuitPowerDevice SuitDeviceFlashlight( bits_SUIT_DEVICE_FLASHLIGHT, 2.222 );	// 100 units in 45 second
+CSuitPowerDevice SuitDeviceFlashlight( bits_SUIT_DEVICE_FLASHLIGHT, 2.222 );	// 100 units in 45 second
 #endif
 CSuitPowerDevice SuitDeviceBreather( bits_SUIT_DEVICE_BREATHER, 6.7f );		// 100 units in 15 seconds (plus three padded seconds)
 
