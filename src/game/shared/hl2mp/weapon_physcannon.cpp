@@ -489,6 +489,7 @@ void CGrabController::AttachEntity( CBasePlayer *pPlayer, CBaseEntity *pEntity, 
 	
 	// Give extra mass to the phys object we're actually picking up
 	pPhys->SetMass( REDUCED_CARRY_MASS );
+	m_savedDrag = pPhys->IsDragEnabled();
 	pPhys->EnableDrag( false );
 
 	m_errorTime = -1.0f; // 1 seconds until error starts accumulating
@@ -552,7 +553,7 @@ void CGrabController::DetachEntity( bool bClearVelocity )
 				continue;
 
 			// on the odd chance that it's gone to sleep while under anti-gravity
-			pPhys->EnableDrag( true );
+			pPhys->EnableDrag( m_savedDrag );
 			pPhys->Wake();
 			pPhys->SetMass( m_savedMass[i] );
 			pPhys->SetDamping( NULL, &m_savedRotDamping[i] );

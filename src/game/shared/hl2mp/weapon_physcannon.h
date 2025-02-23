@@ -239,6 +239,7 @@ private:
 	float			m_flLoadWeight;
 	float			m_savedRotDamping[VPHYSICS_MAX_OBJECT_LIST_COUNT];
 	float			m_savedMass[VPHYSICS_MAX_OBJECT_LIST_COUNT];
+	bool			m_savedDrag;
 	EHANDLE			m_attachedEntity;
 	QAngle			m_vecPreferredCarryAngles;
 	bool			m_bHasPreferredCarryAngles;
