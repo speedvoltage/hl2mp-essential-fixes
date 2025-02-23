@@ -590,6 +590,8 @@ CWeaponShotgun::CWeaponShotgun( void )
 //-----------------------------------------------------------------------------
 void CWeaponShotgun::ItemHolsterFrame( void )
 {
+	m_bInReload = false;
+
 	// Must be player held
 	if ( GetOwner() && GetOwner()->IsPlayer() == false )
 		return;
