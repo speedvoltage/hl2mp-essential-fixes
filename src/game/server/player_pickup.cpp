@@ -108,7 +108,7 @@ bool Pickup_ForcePhysGunOpen( CBaseEntity *pObject, CBasePlayer *pPlayer )
 AngularImpulse Pickup_PhysGunLaunchAngularImpulse( CBaseEntity *pObject, PhysGunForce_t reason )
 {
 	IPlayerPickupVPhysics *pPickup = dynamic_cast<IPlayerPickupVPhysics *>(pObject);
-	if ( pPickup != NULL && pPickup->ShouldPuntUseLaunchForces( reason ) )
+	if ( pPickup )
 	{
 		return pPickup->PhysGunLaunchAngularImpulse();
 	}

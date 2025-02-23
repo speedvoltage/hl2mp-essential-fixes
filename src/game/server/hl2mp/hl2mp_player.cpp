@@ -416,10 +416,7 @@ ConVar hl2mp_allow_pickup( "hl2mp_allow_pickup", "0", FCVAR_GAMEDLL );
 
 void CHL2MP_Player::PickupObject( CBaseEntity* pObject, bool bLimitMassAndSize )
 {
-	if ( !hl2mp_allow_pickup.GetBool() )
-		return;
 
-	return BaseClass::PickupObject( pObject, bLimitMassAndSize );
 }
 
 void CHL2MP_Player::SetPlayerTeamModel( void )

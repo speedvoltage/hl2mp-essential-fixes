@@ -851,9 +851,7 @@ bool CPlayerPickupController::IsHoldingEntity( CBaseEntity *pEnt )
 
 void PlayerPickupObject( CBasePlayer *pPlayer, CBaseEntity *pObject )
 {
-	
 #ifndef CLIENT_DLL
-	
 	//Don't pick up if we don't have a phys object.
 	if ( pObject->VPhysicsGetObject() == NULL )
 		 return;
