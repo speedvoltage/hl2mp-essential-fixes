@@ -506,6 +506,10 @@ void CHL2_Player::HandleSpeedChanges( CMoveData *mv )
 
 	bool bSprinting = m_HL2Local.m_bNewSprinting;
 
+	// Completely block sprinting under water
+	if ( GetWaterLevel() == 3 )
+		bSprinting = false;
+
 	if ( m_Local.m_bDucked && !m_Local.m_bDucking && ( mv->m_nButtons & IN_DUCK ) && bSprinting )
 	{
 		bSprinting = false;
