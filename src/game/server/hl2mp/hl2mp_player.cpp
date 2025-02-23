@@ -1028,6 +1028,9 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 		return; // everything is useless afterwards
 	}
 
+	DetonateTripmines();
+	ClearUseEntity();
+
 	if ( iTeam == TEAM_SPECTATOR )
 	{
 		RemoveAllItems( true );
@@ -1036,6 +1039,11 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 			FlashlightTurnOff();
 
 		State_Transition( STATE_OBSERVER_MODE );
+	}
+
+	if ( IsInAVehicle() )
+	{
+		LeaveVehicle();
 	}
 
 	if ( bKill == true )
@@ -1343,9 +1351,6 @@ void CHL2MP_Player::DetonateTripmines( void )
 			g_EventQueue.AddEvent( pSatchel, "Explode", 0.20, this, this );
 		}
 	}
-
-	// Play sound for pressing the detonator
-	EmitSound( "Weapon_SLAM.SatchelDetonate" );
 }
 
 void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
