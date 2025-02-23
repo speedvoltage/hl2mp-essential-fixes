@@ -2324,6 +2324,9 @@ void CCollisionEvent::AddDamageEvent( CBaseEntity *pEntity, const CTakeDamageInf
 	if ( pEntity->IsMarkedForDeletion() )
 		return;
 
+	if ( !pEntity->VPhysicsGetObject() )
+		return;
+
 	int iTimeBasedDamage = g_pGameRules->Damage_GetTimeBased();
 	if ( !( info.GetDamageType() & (DMG_BURN | DMG_DROWN | iTimeBasedDamage | DMG_PREVENT_PHYSICS_FORCE) ) )
 	{
