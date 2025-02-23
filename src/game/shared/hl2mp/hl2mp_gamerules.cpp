@@ -33,6 +33,7 @@
 	#include "voice_gamemgr.h"
 	#include "hl2mp_gameinterface.h"
 	#include "hl2mp_cvars.h"
+	#include "hl2_player.h"
 
 extern void respawn(CBaseEntity *pEdict, bool fCopyCorpse);
 
@@ -369,8 +370,43 @@ void CHL2MPRules::Think( void )
 	}
 
 	ManageObjectRelocation();
+	RemoveAllPlayersEquipment();
 
 #endif
+}
+
+void CHL2MPRules::RemoveAllPlayersEquipment()
+{
+	// Forcefully remove suit and weapons here to account for mp_restartgame
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+
+		if ( pPlayer && pPlayer->GetTeamNumber() == TEAM_SPECTATOR )
+		{
+			pPlayer->RemoveAllItems( true );
+		}
+	}
+
+	// Fixes a bug where a specator could spectate another spectator
+	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+	{
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+
+		if ( !pPlayer || !pPlayer->IsConnected() )
+			continue;
+
+		if ( pPlayer->GetObserverMode() == OBS_MODE_CHASE || pPlayer->GetObserverMode() == OBS_MODE_IN_EYE )
+		{
+			CBasePlayer *pTarget = ToBasePlayer( pPlayer->GetObserverTarget() );
+
+			if ( pTarget && pTarget->GetTeamNumber() == TEAM_SPECTATOR )
+			{
+				pPlayer->SetObserverMode( OBS_MODE_ROAMING );
+				pPlayer->SetObserverTarget( NULL );
+			}
+		}
+	}
 }
 
 void CHL2MPRules::GoToIntermission( void )

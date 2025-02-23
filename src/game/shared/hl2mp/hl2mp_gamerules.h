@@ -167,6 +167,8 @@ private:
 
 #ifndef CLIENT_DLL
 	bool m_bChangelevelDone;
+
+	void RemoveAllPlayersEquipment();
 #endif
 };
 

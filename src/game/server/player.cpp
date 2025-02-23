@@ -2297,7 +2297,8 @@ bool CBasePlayer::StartObserverMode(int mode)
 	}
 	
 	// Setup flags
-    m_Local.m_iHideHUD = HIDEHUD_HEALTH;
+	m_Local.m_iHideHUD = HIDEHUD_HEALTH;
+
 	m_takedamage = DAMAGE_NO;		
 
 	// Become invisible
