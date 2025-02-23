@@ -15,6 +15,8 @@
 #include "simtimer.h"
 #include "soundenvelope.h"
 
+#include "basemultiplayerplayer.h"
+
 class CAI_Squad;
 class CPropCombineBall;
 
@@ -75,7 +77,7 @@ public:
 //=============================================================================
 // >> HL2_PLAYER
 //=============================================================================
-class CHL2_Player : public CBasePlayer
+class CHL2_Player : public CBaseMultiplayerPlayer
 {
 public:
 	DECLARE_CLASS( CHL2_Player, CBasePlayer );
