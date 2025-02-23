@@ -466,6 +466,12 @@ void CPropCrane::ExitVehicle( int nRole )
 	m_bEnterAnimOn = false;
 
 	m_ServerVehicle.SoundShutdown( 1.0 );
+
+	SetLocalAngularVelocity( vec3_angle );
+	m_flExtensionRate = 0;
+	m_bExtending = false;
+	m_flTurn = 0;
+	m_iTurning = TURNING_NOT;
 }
 
 //-----------------------------------------------------------------------------
