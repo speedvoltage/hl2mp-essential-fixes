@@ -395,6 +395,14 @@ void CWeapon_SLAM::TripmineAttach( void )
 		{
 
 #ifndef CLIENT_DLL
+			CBaseEntity *pEntity = tr.m_pEnt;
+			CBaseCombatCharacter *pBCC = ToBaseCombatCharacter( pEntity );
+
+			if ( pBCC )
+			{
+				return;
+			}
+
 			QAngle angles;
 			VectorAngles(tr.plane.normal, angles);
 
