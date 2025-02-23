@@ -1227,7 +1227,14 @@ void CPropAirboat::UpdatePropeller()
 		m_flSpinRate -= gpGlobals->frametime * 0.4;
 		if (m_flSpinRate < flTargetSpinRate)
 		{
-			m_flSpinRate = flTargetSpinRate;
+			if ( m_flSpinRate >= 0.2f )
+			{
+				m_flSpinRate -= gpGlobals->frametime * 0.4;
+			}
+			else
+			{
+				m_flSpinRate += gpGlobals->frametime * 0.4;
+			}
 		}
 	}
 
