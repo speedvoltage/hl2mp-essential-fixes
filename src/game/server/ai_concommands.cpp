@@ -595,6 +595,9 @@ static ConCommand npc_freeze("npc_freeze", CC_NPC_Freeze, "Selected NPC(s) will 
 
 CON_COMMAND( npc_freeze_unselected, "Freeze all NPCs not selected" )
 {
+	if ( !UTIL_IsCommandIssuedByServerAdmin() )
+		return;
+
 	CAI_BaseNPC *pNPC = gEntList.NextEntByClass( (CAI_BaseNPC *)NULL );
 
 	while (pNPC)

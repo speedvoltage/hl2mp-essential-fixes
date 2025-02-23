@@ -528,6 +528,7 @@ void CNPC_Citizen::Spawn()
 
 	// Use render bounds instead of human hull for guys sitting in chairs, etc.
 	m_ActBusyBehavior.SetUseRenderBounds( HasSpawnFlags( SF_CITIZEN_USE_RENDER_BOUNDS ) );
+	SetCollisionGroup( COLLISION_GROUP_PLAYER );
 }
 
 //-----------------------------------------------------------------------------

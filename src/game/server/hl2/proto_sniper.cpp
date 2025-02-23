@@ -211,7 +211,6 @@ public:
 	bool IsLaserOn( void ) { return m_pBeam != NULL; }
 
 	void Event_Killed( const CTakeDamageInfo &info );
-	void Event_KilledOther( CBaseEntity *pVictim, const CTakeDamageInfo &info );
 	void UpdateOnRemove( void );
 	int OnTakeDamage_Alive( const CTakeDamageInfo &info );
 	bool WeaponLOSCondition(const Vector &ownerPos, const Vector &targetPos, bool bSetConditions) {return true;}
@@ -360,7 +359,6 @@ private:
 	bool						m_bWarnedTargetEntity;
 
 	float						m_flTimeLastShotMissed;
-	bool						m_bKilledPlayer;
 	bool						m_bShootZombiesInChest;		///< if true, do not try to shoot zombies in the headcrab
 
 	COutputEvent				m_OnShotFired;
@@ -516,7 +514,6 @@ enum
 	SCHED_PSNIPER_SWEEP_TARGET_NOINTERRUPT,
 	SCHED_PSNIPER_SNAPATTACK,
 	SCHED_PSNIPER_NO_CLEAR_SHOT,
-	SCHED_PSNIPER_PLAYER_DEAD,
 };
 
 //=========================================================
@@ -531,7 +528,6 @@ enum
 	TASK_SNIPER_PAINT_SWEEP_TARGET,
 	TASK_SNIPER_ATTACK_CURSOR,
 	TASK_SNIPER_PAINT_NO_SHOT,
-	TASK_SNIPER_PLAYER_DEAD,
 };
 
 
@@ -997,7 +993,6 @@ void CProtoSniper::Spawn( void )
 
 	m_flTimeLastAttackedPlayer = 0.0f;
 	m_bWarnedTargetEntity = false;
-	m_bKilledPlayer = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -1364,16 +1359,6 @@ void CProtoSniper::Event_Killed( const CTakeDamageInfo &info )
 
 //---------------------------------------------------------
 //---------------------------------------------------------
-void CProtoSniper::Event_KilledOther( CBaseEntity *pVictim, const CTakeDamageInfo &info )
-{
-	if( pVictim && pVictim->IsPlayer() )
-	{
-		m_bKilledPlayer = true;
-	}
-}
-
-//---------------------------------------------------------
-//---------------------------------------------------------
 void CProtoSniper::UpdateOnRemove( void )
 {
 	LaserOff();
@@ -1393,14 +1378,6 @@ int CProtoSniper::SelectSchedule ( void )
 	{
 		// Reload is absolute priority.
 		return SCHED_RELOAD;
-	}
-
-	if( !AI_GetSinglePlayer()->IsAlive() && m_bKilledPlayer )
-	{
-		if( HasCondition(COND_IN_PVS) )
-		{
-			return SCHED_PSNIPER_PLAYER_DEAD;
-		}
 	}
 	
 	if( HasCondition( COND_HEAR_DANGER ) )
@@ -1958,14 +1935,6 @@ void CProtoSniper::StartTask( const Task_t *pTask )
 {
 	switch( pTask->iTask )
 	{
-	case TASK_SNIPER_PLAYER_DEAD:
-		{
-			m_hSweepTarget = AI_GetSinglePlayer();
-			SetWait( 4.0f );
-			LaserOn( m_hSweepTarget->GetAbsOrigin(), vec3_origin );
-		}
-		break;
-
 	case TASK_SNIPER_ATTACK_CURSOR:
 		break;
 
@@ -2139,19 +2108,6 @@ void CProtoSniper::RunTask( const Task_t *pTask )
 {
 	switch( pTask->iTask )
 	{
-	case TASK_SNIPER_PLAYER_DEAD:
-		if( IsWaitFinished() )
-		{
-			m_hSweepTarget = PickDeadPlayerTarget();
-			m_vecPaintStart = m_vecPaintCursor;
-			SetWait( 4.0f );
-		}
-		else
-		{
-			PaintTarget( m_hSweepTarget->GetAbsOrigin(), 4.0f );
-		}
-		break;
-
 	case TASK_SNIPER_ATTACK_CURSOR:
 		if( FireBullet( m_vecPaintCursor, true ) )
 		{
@@ -2605,10 +2561,14 @@ Vector CProtoSniper::LeadTarget( CBaseEntity *pTarget )
 CBaseEntity *CProtoSniper::PickDeadPlayerTarget()
 {
 	const int iSearchSize = 32;
+	int iNumEntities;
 	CBaseEntity *pTarget = AI_GetSinglePlayer();
 	CBaseEntity *pEntities[ iSearchSize ];
 
-	int iNumEntities = UTIL_EntitiesInSphere( pEntities, iSearchSize, AI_GetSinglePlayer()->GetAbsOrigin(), 180.0f, 0 );
+	if ( !pTarget )
+		pTarget = this; // Fallback to sniper's position
+
+	iNumEntities = UTIL_EntitiesInSphere( pEntities, iSearchSize, pTarget->GetAbsOrigin(), 180.0f, 0 );
 
 	// Not very robust, but doesn't need to be. Randomly select a nearby object in the list that isn't an NPC.
 	if( iNumEntities > 0 )
@@ -2924,7 +2884,6 @@ AI_BEGIN_CUSTOM_NPC( proto_sniper, CProtoSniper )
 	DECLARE_TASK( TASK_SNIPER_PAINT_SWEEP_TARGET );
 	DECLARE_TASK( TASK_SNIPER_ATTACK_CURSOR );
 	DECLARE_TASK( TASK_SNIPER_PAINT_NO_SHOT );
-	DECLARE_TASK( TASK_SNIPER_PLAYER_DEAD );
 
 	//=========================================================
 	// SCAN
@@ -3137,18 +3096,6 @@ AI_BEGIN_CUSTOM_NPC( proto_sniper, CProtoSniper )
 		"		COND_SNIPER_DISABLED"
 		"		COND_CAN_RANGE_ATTACK1"
 		"		COND_HEAR_DANGER"
-	)
-
-	//=========================================================
-	//=========================================================
-	DEFINE_SCHEDULE
-	(
-	SCHED_PSNIPER_PLAYER_DEAD,
-
-	"	Tasks"
-	"		TASK_SNIPER_PLAYER_DEAD		0"
-	"	"
-	"	Interrupts"
 	)
 
 AI_END_CUSTOM_NPC()
