@@ -1166,10 +1166,14 @@ void CPropAirboat::Think(void)
 		AimGunAt( vecAimPoint, gpGlobals->frametime );
 	}
 
-	if ( ShouldForceExit() )
+	if ( m_hPlayer.Get() && ShouldForceExit() )
 	{
 		ClearForcedExit();
 		m_hPlayer->LeaveVehicle();
+	}
+	else
+	{
+		m_bForcedExit = false;
 	}
 
 	if ( HasGun() && ( m_nGunState == GUN_STATE_IDLE ) )
