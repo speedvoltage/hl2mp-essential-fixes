@@ -146,6 +146,11 @@ bool CWeaponShotgun::StartReload( void )
 
 	SendWeaponAnim( ACT_SHOTGUN_RELOAD_START );
 
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+
+	if ( pPlayer )
+		pPlayer->SetAnimation( PLAYER_RELOAD );
+
 	// Make shotgun shell visible
 	SetBodygroup(1,0);
 
