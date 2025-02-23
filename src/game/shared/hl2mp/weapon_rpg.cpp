@@ -460,6 +460,13 @@ void CMissile::CreateSmokeTrail( void )
 //-----------------------------------------------------------------------------
 void CMissile::IgniteThink( void )
 {
+	if ( !m_hOwner )
+	{
+		// Optionally remove the missile if no owner is set
+		UTIL_Remove( this );  // This will remove the missile if no owner is assigned
+		return;
+	}
+
 	SetMoveType( MOVETYPE_FLY );
 	SetModel("models/weapons/w_missile.mdl");
 	RemoveSolidFlags( FSOLID_NOT_SOLID );
@@ -562,6 +569,12 @@ void CMissile::ComputeActualDotPosition( CLaserDot *pLaserDot, Vector *pActualDo
 //-----------------------------------------------------------------------------
 void CMissile::SeekThink( void )
 {
+	if ( !m_hOwner )
+	{
+		UTIL_Remove( this );
+		return;
+	}
+
 	CBaseEntity	*pBestDot	= NULL;
 	float		flBestDist	= MAX_TRACE_LENGTH;
 	float		dotDist;

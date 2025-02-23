@@ -327,6 +327,12 @@ void CGrenadeFrag::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t r
 
 void CGrenadeFrag::DelayThink() 
 {
+	if ( !GetOwnerEntity() )
+	{
+		UTIL_Remove( this );
+		return;
+	}
+
 	if( gpGlobals->curtime > m_flDetonateTime )
 	{
 		Detonate();

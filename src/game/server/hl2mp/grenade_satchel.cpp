@@ -126,67 +126,40 @@ void CSatchelCharge::InputExplode( inputdata_t &inputdata )
 
 void CSatchelCharge::SatchelThink( void )
 {
-	// If attached resize so player can pick up off wall
-	if (m_bIsAttached)
-	{
-		UTIL_SetSize(this, Vector( -2, -2, -6), Vector(2, 2, 6));
+	if ( !GetOwnerEntity() && !m_bIsAttached ) {
+		SetOwnerEntity( GetThrower() );
 	}
 
-	// See if I can lose my owner (has dropper moved out of way?)
-	// Want do this so owner can shoot the satchel charge
-	if (GetOwnerEntity())
+	if ( GetOwnerEntity() == NULL ) 
 	{
-		trace_t tr;
-		Vector	vUpABit = GetAbsOrigin();
-		vUpABit.z += 5.0;
-
-		CBaseEntity* saveOwner	= GetOwnerEntity();
-		SetOwnerEntity( NULL );
-		UTIL_TraceEntity( this, GetAbsOrigin(), vUpABit, MASK_SOLID, &tr );
-		if ( tr.startsolid || tr.fraction != 1.0 )
-		{
-			SetOwnerEntity( saveOwner );
-		}
+		UTIL_Remove( this );
+		return;
 	}
-	
-	// Bounce movement code gets this think stuck occasionally so check if I've 
-	// succeeded in moving, otherwise kill my motions.
-	else if ((GetAbsOrigin() - m_vLastPosition).LengthSqr()<1)
+
+	if ( m_bIsAttached )
+	{
+		UTIL_SetSize( this, Vector( -2, -2, -6 ), Vector( 2, 2, 6 ) );
+		return;
+	}
+
+	if ( GetAbsOrigin() == m_vLastPosition )
 	{
 		SetAbsVelocity( vec3_origin );
 
-		QAngle angVel = GetLocalAngularVelocity();
-		angVel.y  = 0;
-		SetLocalAngularVelocity( angVel );
-
-		// Clear think function
-		SetThink(NULL);
+		SetNextThink( gpGlobals->curtime + 1.0f ); // Check less frequently, but still check if an owner exists
 		return;
 	}
-	m_vLastPosition= GetAbsOrigin();
 
-	StudioFrameAdvance( );
+	m_vLastPosition = GetAbsOrigin();
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
-	if (!IsInWorld())
-	{
+	if ( !IsInWorld() ) {
 		UTIL_Remove( this );
-		return;
-	}
-
-	// Peter Brev: Something doesn't seem right, so I'll revisit this later
-	if ( GetOwnerEntity() )
-	{
-		UTIL_Remove( this );
-		return;
-	}
-
-	// Is it attached to a wall?
-	if (m_bIsAttached)
-	{
 		return;
 	}
 }
+
+
 
 void CSatchelCharge::Precache( void )
 {

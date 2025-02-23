@@ -200,6 +200,12 @@ void CCrossbowBolt::Precache( void )
 //-----------------------------------------------------------------------------
 void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 {
+	if ( !GetOwnerEntity() )
+	{
+		UTIL_Remove( this );
+		return;
+	}
+
 	if ( !pOther->IsSolid() || pOther->IsSolidFlagSet(FSOLID_VOLUME_CONTENTS) )
 		return;
 

@@ -114,7 +114,7 @@ void CTripmineGrenade::WarningThink( void  )
 }
 
 
-void CTripmineGrenade::PowerupThink( void  )
+void CTripmineGrenade::PowerupThink( void )
 {
 	if (gpGlobals->curtime > m_flPowerUp)
 	{
@@ -125,6 +125,13 @@ void CTripmineGrenade::PowerupThink( void  )
 		// play enabled sound
 		EmitSound( "TripmineGrenade.Activate" );
 	}
+
+	if ( !m_hOwner )
+	{
+		UTIL_Remove( this );
+		return;
+	}
+
 	SetNextThink( gpGlobals->curtime + 0.1f );
 }
 
@@ -194,6 +201,18 @@ void CTripmineGrenade::AttachToEntity( const CBaseEntity *entity )
 
 void CTripmineGrenade::BeamBreakThink( void  )
 {
+	if ( !m_hOwner )
+	{
+		UTIL_Remove( this );
+
+		if ( m_pBeam )
+		{
+			UTIL_Remove( m_pBeam );
+			m_pBeam = NULL;
+		}
+		return;
+	}
+
 	// See if I can go solid yet (has dropper moved out of way?)
 	if (IsSolidFlagSet( FSOLID_NOT_SOLID ))
 	{
