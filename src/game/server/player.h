@@ -252,6 +252,9 @@ public:
 	CBasePlayer();
 	~CBasePlayer();
 
+	void CompensateTeamScoreOnTeamSwitch( bool enabled ) { m_bHasCompensatedTeamScore = enabled; }
+	bool IsCompensatingTeamScoreOnTeamSwitch() { return m_bHasCompensatedTeamScore; }
+
 	// IPlayerInfo passthrough (because we can't do multiple inheritance)
 	IPlayerInfo *GetPlayerInfo() { return &m_PlayerInfo; }
 	IBotController *GetBotController() { return &m_PlayerInfo; }
@@ -853,6 +856,7 @@ private:
 	bool m_bSpeedmodActive;
 	bool m_bCheckPenetration;
 	float m_flLadderCooldownTime;
+	bool m_bHasCompensatedTeamScore;
 
 public:
 	

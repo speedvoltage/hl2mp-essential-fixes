@@ -44,7 +44,6 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 	pPlayer->InitialSpawn();
 	pPlayer->Spawn();
 
-
 	char sName[128];
 	Q_strncpy( sName, pPlayer->GetPlayerName(), sizeof( sName ) );
 	
@@ -107,6 +106,8 @@ void ClientActive( edict_t *pEdict, bool bLoadGame )
 	Assert( !bLoadGame );
 
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer( CBaseEntity::Instance( pEdict ) );
+	pPlayer->CompensateScoreOnTeamSwitch( true );
+	pPlayer->CompensateTeamScoreOnTeamSwitch( true );
 	FinishClientPutInServer( pPlayer );
 }
 

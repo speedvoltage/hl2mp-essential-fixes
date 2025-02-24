@@ -143,6 +143,9 @@ public:
 
 	bool IsThreatAimingTowardMe( CBaseEntity* threat, float cosTolerance = 0.8f ) const;
 	bool IsThreatFiringAtMe( CBaseEntity* threat ) const;
+
+	void CompensateScoreOnTeamSwitch( bool enabled ) { m_bHasCompensatedForDeath = enabled; }
+	bool IsCompensatingScoreOnTeamSwitch() { return m_bHasCompensatedForDeath; }
 private:
 
 	void LadderRespawnFix();
@@ -170,6 +173,7 @@ private:
 
     bool m_bEnterObserver;
 	bool m_bReady;
+	bool m_bHasCompensatedForDeath;
 };
 
 inline CHL2MP_Player *ToHL2MPPlayer( CBaseEntity *pEntity )

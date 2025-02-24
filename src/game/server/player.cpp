@@ -69,6 +69,7 @@
 #include "dt_utlvector_send.h"
 #include "vote_controller.h"
 #include "ai_speech.h"
+#include "hl2mp_gamerules.h"
 
 #if defined USES_ECON_ITEMS
 #include "econ_wearable.h"
@@ -7701,7 +7702,6 @@ void CBasePlayer::PlayWearableAnimsForPlaybackEvent( wearableanimplayback_t iPla
 //-----------------------------------------------------------------------------
 // Purpose: Put the player in the specified team
 //-----------------------------------------------------------------------------
-
 void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent, bool bAutoBalance /*= false*/ )
 {
 	if ( !GetGlobalTeam( iTeamNum ) )
@@ -7739,6 +7739,21 @@ void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent, bool b
 		GetTeam()->RemovePlayer( this );
 	}
 
+	if ( GameRules()->IsTeamplay() && iTeamNum != 1 && !IsDisconnecting() && !IsCompensatingTeamScoreOnTeamSwitch() )
+	{
+		CTeam *pCombine = g_Teams[ TEAM_COMBINE ];
+		CTeam *pRebels = g_Teams[ TEAM_REBELS ];
+		if ( iTeamNum == 3 && IsAlive() )
+		{
+			pRebels->AddScore( 1 );
+		}
+		else if ( iTeamNum == 2 && IsAlive() )
+		{
+			pCombine->AddScore( 1 );
+		}
+		CompensateTeamScoreOnTeamSwitch( true );
+	}
+		
 	// Are we being added to a team?
 	if ( iTeamNum )
 	{

@@ -830,7 +830,7 @@ void CHL2MPRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 			Q_snprintf( szReturnString, sizeof (szReturnString ), "cl_playermodel %s\n", pCurrentModel );
 			engine->ClientCommand ( pHL2Player->edict(), szReturnString );
 
-			Q_snprintf( szReturnString, sizeof( szReturnString ), "Please wait %d more seconds before trying to switch.\n", (int)(pHL2Player->GetNextModelChangeTime() - gpGlobals->curtime) );
+			Q_snprintf( szReturnString, sizeof( szReturnString ), "Please wait %d more seconds before trying to switch models.\n", (int)(pHL2Player->GetNextModelChangeTime() - gpGlobals->curtime) );
 			ClientPrint( pHL2Player, HUD_PRINTTALK, szReturnString );
 			return;
 		}

@@ -339,12 +339,15 @@ void CHL2MP_Player::PickDefaultSpawnTeam( void )
 //-----------------------------------------------------------------------------
 void CHL2MP_Player::Spawn(void)
 {
-	m_flNextModelChangeTime = 0.0f;
-	m_flNextTeamChangeTime = 0.0f;
+	// m_flNextModelChangeTime = 0.0f;
+	// m_flNextTeamChangeTime = 0.0f;
 
 	PickDefaultSpawnTeam();
 
 	BaseClass::Spawn();
+
+	CompensateScoreOnTeamSwitch( false );
+	CompensateTeamScoreOnTeamSwitch( false );
 	
 	if ( !IsObserver() )
 	{
@@ -981,10 +984,21 @@ void CHL2MP_Player::LadderRespawnFix()
 
 void CHL2MP_Player::ChangeTeam( int iTeam )
 {
+	if ( GetNextTeamChangeTime() >= gpGlobals->curtime )
+	{
+		char szReturnString[ 128 ];
+		Q_snprintf( szReturnString, sizeof( szReturnString ), "Please wait %d more seconds before trying to switch teams again.\n", ( int ) ( GetNextTeamChangeTime() - gpGlobals->curtime ) );
+
+		ClientPrint( this, HUD_PRINTTALK, szReturnString );
+		return;
+	}
+
 	LadderRespawnFix();
 
 	bool bKill = false;
 	bool bWasSpectator = false;
+	bool bIsDead = !IsAlive();
+	bool bTeamplay = GameRules()->IsTeamplay();
 
 	if ( HL2MPRules()->IsTeamplay() != true && iTeam != TEAM_SPECTATOR )
 	{
@@ -1060,6 +1074,14 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 		LeaveVehicle();
 	}
 
+	if ( bTeamplay && !bIsDead && !IsCompensatingScoreOnTeamSwitch() && iTeam != TEAM_SPECTATOR )
+	{
+		IncrementFragCount( 1 );
+		IncrementDeathCount( -1 );
+
+		CompensateScoreOnTeamSwitch( true );
+	}
+
 	if ( bKill == true )
 	{
 		CommitSuicide();
@@ -1104,6 +1126,7 @@ bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 			return false;
 		}
 
+		/*
 		if ( GetTeamNumber() != TEAM_UNASSIGNED && !IsDead() )
 		{
 			m_fNextSuicideTime = gpGlobals->curtime;	// allow the suicide to work
@@ -1113,7 +1136,7 @@ bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 			// add 1 to frags to balance out the 1 subtracted for killing yourself
 			IncrementFragCount( 1 );
 		}
-
+		*/
 		ChangeTeam( TEAM_SPECTATOR );
 
 		return true;
