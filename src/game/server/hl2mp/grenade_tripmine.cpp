@@ -294,3 +294,9 @@ void CTripmineGrenade::DelayDeathThink( void )
 	UTIL_Remove( this );
 }
 
+void CTripmineGrenade::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t reason )
+{
+	m_iHealth = 0;
+	Event_Killed( CTakeDamageInfo( ( CBaseEntity * ) m_hOwner, this, 100, GIB_NORMAL ) );
+	BaseClass::OnPhysGunPickup( pPhysGunUser, reason );
+}

@@ -37,6 +37,7 @@ public:
 
 	void MakeBeam( void );
 	void KillBeam( void );
+	void OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t reason );
 
 public:
 	EHANDLE		m_hOwner;
