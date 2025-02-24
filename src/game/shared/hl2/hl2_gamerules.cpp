@@ -1387,6 +1387,9 @@ ConVar  alyx_darkness_force( "alyx_darkness_force", "0", FCVAR_CHEAT | FCVAR_REP
 		return flDamage;
 	}
 
+	// fix definition error
+	bool PhysCannonAccountableForObject( CBaseCombatWeapon *pPhysCannon, CBaseEntity *pObject );
+
    	//-----------------------------------------------------------------------------
   	//-----------------------------------------------------------------------------
  	bool CHalfLife2::AllowDamage( CBaseEntity *pVictim, const CTakeDamageInfo &info )
