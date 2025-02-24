@@ -2096,16 +2096,16 @@ void CBasePlayer::ShowViewPortPanel( const char * name, bool bShow, KeyValues *d
 }
 
 
-void CBasePlayer::PlayerDeathThink(void)
+void CBasePlayer::PlayerDeathThink( void )
 {
 	float flForward;
 
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
-	if (GetFlags() & FL_ONGROUND)
+	if ( GetFlags() & FL_ONGROUND )
 	{
 		flForward = GetAbsVelocity().Length() - 20;
-		if (flForward <= 0)
+		if ( flForward <= 0 )
 		{
 			SetAbsVelocity( vec3_origin );
 		}
@@ -2127,60 +2127,65 @@ void CBasePlayer::PlayerDeathThink(void)
 		PackDeadPlayerItems();
 	}
 
-	if (GetModelIndex() && (!IsSequenceFinished()) && (m_lifeState == LIFE_DYING))
+	if ( GetModelIndex() && ( !IsSequenceFinished() ) && ( m_lifeState == LIFE_DYING ) )
 	{
-		StudioFrameAdvance( );
+		StudioFrameAdvance();
 
 		m_iRespawnFrames++;
 		if ( m_iRespawnFrames < 60 )  // animations should be no longer than this
 			return;
 	}
 
-	if (m_lifeState == LIFE_DYING)
+	if ( m_lifeState == LIFE_DYING )
 	{
 		m_lifeState = LIFE_DEAD;
 		m_flDeathAnimTime = gpGlobals->curtime;
 	}
-	
+
 	StopAnimation();
+
 	Extinguish();
+
 	IncrementInterpolationFrame();
 	m_flPlaybackRate = 0.0;
-	
-	int fAnyButtonDown = (m_nButtons & ~IN_SCORE);
-	
+
+	int fAnyButtonDown = ( m_nButtons & ~IN_SCORE );
+
 	// Strip out the duck key from this check if it's toggled
-	if ( (fAnyButtonDown & IN_DUCK) && GetToggledDuckState())
+	if ( ( fAnyButtonDown & IN_DUCK ) && GetToggledDuckState() )
 	{
 		fAnyButtonDown &= ~IN_DUCK;
 	}
 
 	// wait for all buttons released
-	if (m_lifeState == LIFE_DEAD)
+	if ( m_lifeState == LIFE_DEAD )
 	{
-		if (fAnyButtonDown)
+		if ( fAnyButtonDown && ( gpGlobals->curtime > ( m_flDeathTime + 5 ) ) )
+		{
+			respawn( this, !IsObserver() );// don't copy a corpse if we're in deathcam.
 			return;
+		}
 
 		if ( g_pGameRules->FPlayerCanRespawn( this ) )
 		{
 			m_lifeState = LIFE_RESPAWNABLE;
 		}
-		
+
 		return;
 	}
 
-// if the player has been dead for one second longer than allowed by forcerespawn, 
-// forcerespawn isn't on. Send the player off to an intermission camera until they 
-// choose to respawn.
-	if ( g_pGameRules->IsMultiplayer() && ( gpGlobals->curtime > (m_flDeathTime + DEATH_ANIMATION_TIME) ) && !IsObserver() )
+	// if the player has been dead for one second longer than allowed by forcerespawn, 
+	// forcerespawn isn't on. Send the player off to an intermission camera until they 
+	// choose to respawn.
+	if ( g_pGameRules->IsMultiplayer() && ( gpGlobals->curtime > ( m_flDeathTime + DEATH_ANIMATION_TIME ) ) && !IsObserver() )
 	{
 		// go to dead camera. 
 		StartObserverMode( m_iObserverLastMode );
 	}
-	
-// wait for any button down,  or mp_forcerespawn is set and the respawn time is up
-	if (!fAnyButtonDown 
-		&& !( g_pGameRules->IsMultiplayer() && forcerespawn.GetInt() > 0 && (gpGlobals->curtime > (m_flDeathTime + 5))) )
+
+	// wait for any button down,  or mp_forcerespawn is set and the respawn time is up
+	if ( !fAnyButtonDown
+		&& !( g_pGameRules->IsMultiplayer() && forcerespawn.GetInt() > 0 && ( gpGlobals->curtime > ( m_flDeathTime + 5 ) ) ) )
 		return;
 
 	m_nButtons = 0;
