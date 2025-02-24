@@ -937,6 +937,12 @@ void CAmbientGeneric::InputStopSound( inputdata_t &inputdata )
 	{
 		ToggleSound();
 	}
+	else
+	{
+		// Stop non-looping sounds too!
+		SendSound( SND_STOP );
+		m_fActive = false;
+	}
 }
 
 void CAmbientGeneric::SendSound( SoundFlags_t flags)
