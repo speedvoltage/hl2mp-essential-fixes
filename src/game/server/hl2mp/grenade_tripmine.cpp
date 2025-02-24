@@ -138,23 +138,39 @@ void CTripmineGrenade::MakeBeam( void )
 {
 	trace_t tr;
 
-	UTIL_TraceLine( GetAbsOrigin(), m_vecEnd, MASK_SHOT, this, COLLISION_GROUP_NONE, &tr );
+	int beamAttach = LookupAttachment( "beam_attach" );
+	Vector vecBeamOrigin;
+
+	// Get the actual position of the beam attachment point
+	GetAttachment( beamAttach, vecBeamOrigin );
+
+	UTIL_TraceLine( vecBeamOrigin, m_vecEnd, MASK_SHOT, this, COLLISION_GROUP_NONE, &tr );
 
 	m_flBeamLength = tr.fraction;
 
-
+	if ( tr.startsolid || tr.allsolid )
+	{
+		// Detonate the tripmine if it is inside a brush
+		
+		SetThink( &CTripmineGrenade::Detonate );
+		SetNextThink( gpGlobals->curtime + 0.1f );
+		return;
+	}
 
 	// If I hit a living thing, send the beam through me so it turns on briefly
 	// and then blows the living thing up
 	CBaseEntity *pEntity = tr.m_pEnt;
-	CBaseCombatCharacter *pBCC  = ToBaseCombatCharacter( pEntity );
+	CBaseCombatCharacter *pBCC = ToBaseCombatCharacter( pEntity );
 
 	// Draw length is not the beam length if entity is in the way
-	if (pBCC)
+
+	if ( pBCC )
 	{
 		SetOwnerEntity( pBCC );
-		UTIL_TraceLine( GetAbsOrigin(), m_vecEnd, MASK_SHOT, this, COLLISION_GROUP_NONE, &tr );
-		SetOwnerEntity( NULL );		
+		UTIL_TraceLine( vecBeamOrigin, m_vecEnd, MASK_SHOT, this, COLLISION_GROUP_NONE, &tr );
+
+		SetOwnerEntity( NULL );
+
 	}
 
 	m_flBeamLength = tr.fraction;
@@ -171,8 +187,7 @@ void CTripmineGrenade::MakeBeam( void )
 	m_pBeam->SetColor( 255, 55, 52 );
 	m_pBeam->SetScrollRate( 25.6 );
 	m_pBeam->SetBrightness( 64 );
-	
-	int beamAttach = LookupAttachment("beam_attach");
+
 	m_pBeam->SetEndAttachment( beamAttach );
 }
 
@@ -184,29 +199,24 @@ void CTripmineGrenade::AttachToEntity( const CBaseEntity *entity )
 	m_vecOldAngAttachedObject = entity->GetAbsAngles();
 }
 
-void CTripmineGrenade::BeamBreakThink( void  )
+void CTripmineGrenade::BeamBreakThink( void )
 {
-	if ( !m_hOwner )
-	{
-		UTIL_Remove( this );
-
-		if ( m_pBeam )
-		{
-			UTIL_Remove( m_pBeam );
-			m_pBeam = NULL;
-		}
-		return;
-	}
-
 	// See if I can go solid yet (has dropper moved out of way?)
-	if (IsSolidFlagSet( FSOLID_NOT_SOLID ))
+	if ( IsSolidFlagSet( FSOLID_NOT_SOLID ) )
 	{
 		trace_t tr;
-		Vector	vUpBit = GetAbsOrigin();
-		vUpBit.z += 5.0;
+		Vector vUpBit;
 
-		UTIL_TraceEntity( this, GetAbsOrigin(), vUpBit, MASK_SHOT, &tr );
-		if ( !tr.startsolid && (tr.fraction == 1.0) )
+		// Get the position of the "beam_attach" attachment
+		int beamAttach = LookupAttachment( "beam_attach" );
+		GetAttachment( beamAttach, vUpBit );
+
+		// Move the attachment point slightly up to avoid clipping
+		vUpBit.z += 5.0f;
+
+		// Perform the trace from the beam attachment upwards
+		UTIL_TraceEntity( this, vUpBit, vUpBit, MASK_SHOT, &tr );
+		if ( !tr.startsolid && ( tr.fraction == 1.0 ) )
 		{
 			RemoveSolidFlags( FSOLID_NOT_SOLID );
 		}
@@ -214,30 +224,34 @@ void CTripmineGrenade::BeamBreakThink( void  )
 
 	trace_t tr;
 
-	// NOT MASK_SHOT because we want only simple hit boxes
-	UTIL_TraceLine( GetAbsOrigin(), m_vecEnd, MASK_SOLID, this, COLLISION_GROUP_NONE, &tr );
+	// Get the position of the "beam_attach" attachment
+	Vector vecBeamOrigin;
+	int beamAttach = LookupAttachment( "beam_attach" );
+	GetAttachment( beamAttach, vecBeamOrigin );
 
-	// ALERT( at_console, "%f : %f\n", tr.flFraction, m_flBeamLength );
+	// Perform the trace from the beam attachment to the beam's end point
+	UTIL_TraceLine( vecBeamOrigin, m_vecEnd, MASK_SOLID, this, COLLISION_GROUP_NONE, &tr );
 
-	// respawn detect. 
+	// respawn detect
 	if ( !m_pBeam )
 	{
-		MakeBeam( );
+		MakeBeam();
 		if ( tr.m_pEnt )
-			m_hOwner = tr.m_pEnt;	// reset owner too
+			m_hOwner = tr.m_pEnt;  // reset owner too
 	}
 
-
 	CBaseEntity *pEntity = tr.m_pEnt;
-	CBaseCombatCharacter *pBCC  = ToBaseCombatCharacter( pEntity );
+	CBaseCombatCharacter *pBCC = ToBaseCombatCharacter( pEntity );
 
-	if (pBCC || fabs( m_flBeamLength - tr.fraction ) > 0.001)
+	// If beam hits a character or if the beam length has changed, detonate
+	if ( pBCC || fabs( m_flBeamLength - tr.fraction ) > 0.001 )
 	{
 		m_iHealth = 0;
-		Event_Killed( CTakeDamageInfo( (CBaseEntity*)m_hOwner, this, 100, GIB_NORMAL ) );
+		Event_Killed( CTakeDamageInfo( ( CBaseEntity * ) m_hOwner, this, 100, GIB_NORMAL ) );
 		return;
 	}
 
+	// Check if the attached object has moved, if so, detonate
 	if ( m_pAttachedObject &&
 		( !VectorsAreEqual( m_vecOldPosAttachedObject, m_pAttachedObject->GetAbsOrigin(), 1.0f )
 			|| !QAnglesAreEqual( m_vecOldAngAttachedObject, m_pAttachedObject->GetAbsAngles(), 1.0f ) ) )
@@ -246,6 +260,8 @@ void CTripmineGrenade::BeamBreakThink( void  )
 		Event_Killed( CTakeDamageInfo( ( CBaseEntity * ) m_hOwner, this, 100, GIB_NORMAL ) );
 		return;
 	}
+
+	// Keep checking for beam breaks
 	SetNextThink( gpGlobals->curtime + 0.05f );
 }
 

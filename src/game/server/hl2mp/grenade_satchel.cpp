@@ -63,7 +63,7 @@ void CSatchelCharge::Spawn( void )
 	Precache( );
 	SetModel( "models/Weapons/w_slam.mdl" );
 
-	VPhysicsInitNormal( SOLID_BBOX, GetSolidFlags() | FSOLID_TRIGGER, false );
+	VPhysicsInitNormal( SOLID_VPHYSICS, FSOLID_TRIGGER, false );
 	SetMoveType( MOVETYPE_VPHYSICS );
 
 	SetCollisionGroup( COLLISION_GROUP_WEAPON );
