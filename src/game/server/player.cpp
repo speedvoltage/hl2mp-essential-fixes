@@ -1693,6 +1693,7 @@ void CBasePlayer::Event_Killed( const CTakeDamageInfo &info )
 	// NVNT set the drag to zero in the case of underwater death.
 	HapticSetDrag(this,0);
 #endif
+	ClearZoomOwner();
 	ClearUseEntity();
 	
 	// this client isn't going to be thinking for a while, so reset the sound until they respawn
