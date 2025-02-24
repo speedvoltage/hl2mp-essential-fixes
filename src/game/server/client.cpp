@@ -1239,7 +1239,7 @@ void CC_God_f (void)
 	   if ( gpGlobals->deathmatch )
 		   return;
    }
-#else
+#elif 0
 	if ( gpGlobals->deathmatch )
 		return;
 #endif
