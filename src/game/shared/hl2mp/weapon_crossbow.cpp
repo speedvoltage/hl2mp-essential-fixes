@@ -248,6 +248,52 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 		return;
 	}
 
+	if ( ( FClassnameIs( pOther, "item_*" ) || FClassnameIs( pOther, "weapon_*" ) ) && !FClassnameIs( pOther, "weapon_rpg" ) )
+	{
+		CGameTrace tr;
+		Ray_t ray;
+		ray.Init( GetAbsOrigin(), GetAbsOrigin() + GetAbsVelocity() * gpGlobals->frametime );
+
+		CTraceFilterSkipTwoEntities traceFilter( this, GetOwnerEntity(), COLLISION_GROUP_NONE );
+
+		enginetrace->TraceRay( ray, MASK_SOLID, &traceFilter, &tr );
+
+		if ( tr.m_pEnt != pOther )
+		{
+			SetCollisionGroup( COLLISION_GROUP_DEBRIS );
+			return;
+		}
+
+		IPhysicsObject *pPhysics = pOther->VPhysicsGetObject();
+		if ( pPhysics )
+		{
+
+			Vector vecVelocity = GetAbsVelocity();
+			Vector vecImpulse = vecVelocity * 10.0f;
+
+			pPhysics->ApplyForceCenter( vecImpulse );
+		}
+
+		UTIL_Remove( this );
+		return;
+	}
+
+	if ( FClassnameIs( pOther, "weapon_rpg" ) )
+	{
+		IPhysicsObject *pPhysics = pOther->VPhysicsGetObject();
+		if ( pPhysics )
+		{
+			Vector vecVelocity = GetAbsVelocity();
+			Vector vecImpulse = vecVelocity * 10.0f;
+
+			pPhysics->ApplyForceCenter( vecImpulse );
+		}
+
+		UTIL_Remove( this );
+		return;
+	}
+
+
 	if ( pOther->m_takedamage != DAMAGE_NO )
 	{
 		trace_t	tr, tr2;
