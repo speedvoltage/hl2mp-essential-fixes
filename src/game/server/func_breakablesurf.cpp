@@ -19,6 +19,7 @@
 #include "globals.h"
 #include "physics_impact_damage.h"
 #include "te_effect_dispatch.h"
+#include "game.h"
 
 //=============================================================================
 // HPE_BEGIN
@@ -348,6 +349,14 @@ int CBreakableSurface::OnTakeDamage( const CTakeDamageInfo &info )
 		return 0;
 	}
 	
+	if ( mp_ar2_alt_glass.GetBool() )
+	{
+		if ( m_nSurfaceType == SHATTERSURFACE_GLASS && ( info.GetDamageType() & DMG_DISSOLVE ) )
+		{
+			Die( info.GetAttacker(), info.GetDamageForce() );
+			return 0;
+		}
+	}
 
 	return 0;
 }

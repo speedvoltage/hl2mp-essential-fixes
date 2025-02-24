@@ -26,6 +26,7 @@
 #include "eventqueue.h"
 #include "physics_collisionevent.h"
 #include "gamestats.h"
+#include "game.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -1573,13 +1574,20 @@ void CPropCombineBall::VPhysicsCollision( int index, gamevcollisionevent_t *pEve
 	Vector preVelocity = pEvent->preVelocity[index];
 	float flSpeed = VectorNormalize( preVelocity );
 
+	auto pHitEntity = pEvent->pEntities[ !index ];
+
+	if ( mp_ar2_alt_glass.GetBool() )
+	{
+		if ( FClassnameIs( pHitEntity, "func_breakable_surf" ) )
+			return;
+	}
+
 	if ( m_nMaxBounces == -1 )
 	{
 		const surfacedata_t *pHit = physprops->GetSurfaceData( pEvent->surfaceProps[!index] );
 
 		if( pHit->game.material != CHAR_TEX_FLESH || !hl2_episodic.GetBool() )
 		{
-			CBaseEntity *pHitEntity = pEvent->pEntities[!index];
 			if ( pHitEntity && IsHittableEntity( pHitEntity ) )
 			{
 				OnHitEntity( pHitEntity, flSpeed, index, pEvent );
@@ -1616,7 +1624,6 @@ void CPropCombineBall::VPhysicsCollision( int index, gamevcollisionevent_t *pEve
 	vecFinalVelocity *= GetSpeed();
 	PhysCallbackSetVelocity( pEvent->pObjects[index], vecFinalVelocity ); 
 
-	CBaseEntity *pHitEntity = pEvent->pEntities[!index];
 	if ( pHitEntity && IsHittableEntity( pHitEntity ) )
 	{
 		OnHitEntity( pHitEntity, flSpeed, index, pEvent );

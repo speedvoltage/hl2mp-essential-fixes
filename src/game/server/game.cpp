@@ -69,6 +69,8 @@ ConVar	teamoverride( "mp_teamoverride","1" );
 ConVar	defaultteam( "mp_defaultteam","0" );
 ConVar	allowNPCs( "mp_allowNPCs","1", FCVAR_NOTIFY );
 ConVar	sv_propflying( "sv_propflying", "1", FCVAR_NOTIFY );
+ConVar mp_smg1_alt_glass( "mp_smg1_alt_glass", "1", FCVAR_NOTIFY, "If non-zero, SMG1 grenades will punch through glass" );
+ConVar mp_ar2_alt_glass( "mp_ar2_alt_glass", "1", FCVAR_NOTIFY, "If non-zero, AR2 orbs will punch through glass" );
 
 // Engine Cvars
 const ConVar	*g_pDeveloper = NULL;

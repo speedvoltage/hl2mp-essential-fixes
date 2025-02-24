@@ -17,6 +17,7 @@
 #include "engine/IEngineSound.h"
 #include "world.h"
 #include "func_breakablesurf.h"
+#include "game.h"
 
 #ifdef PORTAL
 	#include "portal_util_shared.h"
@@ -37,7 +38,6 @@ extern ConVar    sk_max_smg1_grenade;
 ConVar	  sk_smg1_grenade_radius		( "sk_smg1_grenade_radius","0");
 
 ConVar g_CV_SmokeTrail("smoke_trail", "1", 0); // temporary dust explosion switch
-ConVar mp_smg1_alt_glass( "mp_smg1_alt_glass", "1", FCVAR_NOTIFY, "If non-zero, SMG1 grenades will punch through glass" );
 
 BEGIN_DATADESC( CGrenadeAR2 )
 
