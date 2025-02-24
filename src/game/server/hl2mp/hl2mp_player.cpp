@@ -1175,6 +1175,9 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 	}
 	else if ( FStrEq( args[0], "joingame" ) )
 	{
+		if ( GetTeamNumber() == TEAM_SPECTATOR )
+			ChangeTeam( random->RandomInt( 2, 3 ) );
+
 		return true;
 	}
 
