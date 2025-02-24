@@ -1725,6 +1725,18 @@ void CBreakableProp::Break( CBaseEntity *pBreaker, const CTakeDamageInfo &info )
 		// collide with debris being ejected by breaking
 		params.defCollisionGroup = COLLISION_GROUP_INTERACTIVE;
 	}
+
+	// Use the debris flag only for item_item_crate this is for purely gameplay
+	// purposes
+	if ( FClassnameIs( this, "item_item_crate" ) )
+	{
+		params.defCollisionGroup = COLLISION_GROUP_DEBRIS;
+	}
+	else
+	{
+		params.defCollisionGroup = COLLISION_GROUP_INTERACTIVE;
+	}
+
 	params.defBurstScale = 100;
 
 	if ( m_iszBreakModelMessage != NULL_STRING )
