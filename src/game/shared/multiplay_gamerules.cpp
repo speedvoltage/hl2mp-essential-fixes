@@ -640,6 +640,9 @@ ConVarRef suitcharger( "sk_suitcharger" );
 		case 0:// fixed
 			return 10;
 			break;
+		case -1:
+			return 0;
+			break;
 		}
 	} 
 
