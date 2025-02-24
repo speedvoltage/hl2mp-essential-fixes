@@ -2019,15 +2019,13 @@ void CWeaponPhysCannon::DetachObject( bool playSound, bool wasLaunched )
 	if ( m_bActive == false )
 		return;
 
-	CHL2MP_Player *pOwner = (CHL2MP_Player *)ToBasePlayer( GetOwner() );
-
 	CBaseEntity *pObject = m_grabController.GetAttached();
 
 	m_grabController.DetachEntity( wasLaunched );
 
 	if ( pObject != NULL )
 	{
-		Pickup_OnPhysGunDrop( pObject, pOwner, wasLaunched ? LAUNCHED_BY_CANNON : DROPPED_BY_CANNON );
+		Pickup_OnPhysGunDrop( pObject, GetPlayerOwner(), wasLaunched ? LAUNCHED_BY_CANNON : DROPPED_BY_CANNON );
 	}
 	
 	if ( pObject && m_bResetOwnerEntity == true )
@@ -2345,7 +2343,7 @@ void CWeaponPhysCannon::ItemPostFrame()
 		}
 	}
 	
-	if (( pOwner->m_nButtons & IN_ATTACK2 ) == 0 )
+	if ( ( pOwner->m_nButtons & IN_ATTACK2 ) == 0 && CanPerformSecondaryAttack() )
 	{
 		m_nAttack2Debounce = 0;
 	}
