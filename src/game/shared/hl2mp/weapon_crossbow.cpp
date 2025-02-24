@@ -394,7 +394,7 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 			else
 			{
 				SetThink( &CCrossbowBolt::SUB_Remove );
-				SetNextThink( gpGlobals->curtime + 2.0f );
+				SetNextThink( gpGlobals->curtime + 0.0f );
 				
 				//FIXME: We actually want to stick (with hierarchy) to what we've hit
 				SetMoveType( MOVETYPE_NONE );
@@ -417,7 +417,7 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 				AddEffects( EF_NODRAW );
 				SetTouch( NULL );
 				SetThink( &CCrossbowBolt::SUB_Remove );
-				SetNextThink( gpGlobals->curtime + 2.0f );
+				SetNextThink( gpGlobals->curtime + 0.0f );
 
 				if ( m_pGlowSprite != NULL )
 				{
