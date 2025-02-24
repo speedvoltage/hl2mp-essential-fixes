@@ -186,23 +186,33 @@ void CWeaponAR2::DoImpactEffect( trace_t &tr, int nDamageType )
 void CWeaponAR2::DelayedAttack( void )
 {
 	m_bShotDelayed = false;
-	
+
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
-	
+
 	if ( pOwner == NULL )
 		return;
 
 	// Deplete the clip completely
 	SendWeaponAnim( ACT_VM_SECONDARYATTACK );
+
 	m_flNextSecondaryAttack = pOwner->m_flNextAttack = gpGlobals->curtime + SequenceDuration();
 
 	// Register a muzzleflash for the AI
 	pOwner->DoMuzzleFlash();
-	
+#ifndef CLIENT_DLL
+	CEffectData data;
+	data.m_nEntIndex = entindex();
+	data.m_vOrigin = pOwner->Weapon_ShootPosition();
+	data.m_nAttachmentIndex = LookupAttachment( "muzzle" );
+	data.m_flScale = 1.0f;
+	data.m_fFlags = MUZZLEFLASH_COMBINE;
+	DispatchEffect( "MuzzleFlash", data );
+#endif
+
 	WeaponSound( WPN_DOUBLE );
 
 	// Fire the bullets
-	Vector vecSrc	 = pOwner->Weapon_ShootPosition( );
+	Vector vecSrc = pOwner->Weapon_ShootPosition();
 	Vector vecAiming = pOwner->GetAutoaimVector( AUTOAIM_2DEGREES );
 	Vector impactPoint = vecSrc + ( vecAiming * MAX_TRACE_LENGTH );
 
@@ -211,37 +221,31 @@ void CWeaponAR2::DelayedAttack( void )
 
 #ifndef CLIENT_DLL
 	// Fire the combine ball
-	CreateCombineBall(	vecSrc, 
-						vecVelocity, 
-						sk_weapon_ar2_alt_fire_radius.GetFloat(), 
-						sk_weapon_ar2_alt_fire_mass.GetFloat(),
-						sk_weapon_ar2_alt_fire_duration.GetFloat(),
-						pOwner );
+	CreateCombineBall( vecSrc,
+		vecVelocity,
+		sk_weapon_ar2_alt_fire_radius.GetFloat(),
+		sk_weapon_ar2_alt_fire_mass.GetFloat(),
+		sk_weapon_ar2_alt_fire_duration.GetFloat(),
+		pOwner );
 
 	// View effects
-	color32 white = {255, 255, 255, 64};
-	UTIL_ScreenFade( pOwner, white, 0.1, 0, FFADE_IN  );
+	color32 white = { 255, 255, 255, 64 };
+	UTIL_ScreenFade( pOwner, white, 0.1, 0, FFADE_IN );
 #endif
-	
-	//Disorient the player
-	QAngle angles = pOwner->GetLocalAngles();
 
-	angles.x += random->RandomInt( -4, 4 );
-	angles.y += random->RandomInt( -4, 4 );
-	angles.z = 0;
+	pOwner->SetAnimation( PLAYER_ATTACK1 );
 
-//	pOwner->SnapEyeAngles( angles );
-	
 	pOwner->ViewPunch( QAngle( SharedRandomInt( "ar2pax", -12, -8 ), SharedRandomInt( "ar2pay", 1, 2 ), 0 ) );
 
 	// Decrease ammo
 	pOwner->RemoveAmmo( 1, m_iSecondaryAmmoType );
 
 	// Can shoot again immediately
-	m_flNextPrimaryAttack = gpGlobals->curtime + 0.5f;
+	pOwner->m_flNextAttack = gpGlobals->curtime + 0.5f;
+	//m_flNextPrimaryAttack = gpGlobals->curtime + 0.5f;
 
 	// Can blow up after a short delay (so have time to release mouse button)
-	m_flNextEmptySoundTime = m_flNextSecondaryAttack = gpGlobals->curtime + 1.0f;
+	m_flNextSecondaryAttack = gpGlobals->curtime + 1.0f;
 }
 
 //-----------------------------------------------------------------------------
@@ -249,25 +253,26 @@ void CWeaponAR2::DelayedAttack( void )
 //-----------------------------------------------------------------------------
 void CWeaponAR2::SecondaryAttack( void )
 {
+	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
+
+	if ( pOwner == NULL )
+		return;
+
 	if ( m_bShotDelayed )
 		return;
 
-	CBasePlayer* pPlayer = ToBasePlayer( GetOwner() );
-
-	if ( pPlayer == NULL )
-		return;
-
 	// Cannot fire underwater
-	if ( ( pPlayer->GetAmmoCount( m_iSecondaryAmmoType ) <= 0 ) || ( pPlayer->GetWaterLevel() == 3 ) )
+	if ( pOwner->GetWaterLevel() == 3 )
 	{
 		SendWeaponAnim( ACT_VM_DRYFIRE );
 		BaseClass::WeaponSound( EMPTY );
-		m_flNextEmptySoundTime = m_flNextSecondaryAttack = gpGlobals->curtime + 0.5f;
+		m_flNextSecondaryAttack = gpGlobals->curtime + 0.5f;
 		return;
 	}
 
 	m_bShotDelayed = true;
-	m_flNextEmptySoundTime = m_flNextPrimaryAttack = m_flNextSecondaryAttack = m_flDelayedFire = gpGlobals->curtime + 0.5f;
+	m_flNextPrimaryAttack = m_flDelayedFire = gpGlobals->curtime + 1.0f;
+	m_flNextSecondaryAttack = m_flDelayedFire = gpGlobals->curtime + 0.5f;
 
 	SendWeaponAnim( ACT_VM_FIDGET );
 	WeaponSound( SPECIAL1 );
