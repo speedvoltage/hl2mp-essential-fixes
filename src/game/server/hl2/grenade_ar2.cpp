@@ -16,6 +16,7 @@
 #include "vstdlib/random.h"
 #include "engine/IEngineSound.h"
 #include "world.h"
+#include "func_breakablesurf.h"
 
 #ifdef PORTAL
 	#include "portal_util_shared.h"
@@ -36,12 +37,15 @@ extern ConVar    sk_max_smg1_grenade;
 ConVar	  sk_smg1_grenade_radius		( "sk_smg1_grenade_radius","0");
 
 ConVar g_CV_SmokeTrail("smoke_trail", "1", 0); // temporary dust explosion switch
+ConVar mp_smg1_alt_glass( "mp_smg1_alt_glass", "1", FCVAR_NOTIFY, "If non-zero, SMG1 grenades will punch through glass" );
 
 BEGIN_DATADESC( CGrenadeAR2 )
 
 	DEFINE_FIELD( m_hSmokeTrail, FIELD_EHANDLE ),
 	DEFINE_FIELD( m_fSpawnTime, FIELD_TIME ),
 	DEFINE_FIELD( m_fDangerRadius, FIELD_FLOAT ),
+	DEFINE_FIELD( m_vecVelocity, FIELD_VECTOR ),
+	DEFINE_FIELD( m_bTouched, FIELD_BOOLEAN ),
 
 	// Function pointers
 	DEFINE_ENTITYFUNC( GrenadeAR2Touch ),
@@ -82,6 +86,8 @@ void CGrenadeAR2::Spawn( void )
 	m_takedamage	= DAMAGE_YES;
 	m_bIsLive		= true;
 	m_iHealth		= 1;
+	m_bTouched = false;
+	m_vecVelocity = vec3_origin;
 
 	SetGravity( UTIL_ScaleForGravity( 400 ) );	// use a lower gravity for grenades to make them easier to see
 	SetFriction( 0.8 );
@@ -148,6 +154,12 @@ void CGrenadeAR2::GrenadeAR2Think( void )
 		}
 	}
 
+	if ( m_bTouched )
+	{
+		SetAbsVelocity( m_vecVelocity );
+		m_bTouched = false;
+	}
+
 	// The old way of making danger sounds would scare EVERYONE between you and where the grenade
 	// was going to hit. The radius of the danger sound now 'blossoms' over the grenade's lifetime, making it seem
 	// dangerous to a larger area downrange than it does from where it was fired.
@@ -169,6 +181,19 @@ void CGrenadeAR2::GrenadeAR2Touch( CBaseEntity *pOther )
 	Assert( pOther );
 	if ( !pOther->IsSolid() )
 		return;
+
+	if ( FClassnameIs( pOther, "func_breakable_surf" ) && mp_smg1_alt_glass.GetBool() )
+	{
+		auto pBreakable = static_cast< CBreakableSurface * >( pOther );
+
+		if ( pBreakable )
+		{
+			m_bTouched = true;
+			m_vecVelocity = GetAbsVelocity();
+			pBreakable->Die(this, m_vecVelocity);
+			return;
+		}
+	}
 
 	// If I'm live go ahead and blow up
 	if (m_bIsLive)

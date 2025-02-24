@@ -36,6 +36,8 @@ public:
 	void 		GrenadeAR2Touch( CBaseEntity *pOther );
 	void		GrenadeAR2Think( void );
 	void		Event_Killed( const CTakeDamageInfo &info );
+	Vector m_vecVelocity;
+	bool m_bTouched;
 
 public:
 	void EXPORT				Detonate(void);
