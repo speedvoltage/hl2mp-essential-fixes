@@ -22,6 +22,7 @@
 #include "gamestats.h"
 #include "ammodef.h"
 #include "NextBot.h"
+#include "hl2mp/weapon_physcannon.h"
 
 #include "engine/IEngineSound.h"
 #include "SoundEmitterSystem/isoundemittersystembase.h"
@@ -1030,6 +1031,24 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 
 	if ( iTeam == TEAM_SPECTATOR )
 	{
+		CBaseCombatWeapon *pWeapon = GetActiveWeapon();
+
+		if ( pWeapon && !pWeapon->Holster() )
+		{
+			CWeaponPhysCannon *physcannon = dynamic_cast< CWeaponPhysCannon * >( pWeapon );
+
+			if ( physcannon )
+			{
+				physcannon->ForceDrop();
+				physcannon->DestroyEffects();
+			}
+		}
+		else
+			ForceDropOfCarriedPhysObjects( NULL );
+
+		StopZooming();
+		SetSuitUpdate( NULL, false, 0 );
+
 		RemoveAllItems( true );
 
 		if ( FlashlightIsOn() )

@@ -309,7 +309,7 @@ public:
 	EHANDLE m_hOldAttachedObject;
 
 	bool	CanPickupObject( CBaseEntity *pTarget );
-protected:
+public:
 	enum FindObjectResult_t
 	{
 		OBJECT_FOUND = 0,
