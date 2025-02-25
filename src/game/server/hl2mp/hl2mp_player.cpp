@@ -984,15 +984,6 @@ void CHL2MP_Player::LadderRespawnFix()
 
 void CHL2MP_Player::ChangeTeam( int iTeam )
 {
-	if ( GetNextTeamChangeTime() >= gpGlobals->curtime )
-	{
-		char szReturnString[ 128 ];
-		Q_snprintf( szReturnString, sizeof( szReturnString ), "Please wait %d more seconds before trying to switch teams again.\n", ( int ) ( GetNextTeamChangeTime() - gpGlobals->curtime ) );
-
-		ClientPrint( this, HUD_PRINTTALK, szReturnString );
-		return;
-	}
-
 	LadderRespawnFix();
 
 	bool bKill = false;
@@ -1085,6 +1076,8 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	if ( bKill == true )
 	{
 		CommitSuicide();
+		CTakeDamageInfo dmgInfo( this, this, 1000, DMG_GENERIC );
+		TakeDamage( dmgInfo );
 	}
 }
 
