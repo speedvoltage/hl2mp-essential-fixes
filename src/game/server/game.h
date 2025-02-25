@@ -36,6 +36,8 @@ extern ConVar	allowNPCs;
 extern ConVar	sv_propflying;
 extern ConVar	mp_smg1_alt_glass;
 extern ConVar	mp_ar2_alt_glass;
+extern ConVar	sv_hudtargetid;
+extern ConVar sv_hudtargetid_channel;
 
 extern ConVar	suitvolume;
 

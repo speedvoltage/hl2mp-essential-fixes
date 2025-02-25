@@ -34,6 +34,7 @@
 	#include "hl2mp_gameinterface.h"
 	#include "hl2mp_cvars.h"
 	#include "hl2_player.h"
+	#include "game.h"
 
 extern void respawn(CBaseEntity *pEdict, bool fCopyCorpse);
 
@@ -295,6 +296,8 @@ void CHL2MPRules::Think( void )
 	
 	CGameRules::Think();
 
+	HandleNewTargetID();
+
 	if ( g_fGameOver )   // someone else quit the game already
 	{
 		// check to see if we should change levels now
@@ -375,6 +378,81 @@ void CHL2MPRules::Think( void )
 #endif
 }
 
+#ifndef CLIENT_DLL
+void CHL2MPRules::HandleNewTargetID()
+{
+	if ( sv_hudtargetid.GetBool() )
+	{
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			CHL2MP_Player *pPlayer = dynamic_cast< CHL2MP_Player * >( UTIL_PlayerByIndex( i ) );
+
+			if ( pPlayer && pPlayer->IsAlive() )
+			{
+				if ( gpGlobals->curtime > pPlayer->GetNextHudUpdate() )
+				{
+					Vector vecDir;
+					AngleVectors( pPlayer->EyeAngles(), &vecDir );
+
+					Vector vecAbsStart = pPlayer->EyePosition();
+					Vector vecAbsEnd = vecAbsStart + ( vecDir * 2048 );
+
+					trace_t tr;
+					UTIL_TraceLine( vecAbsStart, vecAbsEnd, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &tr );
+
+					CBasePlayer *pPlayerEntity = dynamic_cast< CBasePlayer * >( tr.m_pEnt );
+
+					if ( pPlayerEntity && pPlayerEntity->IsPlayer() && pPlayerEntity->IsAlive() )
+					{
+						char entity[ 256 ];
+
+						if ( GameRules()->IsTeamplay() )
+						{
+							if ( pPlayerEntity->GetTeamNumber() == pPlayer->GetTeamNumber() )
+							{
+								if ( pPlayerEntity->ArmorValue() )
+									Q_snprintf( entity, sizeof( entity ), "%s\nHP: %.0i\nAP: %.0i\n", pPlayerEntity->GetPlayerName(), pPlayerEntity->GetHealth(), pPlayerEntity->ArmorValue() );
+								else
+									Q_snprintf( entity, sizeof( entity ), "%s\nHP: %.0i\n", pPlayerEntity->GetPlayerName(), pPlayerEntity->GetHealth() );
+							}
+							else
+							{
+								Q_snprintf( entity, sizeof( entity ), "%s", pPlayerEntity->GetPlayerName() );
+							}
+						}
+						else
+						{
+							Q_snprintf( entity, sizeof( entity ), "%s", pPlayerEntity->GetPlayerName() );
+						}
+
+						// HUD message setup
+						hudtextparms_s tTextParam;
+						tTextParam.x = 0.45;
+						tTextParam.y = 0.63;
+						tTextParam.effect = 0;
+						tTextParam.r1 = 255;
+						tTextParam.g1 = 128;
+						tTextParam.b1 = 0;
+						tTextParam.a1 = 255;
+						tTextParam.r2 = 255;
+						tTextParam.g2 = 128;
+						tTextParam.b2 = 0;
+						tTextParam.a2 = 255;
+						tTextParam.fadeinTime = 0.008;
+						tTextParam.fadeoutTime = 0.008;
+						tTextParam.holdTime = 1.0;
+						tTextParam.fxTime = 0;
+						tTextParam.channel = sv_hudtargetid_channel.GetInt();
+
+						UTIL_HudMessage( pPlayer, tTextParam, entity );
+					}
+					pPlayer->SetNextHudUpdate( gpGlobals->curtime + 1.0f );
+				}
+			}
+		}
+	}
+}
+
 void CHL2MPRules::RemoveAllPlayersEquipment()
 {
 	// Forcefully remove suit and weapons here to account for mp_restartgame
@@ -408,6 +486,7 @@ void CHL2MPRules::RemoveAllPlayersEquipment()
 		}
 	}
 }
+#endif
 
 void CHL2MPRules::GoToIntermission( void )
 {

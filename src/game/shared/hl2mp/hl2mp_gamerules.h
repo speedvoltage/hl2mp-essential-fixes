@@ -153,6 +153,8 @@ public:
 	void	CheckAllPlayersReady( void );
 
 	virtual bool IsConnectedUserInfoChangeAllowed( CBasePlayer *pPlayer );
+
+	void HandleNewTargetID();
 	
 private:
 	

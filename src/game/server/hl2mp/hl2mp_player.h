@@ -146,6 +146,10 @@ public:
 
 	void CompensateScoreOnTeamSwitch( bool enabled ) { m_bHasCompensatedForDeath = enabled; }
 	bool IsCompensatingScoreOnTeamSwitch() { return m_bHasCompensatedForDeath; }
+
+	float GetNextHudUpdate() const { return m_flNextHudUpdate; }
+	void SetNextHudUpdate( float flNextUpdate ) { m_flNextHudUpdate = flNextUpdate; }
+
 private:
 
 	void LadderRespawnFix();
@@ -174,6 +178,7 @@ private:
     bool m_bEnterObserver;
 	bool m_bReady;
 	bool m_bHasCompensatedForDeath;
+	float m_flNextHudUpdate;
 };
 
 inline CHL2MP_Player *ToHL2MPPlayer( CBaseEntity *pEntity )

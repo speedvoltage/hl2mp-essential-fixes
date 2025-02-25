@@ -71,6 +71,8 @@ ConVar	allowNPCs( "mp_allowNPCs","1", FCVAR_NOTIFY );
 ConVar	sv_propflying( "sv_propflying", "1", FCVAR_NOTIFY );
 ConVar mp_smg1_alt_glass( "mp_smg1_alt_glass", "1", FCVAR_NOTIFY, "If non-zero, SMG1 grenades will punch through glass" );
 ConVar mp_ar2_alt_glass( "mp_ar2_alt_glass", "1", FCVAR_NOTIFY, "If non-zero, AR2 orbs will punch through glass" );
+ConVar sv_hudtargetid( "sv_hudtargetid", "1", FCVAR_NOTIFY, "If enabled, shows a custom HUD target ID in-game" );
+ConVar sv_hudtargetid_channel( "sv_hudtargetid_channel", "1", 0, "Selects which text channel to use for the HUD target ID\nNOTE: If you notice text conflicting, then there is a channel conflict" );
 
 // Engine Cvars
 const ConVar	*g_pDeveloper = NULL;
