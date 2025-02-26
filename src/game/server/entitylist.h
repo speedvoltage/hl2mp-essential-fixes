@@ -139,6 +139,7 @@ public:
 	{
 		return FindEntityByName( pStartEntity, STRING(iszName), pSearchingEntity, pActivator, pCaller, pFilter );
 	}
+	CBaseEntity *FindEntityByClassnameRandom( CBaseEntity *pStartEntity, const char *szName );
 	CBaseEntity *FindEntityInSphere( CBaseEntity *pStartEntity, const Vector &vecCenter, float flRadius, IEntityFindFilter *pFilter = NULL );
 	CBaseEntity *FindEntityByTarget( CBaseEntity *pStartEntity, const char *szName, IEntityFindFilter *pFilter = NULL );
 	CBaseEntity *FindEntityByModel( CBaseEntity *pStartEntity, const char *szModelName, IEntityFindFilter *pFilter = NULL );

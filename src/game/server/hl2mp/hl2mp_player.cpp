@@ -1560,7 +1560,7 @@ ReturnSpot:
 
 	if ( !pSpot )
 	{
-		pSpot = gEntList.FindEntityByClassname( pSpot, "info_player_start" );
+		pSpot = gEntList.FindEntityByClassnameRandom( pSpot, "info_player_start" );
 
 		if ( pSpot )
 			goto ReturnSpot;
