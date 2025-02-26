@@ -77,7 +77,9 @@ public:
 
 	float		GetRange( void )		{ return STUNSTICK_RANGE; }
 	float		GetFireRate( void )		{ return STUNSTICK_REFIRE; }
-
+#ifndef CLIENT_DLL
+	void		AddViewKick( void ); // should be client-side, much like the crowbar
+#endif
 
 	bool		Deploy( void );
 	bool		Holster( CBaseCombatWeapon *pSwitchingTo = NULL );
@@ -246,6 +248,21 @@ void CWeaponStunStick::ImpactEffect( trace_t &traceHit )
 
 #ifndef CLIENT_DLL
 
+void CWeaponStunStick::AddViewKick( void )
+{
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+
+	if ( pPlayer == NULL )
+		return;
+
+	QAngle punchAng;
+
+	punchAng.x = SharedRandomFloat( "crowbarpax", 1.0f, 2.0f );
+	punchAng.y = SharedRandomFloat( "crowbarpay", -2.0f, -1.0f );
+	punchAng.z = 0.0f;
+
+	pPlayer->ViewPunch( punchAng );
+}
 
 int CWeaponStunStick::WeaponMeleeAttack1Condition( float flDot, float flDist )
 {
