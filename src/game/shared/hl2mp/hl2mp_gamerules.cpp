@@ -769,6 +769,7 @@ void CHL2MPRules::ClientDisconnected( edict_t *pClient )
 	CBasePlayer *pPlayer = (CBasePlayer *)CBaseEntity::Instance( pClient );
 	if ( pPlayer )
 	{
+		FireTargets( "game_playerleave", pPlayer, pPlayer, USE_TOGGLE, 0 );
 		// Remove the player from his team
 		if ( pPlayer->GetTeam() )
 		{
