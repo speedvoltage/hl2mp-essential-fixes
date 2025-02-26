@@ -245,6 +245,10 @@ void CBreakableSurface::Precache(void)
 	BaseClass::Precache();
 }
 
+void CBreakableSurface::PlayPuntSound()
+{
+	EmitSound( "Weapon_PhysCannon.Launch" );
+}
 
 //------------------------------------------------------------------------------
 // Purpose : Window has been touched.  Break out pieces based on touching
@@ -390,7 +394,12 @@ void CBreakableSurface::TraceAttack( const CTakeDamageInfo &info, const Vector &
 		Die( info.GetAttacker(), vSurfDir );
 	}
 
-	if (info.GetDamageType() & (DMG_BULLET | DMG_CLUB))
+	if ( info.GetDamageType() & DMG_PHYSGUN )
+	{
+		PlayPuntSound();
+	}
+
+	else if ( info.GetDamageType() & ( DMG_BULLET | DMG_CLUB ) )
 	{
 		// Figure out which panel has taken the damage and break it
 		float flWidth,flHeight;
