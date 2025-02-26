@@ -68,9 +68,11 @@ bool CEventLog::PrintPlayerEvent( IGameEvent *event )
 	if ( !Q_strncmp( eventName, "player_connect", Q_strlen("player_connect") ) ) // player connect is before the CBasePlayer pointer is setup
 	{
 		const char *name = event->GetString( "name" );
-		const char *address = event->GetString( "address" );
+		// const char *address = event->GetString( "address" );
 		const char *networkid = event->GetString("networkid" );
-		UTIL_LogPrintf( "\"%s<%i><%s><>\" connected, address \"%s\"\n", name, userid, networkid, address);
+		// UTIL_LogPrintf( "\"%s<%i><%s><>\" connected, address \"%s\"\n", name, userid, networkid, address);
+		UTIL_LogPrintf( "\"%s<%i><%s><>\" connected\n", name, userid, networkid );
+
 		return true;
 	}
 	else if ( !Q_strncmp( eventName, "player_disconnect", Q_strlen("player_disconnect")  ) )

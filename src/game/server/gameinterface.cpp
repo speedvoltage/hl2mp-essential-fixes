@@ -2693,6 +2693,9 @@ bool CServerGameClients::ClientConnect( edict_t *pEdict, const char *pszName, co
 	if ( !g_pGameRules )
 		return false;
 	
+	const char *maskedAddress = " ";
+	pszAddress = maskedAddress;
+
 	return g_pGameRules->ClientConnected( pEdict, pszName, pszAddress, reject, maxrejectlen );
 }
 
