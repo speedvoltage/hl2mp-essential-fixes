@@ -235,40 +235,41 @@ Activity CBaseHLBludgeonWeapon::ChooseIntersectionPointAndActivity( trace_t &hit
 //-----------------------------------------------------------------------------
 bool CBaseHLBludgeonWeapon::ImpactWater( const Vector &start, const Vector &end )
 {
-	//FIXME: This doesn't handle the case of trying to splash while being underwater, but that's not going to look good
-	//		 right now anyway...
-	
-	// We must start outside the water
-	if ( UTIL_PointContents( start ) & (CONTENTS_WATER|CONTENTS_SLIME))
-		return false;
+	bool bStartInWater = ( UTIL_PointContents( start ) & ( CONTENTS_WATER | CONTENTS_SLIME ) ) != 0;
+	bool bEndInWater = ( UTIL_PointContents( end ) & ( CONTENTS_WATER | CONTENTS_SLIME ) ) != 0;
 
-	// We must end inside of water
-	if ( !(UTIL_PointContents( end ) & (CONTENTS_WATER|CONTENTS_SLIME)))
-		return false;
+	trace_t waterTrace;
 
-	trace_t	waterTrace;
-
-	UTIL_TraceLine( start, end, (CONTENTS_WATER|CONTENTS_SLIME), GetOwner(), COLLISION_GROUP_NONE, &waterTrace );
-
-	if ( waterTrace.fraction < 1.0f )
+	if ( bStartInWater && bEndInWater )
 	{
-		CEffectData	data;
-
-		data.m_fFlags  = 0;
-		data.m_vOrigin = waterTrace.endpos;
-		data.m_vNormal = waterTrace.plane.normal;
-		data.m_flScale = 8.0f;
-
-		// See if we hit slime
-		if ( waterTrace.contents & CONTENTS_SLIME )
-		{
-			data.m_fFlags |= FX_WATER_IN_SLIME;
-		}
-
-		DispatchEffect( "watersplash", data );			
+		return false;
 	}
 
-	return true;
+	if ( !bStartInWater && bEndInWater )
+	{
+		UTIL_TraceLine( start, end, ( CONTENTS_WATER | CONTENTS_SLIME ), GetOwner(), COLLISION_GROUP_NONE, &waterTrace );
+
+		if ( waterTrace.fraction < 1.0f )
+		{
+			CEffectData data;
+			data.m_fFlags = 0;
+			data.m_vOrigin = waterTrace.endpos;
+			data.m_vNormal = waterTrace.plane.normal;
+			data.m_flScale = 8.0f;
+
+			// Check if we hit slime
+			if ( waterTrace.contents & CONTENTS_SLIME )
+			{
+				data.m_fFlags |= FX_WATER_IN_SLIME;
+			}
+
+			DispatchEffect( "watersplash", data );
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 //-----------------------------------------------------------------------------
