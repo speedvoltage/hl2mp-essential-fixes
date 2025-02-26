@@ -635,9 +635,11 @@ void CHL2_Player::HandleSpeedChanges( CMoveData *mv )
 
 void CHL2_Player::ReduceTimers( CMoveData *mv )
 {
+	bool bPlayerNotMoving = mv->m_vecVelocity.Length() < 0.1f;
+
 	bool bSprinting = mv->m_flClientMaxSpeed == HL2_SPRINT_SPEED;
 
-	if ( bSprinting )
+	if ( bSprinting && !bPlayerNotMoving )
 	{
 		SuitPower_AddDevice( SuitDeviceSprint );
 	}
@@ -648,6 +650,7 @@ void CHL2_Player::ReduceTimers( CMoveData *mv )
 
 	SuitPower_Update();
 }
+
 
 //-----------------------------------------------------------------------------
 // This happens when we powerdown from the mega physcannon to the regular one
