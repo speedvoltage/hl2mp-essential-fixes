@@ -773,6 +773,9 @@ public:
 	float GetLadderCooldownTime() const { return m_flLadderCooldownTime; }
 	void SetLadderCooldownTime( float cooldownTime ) { m_flLadderCooldownTime = cooldownTime; }
 
+	bool UsingGameUI() const { return m_bIsUsingGameUI; }
+	void IsUsingGameUI( bool enabled ) { m_bIsUsingGameUI = enabled; }
+
 	int		GetImpulse( void ) const { return m_nImpulse; }
 
 	// Movement constraints
@@ -858,6 +861,7 @@ private:
 	bool m_bCheckPenetration;
 	float m_flLadderCooldownTime;
 	bool m_bHasCompensatedTeamScore;
+	bool m_bIsUsingGameUI;
 
 public:
 	

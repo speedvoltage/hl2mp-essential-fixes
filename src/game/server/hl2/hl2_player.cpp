@@ -999,7 +999,6 @@ void CHL2_Player::PreThink(void)
 	{
 		if ( m_nButtons & IN_ZOOM )
 		{
-			//FIXME: Held weapons like the grenade get sad when this happens
 	#ifdef HL2_EPISODIC
 			// Episodic allows players to zoom while using a func_tank
 			CBaseCombatWeapon* pWep = GetActiveWeapon();
@@ -2915,6 +2914,14 @@ void CHL2_Player::PlayerUse ( void )
 
 	if ( m_afButtonPressed & IN_USE )
 	{
+		// game_ui, don't deactivate if +USE on an entity
+		CBaseEntity *pUseEntity = FindUseEntity();
+
+		if ( UsingGameUI() && pUseEntity )
+		{
+			m_afButtonPressed &= ~IN_USE;
+			return;
+		}
 		// Currently using a latched entity?
 		if ( ClearUseEntity() )
 		{
