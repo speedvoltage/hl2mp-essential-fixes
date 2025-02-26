@@ -591,7 +591,10 @@ CBasePlayer *UTIL_GetLocalPlayer( void )
 #endif
 		}
 
-		return NULL;
+		// return NULL;
+		
+		// return something in multiplayer
+		return UTIL_PlayerByIndex( 1 );
 	}
 
 	return UTIL_PlayerByIndex( 1 );
