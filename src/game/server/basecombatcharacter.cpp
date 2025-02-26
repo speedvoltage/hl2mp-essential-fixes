@@ -1808,9 +1808,23 @@ void CBaseCombatCharacter::DropWeaponForWeaponStrip( CBaseCombatWeapon *pWeapon,
 		
 	if ( tr.startsolid || tr.allsolid || ( tr.fraction < 1.0f && tr.m_pEnt != pWeapon ) )
 	{
-		//FIXME: Throw towards a known safe spot?
-		vecThrow.Negate();
-		VectorMA( vecOrigin, flDiameter, vecThrow, vecOffsetOrigin );
+		for ( int i = 0; i < 4; ++i )
+		{
+			Vector altThrow = vecThrow;
+			altThrow.x += random->RandomFloat( -0.5f, 0.5f );
+			altThrow.y += random->RandomFloat( -0.5f, 0.5f );
+			altThrow.z = random->RandomFloat( -0.1f, 0.1f );
+			VectorNormalize( altThrow );
+
+			VectorMA( vecOrigin, flDiameter, altThrow, vecOffsetOrigin );
+			UTIL_TraceLine( vecOrigin, vecOffsetOrigin, MASK_SOLID_BRUSHONLY, this, COLLISION_GROUP_NONE, &tr );
+
+			if ( !tr.startsolid && !tr.allsolid && ( tr.fraction == 1.0f || tr.m_pEnt == pWeapon ) )
+			{
+				vecThrow = altThrow;
+				break;
+			}
+		}
 	}
 
 	vecThrow *= random->RandomFloat( 400.0f, 600.0f );
@@ -2561,14 +2575,23 @@ Vector CBaseCombatCharacter::BodyDirection2D( void )
 }
 
 
-Vector CBaseCombatCharacter::BodyDirection3D( void )
+Vector CBaseCombatCharacter::BodyDirection3D()
 {
-	QAngle angles = BodyAngles();
+	static QAngle lastBodyAngles;       // Cache for the last body angles
+	static Vector cachedBodyDirection;  // Cached direction vector
+	static bool isCacheValid = false;   // Flag to check cache validity
 
-	// FIXME: cache this
-	Vector vBodyDir;
-	AngleVectors( angles, &vBodyDir );
-	return vBodyDir;
+	QAngle currentAngles = BodyAngles();
+
+	// Recalculate only if angles have changed or cache is invalid
+	if ( !isCacheValid || currentAngles != lastBodyAngles )
+	{
+		lastBodyAngles = currentAngles;
+		AngleVectors( currentAngles, &cachedBodyDirection );
+		isCacheValid = true;
+	}
+
+	return cachedBodyDirection;
 }
 
 
