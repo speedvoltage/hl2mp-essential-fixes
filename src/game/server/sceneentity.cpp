@@ -3862,7 +3862,14 @@ CBaseEntity *CSceneEntity::FindNamedEntity( const char *name, CBaseEntity *pActo
 
 	if ( !stricmp( name, "Player" ) || !stricmp( name, "!player" ))
 	{
-		entity = ( gpGlobals->maxClients == 1 ) ? ( CBaseEntity * )UTIL_GetLocalPlayer() : NULL;
+		if ( pActor )
+		{
+			entity = gEntList.FindEntityGenericNearest( "player", pActor->GetAbsOrigin(), 0, pActor );
+		}
+		else
+		{
+			entity = ( CBaseEntity * ) UTIL_PlayerByIndex( 1 );
+		}
 	}
 	else if ( !stricmp( name, "!target1" ) )
 	{
