@@ -862,6 +862,7 @@ private:
 	float m_flLadderCooldownTime;
 	bool m_bHasCompensatedTeamScore;
 	bool m_bIsUsingGameUI;
+	int iDamageTime;
 
 public:
 	
