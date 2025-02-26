@@ -212,6 +212,9 @@ void CHL2MP_Player::GiveAllItems( void )
 {
 	EquipSuit();
 
+	SetArmorValue( 100 );
+	SetHealth( 100 );
+
 	CBasePlayer::GiveAmmo( 255,	"Pistol");
 	CBasePlayer::GiveAmmo( 255,	"AR2" );
 	CBasePlayer::GiveAmmo( 5,	"AR2AltFire" );
