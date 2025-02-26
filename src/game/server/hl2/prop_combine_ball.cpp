@@ -1582,6 +1582,19 @@ void CPropCombineBall::VPhysicsCollision( int index, gamevcollisionevent_t *pEve
 			return;
 	}
 
+	if ( FClassnameIs( pHitEntity, "npc_satchel" ) || // don't slow down on satchel charges
+		FClassnameIs( pHitEntity, "npc_grenade_frag" ) || // not on frag grenades either
+		StringHasPrefix( pHitEntity->GetClassname(), "weapon_" ) || // much less on weapons
+		StringHasPrefix( pHitEntity->GetClassname(), "item_" ) ) // the same for items
+	{
+		Vector vecBounceVelocity = -preVelocity;
+		vecBounceVelocity *= GetSpeed();
+
+		PhysCallbackSetVelocity( pEvent->pObjects[ index ], vecBounceVelocity );
+
+		return;
+	}
+
 	if ( m_nMaxBounces == -1 )
 	{
 		const surfacedata_t *pHit = physprops->GetSurfaceData( pEvent->surfaceProps[!index] );
