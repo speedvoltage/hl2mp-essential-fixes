@@ -168,6 +168,12 @@ void CTriggerWeaponDissolve::StartTouch( CBaseEntity *pOther )
 //-----------------------------------------------------------------------------
 void CTriggerWeaponDissolve::CreateBeam( const Vector &vecSource, CBaseEntity *pDest, float flLifetime )
 {
+	if ( !pDest )
+	{
+		DevWarning( "TriggerWeaponDissolve: CreateBeam called with a null destination entity.\n" );
+		return;
+	}
+
 	CBroadcastRecipientFilter filter;
 
 	te->BeamEntPoint( filter, 0.0,
@@ -198,6 +204,13 @@ void CTriggerWeaponDissolve::CreateBeam( const Vector &vecSource, CBaseEntity *p
 //-----------------------------------------------------------------------------
 Vector CTriggerWeaponDissolve::GetConduitPoint( CBaseEntity *pTarget )
 {
+	if ( !pTarget )
+	{
+		// Handle the case where pTarget is null
+		DevWarning( "TriggerWeaponDissolve: GetConduitPoint called with a null target.\n" );
+		return vec3_origin;
+	}
+
 	float	nearDist = 9999999.0f;
 	Vector	bestPoint = vec3_origin;
 	float	testDist;
@@ -222,60 +235,45 @@ Vector CTriggerWeaponDissolve::GetConduitPoint( CBaseEntity *pTarget )
 //-----------------------------------------------------------------------------
 void CTriggerWeaponDissolve::DissolveThink( void )
 {
-	int	numWeapons = m_pWeapons.Count();
+	// In a multiplayer environment, dissolve all weapons at once
+	int numWeapons = m_pWeapons.Count();
+	// Warning("DissolveThink called with %d weapons in queue.\n", numWeapons);
 
-	// Dissolve all the items within the volume
-	for ( int i = 0; i < numWeapons; i++ )
+	for ( int i = 0; i < m_pWeapons.Count();)
 	{
-		CBaseCombatWeapon *pWeapon = m_pWeapons[i];
-		Vector vecConduit = GetConduitPoint( pWeapon );
-		
-		// The physcannon upgrades when this happens
-		if ( FClassnameIs( pWeapon, "weapon_physcannon" ) )
+		CBaseCombatWeapon *pWeapon = m_pWeapons[ i ];
+
+		if ( !pWeapon || pWeapon->IsMarkedForDeletion() )
 		{
-			// This must be the last weapon for us to care
-			if ( numWeapons > 1 )
-				continue;
-
-			//FIXME: Make them do this on a stagger!
-
-			// All conduits send power to the weapon
-			for ( int i = 0; i < m_pConduitPoints.Count(); i++ )
-			{
-				CreateBeam( m_pConduitPoints[i]->GetAbsOrigin(), pWeapon, 4.0f );
-			}
-
-			PhysCannonBeginUpgrade( pWeapon );
-			m_OnChargingPhyscannon.FireOutput( this, this );
-
-			EmitSound( "WeaponDissolve.Beam" );
-
-			// We're done
-			m_pWeapons.Purge();
-			m_pConduitPoints.Purge();
-			SetContextThink( NULL, 0, s_pDissolveThinkContext );
-			return;
+			DevWarning( "DissolveThink encountered a null or deleted weapon.\n" );
+			m_pWeapons.Remove( i );
+			continue;
 		}
 
-		// Randomly dissolve them all
+		Vector vecConduit = GetConduitPoint( pWeapon );
 		float flLifetime = random->RandomFloat( 2.5f, 4.0f );
 		CreateBeam( vecConduit, pWeapon, flLifetime );
-		pWeapon->Dissolve( NULL, gpGlobals->curtime + ( 3.0f - flLifetime ), false );
+		pWeapon->Dissolve( nullptr, gpGlobals->curtime + ( 3.0f - flLifetime ), false );
 
 		m_OnDissolveWeapon.FireOutput( this, this );
 
 		CPASAttenuationFilter filter( pWeapon );
 		EmitSound( filter, pWeapon->entindex(), "WeaponDissolve.Dissolve" );
-		
-		// Beam looping sound
+
 		EmitSound( "WeaponDissolve.Beam" );
 
 		m_pWeapons.Remove( i );
-		SetContextThink( &CTriggerWeaponDissolve::DissolveThink, gpGlobals->curtime + random->RandomFloat( 0.5f, 1.5f ), s_pDissolveThinkContext );
-		return;
+		// No incrementing of `i` here because we just removed an item
 	}
 
-	SetContextThink( &CTriggerWeaponDissolve::DissolveThink, gpGlobals->curtime + 0.1f, s_pDissolveThinkContext );
+	if ( m_pWeapons.Count() > 0 )
+	{
+		SetContextThink( &CTriggerWeaponDissolve::DissolveThink, gpGlobals->curtime + random->RandomFloat( 0.5f, 1.5f ), s_pDissolveThinkContext );
+	}
+	else
+	{
+		SetContextThink( &CTriggerWeaponDissolve::DissolveThink, gpGlobals->curtime + 0.1f, s_pDissolveThinkContext );
+	}
 }
 
 //-----------------------------------------------------------------------------
