@@ -3014,6 +3014,9 @@ static ConCommand voxeltree_view( "voxeltree_view", CC_VoxelTreeView, "View enti
 
 void CC_VoxelTreePlayerView( void )
 {
+	if ( engine->IsDedicatedServer() )
+		return;
+
 	Msg( "VoxelTreePlayerView\n" );
 
 	CBasePlayer *pPlayer = static_cast<CBasePlayer*>( UTIL_GetLocalPlayer() );
@@ -3025,6 +3028,9 @@ static ConCommand voxeltree_playerview( "voxeltree_playerview", CC_VoxelTreePlay
 
 void CC_VoxelTreeBox( const CCommand &args )
 {
+	if ( engine->IsDedicatedServer() )
+		return;
+
 	Vector vecMin, vecMax;
 	if ( args.ArgC() >= 6 )
 	{
@@ -3079,6 +3085,9 @@ static ConCommand voxeltree_box( "voxeltree_box", CC_VoxelTreeBox, "View entitie
 
 void CC_VoxelTreeSphere( const CCommand &args )
 {
+	if ( engine->IsDedicatedServer() )
+		return;
+
 	Vector vecCenter;
 	float flRadius;
 	if ( args.ArgC() >= 4 )
