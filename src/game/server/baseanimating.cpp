@@ -1204,55 +1204,35 @@ void CBaseAnimating::DispatchAnimEvents ( CBaseAnimating *eventHandler )
 		flEnd = 1.01f;
 	}
 	m_flLastEventCheck = flEnd;
-
-	/*
-	if (m_debugOverlays & OVERLAY_NPC_SELECTED_BIT)
-	{
-		Msg( "%s:%s : checking %.2f %.2f (%d)\n", STRING(GetModelName()), pstudiohdr->pSeqdesc( GetSequence() ).pszLabel(), flStart, flEnd, m_bSequenceFinished );
-	}
-	*/
-
-	// FIXME: does not handle negative framerates!
 	int index = 0;
-	while ( (index = GetAnimationEvent( pstudiohdr, GetSequence(), &event, flStart, flEnd, index ) ) != 0 )
+	while ( ( index = GetAnimationEvent( pstudiohdr, GetSequence(), &event, flStart, flEnd, index ) ) != 0 )
 	{
 		event.pSource = this;
-		// calc when this event should happen
-		if (flCycleRate > 0.0)
+
+		if ( flCycleRate != 0.0f )
 		{
 			float flCycle = event.cycle;
-			if (flCycle > GetCycle())
+
+			// handle events occurring in reverse playback
+			if ( m_flPlaybackRate < 0.0f && flCycle < flStart )
 			{
-				flCycle = flCycle - 1.0;
+				flCycle += 1.0f;
 			}
-			event.eventtime = m_flAnimTime + (flCycle - GetCycle()) / flCycleRate + GetAnimTimeInterval();
+			else if ( flCycle > GetCycle() )
+			{
+				flCycle -= 1.0f;
+			}
+
+			event.eventtime = m_flAnimTime + ( flCycle - GetCycle() ) / flCycleRate + GetAnimTimeInterval();
 		}
 
-		/*
-		if (m_debugOverlays & OVERLAY_NPC_SELECTED_BIT)
-		{
-			Msg( "dispatch %i (%i) cycle %f event cycle %f cyclerate %f\n", 
-				(int)(index - 1), 
-				(int)event.event, 
-				(float)GetCycle(), 
-				(float)event.cycle, 
-				(float)flCycleRate );
-		}
-		*/
-		if ( eventHandler )
-			eventHandler->HandleAnimEvent( &event );
+		eventHandler->HandleAnimEvent( &event );
 
-		// FAILSAFE:
-		// If HandleAnimEvent has somehow reset my internal pointer
-		// to CStudioHdr to something other than it was when we entered 
-		// this function, we will crash on the next call to GetAnimationEvent
-		// because pstudiohdr no longer points at something valid. 
-		// So, catch this case, complain vigorously, and bail out of
-		// the loop.
+		// Failsafe: Ensure the model hasn't changed
 		CStudioHdr *pNowStudioHdr = GetModelPtr();
 		if ( pNowStudioHdr != pstudiohdr )
 		{
-			AssertMsg2(false, "%s has changed its model while processing AnimEvents on sequence %d. Aborting dispatch.\n", GetDebugName(), GetSequence() );
+			AssertMsg2( false, "%s has changed its model while processing AnimEvents on sequence %d. Aborting dispatch.\n", GetDebugName(), GetSequence() );
 			Warning( "%s has changed its model while processing AnimEvents on sequence %d. Aborting dispatch.\n", GetDebugName(), GetSequence() );
 			break;
 		}
@@ -1634,7 +1614,15 @@ void CBaseAnimating::InitStepHeightAdjust( void )
 	m_flIKGroundMaxHeight = 0;
 
 	// FIXME: not safe to call GetAbsOrigin here. Hierarchy might not be set up!
-	m_flEstIkFloor = GetAbsOrigin().z;
+	if ( s_bAbsQueriesValid )
+	{
+		m_flEstIkFloor = GetAbsOrigin().z;
+	}
+	else
+	{
+		m_flEstIkFloor = GetLocalOrigin().z;
+		DevMsg( "InitStepHeightAdjust called before hierarchy is set up!\n" );
+	}
 	m_flEstIkOffset = 0;
 }
 
@@ -1644,7 +1632,7 @@ void CBaseAnimating::InitStepHeightAdjust( void )
 //-----------------------------------------------------------------------------
 
 ConVar npc_height_adjust( "npc_height_adjust", "1", FCVAR_ARCHIVE, "Enable test mode for ik height adjustment" );
-
+extern ConVar sv_stepsize;
 void CBaseAnimating::UpdateStepOrigin()
 {
 	if (!npc_height_adjust.GetBool())
@@ -1654,41 +1642,31 @@ void CBaseAnimating::UpdateStepOrigin()
 		return;
 	}
 
-	/*
-	if (m_debugOverlays & OVERLAY_NPC_SELECTED_BIT)
-	{
-		Msg("%x : %x\n", GetMoveParent(), GetGroundEntity() );
-	}
-	*/
-
 	if (m_flIKGroundContactTime > 0.2 && m_flIKGroundContactTime > gpGlobals->curtime - 0.2)
 	{
 		if ((GetFlags() & (FL_FLY | FL_SWIM)) == 0 && GetMoveParent() == NULL && GetGroundEntity() != NULL && !GetGroundEntity()->IsMoving())
 		{
 			Vector toAbs = GetAbsOrigin() - GetLocalOrigin();
-			if (toAbs.z == 0.0)
+			if ( toAbs.z == 0.0 )
 			{
 				CAI_BaseNPC *pNPC = MyNPCPointer();
-				// FIXME:  There needs to be a default step height somewhere
-				float height = 18.0f;
-				if (pNPC)
+				// sv_stepsize for the default or NPC-specific step height
+				float height = sv_stepsize.GetFloat();
+				if ( pNPC )
 				{
 					height = pNPC->StepHeight();
 				}
 
-				// debounce floor location
 				m_flEstIkFloor = m_flEstIkFloor * 0.2 + m_flIKGroundMinHeight * 0.8;
 
-				// don't let heigth difference between min and max exceed step height
-				float bias = clamp( (m_flIKGroundMaxHeight - m_flIKGroundMinHeight) - height, 0.f, height );
-				// save off reasonable offset
+				float bias = clamp( ( m_flIKGroundMaxHeight - m_flIKGroundMinHeight ) - height, 0.f, height );
+
 				m_flEstIkOffset = clamp( m_flEstIkFloor - GetAbsOrigin().z, -height + bias, 0.0f );
 				return;
 			}
 		}
 	}
 
-	// don't use floor offset, decay the value
 	m_flEstIkOffset *= 0.5;
 	m_flEstIkFloor = GetLocalOrigin().z;
 }
@@ -1725,80 +1703,74 @@ void CBaseAnimating::CalculateIKLocks( float currentTime )
 {
 	if ( m_pIk )
 	{
+		const int maxIKTargets = 4;
+		int targetCount = m_pIk->m_target.Count();
+
+		if ( targetCount > maxIKTargets )
+		{
+			DevMsg( "CalculateIKLocks: Exceeding maximum IK targets (%d > %d)\n", targetCount, maxIKTargets );
+			targetCount = maxIKTargets;
+		}
+
 		Ray_t ray;
 		CTraceFilterSkipNPCs traceFilter( this, GetCollisionGroup() );
 		Vector up;
 		GetVectors( NULL, NULL, &up );
-		// FIXME: check number of slots?
-		for (int i = 0; i < m_pIk->m_target.Count(); i++)
+
+		for ( int i = 0; i < targetCount; i++ )
 		{
 			trace_t trace;
-			CIKTarget *pTarget = &m_pIk->m_target[i];
+			CIKTarget *pTarget = &m_pIk->m_target[ i ];
 
-			if (!pTarget->IsActive())
+			if ( !pTarget->IsActive() )
 				continue;
 
-			switch( pTarget->type )
+			switch ( pTarget->type )
 			{
 			case IK_GROUND:
+			{
+				Vector estGround = ( pTarget->est.pos - GetAbsOrigin() );
+				estGround -= ( estGround * up ) * up;
+				estGround = GetAbsOrigin() + estGround + pTarget->est.floor * up;
+
+				Vector p1, p2;
+				VectorMA( estGround, pTarget->est.height, up, p1 );
+				VectorMA( estGround, -pTarget->est.height, up, p2 );
+
+				float r = MAX( pTarget->est.radius, 1 );
+
+				ray.Init( p1, p2, Vector( -r, -r, 0 ), Vector( r, r, 1 ) );
+				enginetrace->TraceRay( ray, MASK_SOLID, &traceFilter, &trace );
+
+				if ( trace.startsolid )
 				{
-					Vector estGround;
-					estGround = (pTarget->est.pos - GetAbsOrigin());
-					estGround = estGround - (estGround * up) * up;
-					estGround = GetAbsOrigin() + estGround + pTarget->est.floor * up;
-
-					Vector p1, p2;
-					VectorMA( estGround, pTarget->est.height, up, p1 );
-					VectorMA( estGround, -pTarget->est.height, up, p2 );
-
-					float r = MAX(pTarget->est.radius,1);
-
-					// don't IK to other characters
-					ray.Init( p1, p2, Vector(-r,-r,0), Vector(r,r,1) );
+					ray.Init( pTarget->trace.hip, pTarget->est.pos, Vector( -r, -r, 0 ), Vector( r, r, 1 ) );
 					enginetrace->TraceRay( ray, MASK_SOLID, &traceFilter, &trace );
 
-					/*
-					if ( debugoverlay )
-					{
-						debugoverlay->AddBoxOverlay( p1, Vector(-r,-r,0), Vector(r,r,1), QAngle( 0, 0, 0 ), 255, 0, 0, 0, 1.0f );
-						debugoverlay->AddBoxOverlay( trace.endpos, Vector(-r,-r,0), Vector(r,r,1), QAngle( 0, 0, 0 ), 255, 0, 0, 0, 1.0f );
-						debugoverlay->AddLineOverlay( p1, trace.endpos, 255, 0, 0, 0, 1.0f );
-					}
-					*/
-
-					if (trace.startsolid)
-					{
-						ray.Init( pTarget->trace.hip, pTarget->est.pos, Vector(-r,-r,0), Vector(r,r,1) );
-
-						enginetrace->TraceRay( ray, MASK_SOLID, &traceFilter, &trace );
-
-						p1 = trace.endpos;
-						VectorMA( p1, - pTarget->est.height, up, p2 );
-						ray.Init( p1, p2, Vector(-r,-r,0), Vector(r,r,1) );
-
-						enginetrace->TraceRay( ray, MASK_SOLID, &traceFilter, &trace );
-					}
-
-					if (!trace.startsolid)
-					{
-						if (trace.DidHitWorld())
-						{
-							pTarget->SetPosWithNormalOffset( trace.endpos, trace.plane.normal );
-							pTarget->SetNormal( trace.plane.normal );
-						}
-						else
-						{
-							pTarget->SetPos( trace.endpos );
-							pTarget->SetAngles( GetAbsAngles() );
-						}
-
-					}
+					p1 = trace.endpos;
+					VectorMA( p1, -pTarget->est.height, up, p2 );
+					ray.Init( p1, p2, Vector( -r, -r, 0 ), Vector( r, r, 1 ) );
+					enginetrace->TraceRay( ray, MASK_SOLID, &traceFilter, &trace );
 				}
-				break;
-			case IK_ATTACHMENT:
+
+				if ( !trace.startsolid )
 				{
-					// anything on the server?
+					if ( trace.DidHitWorld() )
+					{
+						pTarget->SetPosWithNormalOffset( trace.endpos, trace.plane.normal );
+						pTarget->SetNormal( trace.plane.normal );
+					}
+					else
+					{
+						pTarget->SetPos( trace.endpos );
+						pTarget->SetAngles( GetAbsAngles() );
+					}
 				}
+			}
+			break;
+
+			case IK_ATTACHMENT:
+				// Placeholder for server-side attachment logic
 				break;
 			}
 		}
@@ -1927,6 +1899,7 @@ void CBaseAnimating::SetupBones( matrix3x4_t *pBoneToWorld, int boneMask )
 
 	// adjust hit boxes based on IK driven offset
 	Vector adjOrigin = GetAbsOrigin() + Vector( 0, 0, m_flEstIkOffset );
+	CBoneBitList boneComputed;
 
 	if ( CanSkipAnimation() )
 	{
@@ -1938,7 +1911,6 @@ void CBaseAnimating::SetupBones( matrix3x4_t *pBoneToWorld, int boneMask )
 	{
 		if ( m_pIk )
 		{
-			// FIXME: pass this into Studio_BuildMatrices to skip transforms
 			CBoneBitList boneComputed;
 			m_iIKCounter++;
 			m_pIk->Init( pStudioHdr, GetAbsAngles(), adjOrigin, gpGlobals->curtime, m_iIKCounter, boneMask );
@@ -2523,12 +2495,21 @@ Vector CBaseAnimating::GetGroundSpeedVelocity( void )
 //-----------------------------------------------------------------------------
 float CBaseAnimating::GetInstantaneousVelocity( float flInterval )
 {
-	CStudioHdr *pstudiohdr = GetModelPtr( );
-	if (! pstudiohdr)
+	CStudioHdr *pstudiohdr = GetModelPtr();
+	if ( !pstudiohdr )
 		return 0;
 
-	// FIXME: someone needs to check for last frame, etc.
-	float flNextCycle = GetCycle() + flInterval * GetSequenceCycleRate( GetSequence() ) * m_flPlaybackRate;
+	float flCycleRate = GetSequenceCycleRate( GetSequence() ) * m_flPlaybackRate;
+	float flNextCycle = GetCycle() + flInterval * flCycleRate;
+
+	if ( pstudiohdr->pSeqdesc( GetSequence() ).flags & STUDIO_LOOPING )
+	{
+		flNextCycle = fmod( flNextCycle, 1.0f );
+	}
+	else
+	{
+		flNextCycle = clamp( flNextCycle, 0.0f, 1.0f );
+	}
 
 	Vector vecVelocity;
 	Studio_SeqVelocity( pstudiohdr, GetSequence(), flNextCycle, GetPoseParameterArray(), vecVelocity );
