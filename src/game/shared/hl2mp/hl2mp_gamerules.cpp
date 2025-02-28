@@ -1151,6 +1151,15 @@ void CHL2MPRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info
 			killer_weapon_name = "slam";
 		}
 
+		if ( IsTeamplay() && pScorer && pScorer->GetTeamNumber() == pVictim->GetTeamNumber() )
+		{
+			CTeam *pKillerTeam = pScorer->GetTeam();
+
+			if ( pKillerTeam )
+			{
+				pKillerTeam->AddScore( -2 );
+			}
+		}
 
 	}
 
