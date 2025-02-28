@@ -96,10 +96,12 @@ ConVar	spec_freeze_traveltime( "spec_freeze_traveltime", "0.4", FCVAR_CHEAT | FC
 
 ConVar sv_bonus_challenge( "sv_bonus_challenge", "0", FCVAR_REPLICATED, "Set to values other than 0 to select a bonus map challenge type." );
 
+/*
 ConVar sv_chat_bucket_size_tier1( "sv_chat_bucket_size_tier1", "4", FCVAR_NONE, "The maxmimum size of the short term chat msg bucket." );
 ConVar sv_chat_seconds_per_msg_tier1( "sv_chat_seconds_per_msg_tier1", "3", FCVAR_NONE, "The number of seconds to accrue an additional short term chat msg." );
 ConVar sv_chat_bucket_size_tier2( "sv_chat_bucket_size_tier2", "30", FCVAR_NONE, "The maxmimum size of the long term chat msg bucket." );
 ConVar sv_chat_seconds_per_msg_tier2( "sv_chat_seconds_per_msg_tier2", "10", FCVAR_NONE, "The number of seconds to accrue an additional long term chat msg." );
+*/
 
 static ConVar sv_maxusrcmdprocessticks( "sv_maxusrcmdprocessticks", "24", FCVAR_NOTIFY, "Maximum number of client-issued usrcmd ticks that can be replayed in packet loss conditions, 0 to allow no restrictions" );
 
@@ -8870,8 +8872,9 @@ void CBasePlayer::DeactivateMovementConstraint( )
 //-----------------------------------------------------------------------------
 // Purpose: Fight chat spam with a two tiered token bucket
 //-----------------------------------------------------------------------------
+/*
 bool CBasePlayer::ArePlayerTalkMessagesAvailable( void )
-{
+{	
 	// How long since we last tried to chat?
 	float flTimeElapsedSinceLastMsg = gpGlobals->curtime - m_fLastPlayerTalkAttemptTime;
 	m_fLastPlayerTalkAttemptTime = gpGlobals->curtime;
@@ -8904,10 +8907,11 @@ bool CBasePlayer::ArePlayerTalkMessagesAvailable( void )
 
 	return m_flPlayerTalkAvailableMessagesTier1 > 1.0f && m_flPlayerTalkAvailableMessagesTier2 > 1.0f;
 }
-
+*/
 //-----------------------------------------------------------------------------
 // Purpose: Check if a player can use chat commands at the moment
 //-----------------------------------------------------------------------------
+/*
 bool CBasePlayer::CanPlayerTalk()
 {
 	const float talk_interval = 0.66; // min time between say commands from a client
@@ -8918,7 +8922,7 @@ bool CBasePlayer::CanPlayerTalk()
 
 	return bRateLimitAllowed && bTokenBucketLimitAllowed;
 }
-
+*/
 //-----------------------------------------------------------------------------
 // Perhaps a poorly-named function. This function traces against the supplied
 // NPC's hitboxes (instead of hull). If the trace hits a different NPC, the 

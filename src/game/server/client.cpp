@@ -174,23 +174,23 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 {
 	CBasePlayer *client;
 	int		j;
-	char	*p;
-	char	text[256];
-	char    szTemp[256];
+	char *p;
+	char	text[ 256 ];
+	char    szTemp[ 256 ];
 	const char *cpSay = "say";
 	const char *cpSayTeam = "say_team";
-	const char *pcmd = args[0];
+	const char *pcmd = args[ 0 ];
 	bool bSenderDead = false;
 
 	// We can get a raw string now, without the "say " prepended
 	if ( args.ArgC() == 0 )
 		return;
 
-	if ( !stricmp( pcmd, cpSay) || !stricmp( pcmd, cpSayTeam ) )
+	if ( !stricmp( pcmd, cpSay ) || !stricmp( pcmd, cpSayTeam ) )
 	{
 		if ( args.ArgC() >= 2 )
 		{
-			p = (char *)args.ArgS();
+			p = ( char * ) args.ArgS();
 		}
 		else
 		{
@@ -202,12 +202,12 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 	{
 		if ( args.ArgC() >= 2 )
 		{
-			Q_snprintf( szTemp,sizeof(szTemp), "%s %s", ( char * )pcmd, (char *)args.ArgS() );
+			Q_snprintf( szTemp, sizeof( szTemp ), "%s %s", ( char * ) pcmd, ( char * ) args.ArgS() );
 		}
 		else
 		{
 			// Just a one word command, use the first word...sigh
-			Q_snprintf( szTemp,sizeof(szTemp), "%s", ( char * )pcmd );
+			Q_snprintf( szTemp, sizeof( szTemp ), "%s", ( char * ) pcmd );
 		}
 		p = szTemp;
 	}
@@ -215,7 +215,7 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 	CBasePlayer *pPlayer = NULL;
 	if ( pEdict )
 	{
-		pPlayer = ((CBasePlayer *)CBaseEntity::Instance( pEdict ));
+		pPlayer = ( ( CBasePlayer * ) CBaseEntity::Instance( pEdict ) );
 		Assert( pPlayer );
 
 		// make sure the text has valid content
@@ -225,6 +225,9 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 	if ( !p )
 		return;
 
+	if ( !p || strspn( p, " \t" ) == strlen( p ) )
+		return;
+
 	if ( pEdict )
 	{
 		if ( !pPlayer->CanSpeak() )
@@ -232,13 +235,7 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 
 		// See if the player wants to modify of check the text
 		pPlayer->CheckChatText( p, 127 );	// though the buffer szTemp that p points to is 256, 
-											// chat text is capped to 127 in CheckChatText above
-
-		// make sure the text has valid content
-		p = CheckChatText( pPlayer, p );
-
-		if ( !p )
-			return;
+		// chat text is capped to 127 in CheckChatText above
 
 		Assert( strlen( pPlayer->GetPlayerName() ) > 0 );
 
@@ -255,35 +252,35 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 	if ( g_pGameRules )
 	{
 		pszFormat = g_pGameRules->GetChatFormat( teamonly, pPlayer );
-		pszPrefix = g_pGameRules->GetChatPrefix( teamonly, pPlayer );	
+		pszPrefix = g_pGameRules->GetChatPrefix( teamonly, pPlayer );
 		pszLocation = g_pGameRules->GetChatLocation( teamonly, pPlayer );
 	}
 
-	const char *pszPlayerName = pPlayer ? pPlayer->GetPlayerName():"Console";
+	const char *pszPlayerName = pPlayer ? pPlayer->GetPlayerName() : "Console";
 
 	if ( pszPrefix && strlen( pszPrefix ) > 0 )
 	{
 		if ( pszLocation && strlen( pszLocation ) )
 		{
-			Q_snprintf( text, sizeof(text), "%s %s @ %s: ", pszPrefix, pszPlayerName, pszLocation );
+			Q_snprintf( text, sizeof( text ), "%s %s @ %s: ", pszPrefix, pszPlayerName, pszLocation );
 		}
 		else
 		{
-			Q_snprintf( text, sizeof(text), "%s %s: ", pszPrefix, pszPlayerName );
+			Q_snprintf( text, sizeof( text ), "%s %s: ", pszPrefix, pszPlayerName );
 		}
 	}
 	else
 	{
-		Q_snprintf( text, sizeof(text), "%s: ", pszPlayerName );
+		Q_snprintf( text, sizeof( text ), "%s: ", pszPlayerName );
 	}
 
-	j = sizeof(text) - 2 - strlen(text);  // -2 for /n and null terminator
-	if ( (int)strlen(p) > j )
-		p[j] = 0;
+	j = sizeof( text ) - 2 - strlen( text );  // -2 for /n and null terminator
+	if ( ( int ) strlen( p ) > j )
+		p[ j ] = 0;
 
 	Q_strncat( text, p, sizeof( text ), COPY_ALL_CHARACTERS );
 	Q_strncat( text, "\n", sizeof( text ), COPY_ALL_CHARACTERS );
- 
+
 	// loop through all players
 	// Start with the first player.
 	// This may return the world in single player if the client types something between levels or during spawn
@@ -295,15 +292,39 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 		client = ToBaseMultiplayerPlayer( UTIL_PlayerByIndex( i ) );
 		if ( !client || !client->edict() )
 			continue;
-		
+
 		if ( client->edict() == pEdict )
 			continue;
 
-		if ( !(client->IsNetClient()) )	// Not a client ? (should never be true)
-			continue;
+		continue;
 
-		if ( teamonly && g_pGameRules->PlayerCanHearChat( client, pPlayer ) != GR_TEAMMATE )
-			continue;
+		// Handle team-only chat when mp_teamplay is disabled
+		if ( teamonly )
+		{
+			if ( g_pGameRules->IsTeamplay() )
+			{
+				// Standard teamplay: Check if the target player is a teammate
+				if ( g_pGameRules->PlayerCanHearChat( client, pPlayer ) != GR_TEAMMATE )
+					continue;
+			}
+			else
+			{
+				// Deathmatch mode (mp_teamplay = 0)
+				if ( pPlayer )
+				{
+					CTeam *senderTeam = pPlayer->GetTeam();
+					CTeam *receiverTeam = client->GetTeam();
+
+					// Allow communication only if both players are on the same team
+					if ( senderTeam != receiverTeam )
+						continue;
+
+					// Prevent team chat from being visible to players without a team
+					if ( !senderTeam || !receiverTeam )
+						continue;
+				}
+			}
+		}
 
 		if ( pPlayer && !client->CanHearAndReadChatFrom( pPlayer ) )
 			continue;
@@ -311,6 +332,7 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 		if ( pPlayer && GetVoiceGameMgr() && GetVoiceGameMgr()->IsPlayerIgnoringPlayer( pPlayer->entindex(), i ) )
 			continue;
 
+		// Send the message to the client
 		CSingleUserRecipientFilter user( client );
 		user.MakeReliable();
 
@@ -343,7 +365,7 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 	// echo to server console
 	// Adrian: Only do this if we're running a dedicated server since we already print to console on the client.
 	if ( engine->IsDedicatedServer() )
-		 Msg( "%s", text );
+		Msg( "%s", text );
 
 	Assert( p );
 
@@ -362,19 +384,19 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 			playerTeam = team->GetName();
 		}
 	}
-		
+
 	if ( teamonly )
 		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" say_team \"%s\"\n", playerName, userid, networkID, playerTeam, p );
 	else
 		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" say \"%s\"\n", playerName, userid, networkID, playerTeam, p );
 
-	IGameEvent * event = gameeventmanager->CreateEvent( "player_say", true );
+	IGameEvent *event = gameeventmanager->CreateEvent( "player_say", true );
 
 	if ( event )
 	{
-		event->SetInt("userid", userid );
-		event->SetString("text", p );
-		event->SetInt("priority", 1 );	// HLTV event priority, not transmitted
+		event->SetInt( "userid", userid );
+		event->SetString( "text", p );
+		event->SetInt( "priority", 1 );	// HLTV event priority, not transmitted
 		gameeventmanager->FireEvent( event, true );
 	}
 }
@@ -838,6 +860,7 @@ CON_COMMAND_F( buddha, "Toggle.  Player takes damage but won't die. (Shows red c
 	}
 }
 
+#define TALK_INTERVAL 0.66
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 CON_COMMAND( say, "Display player message" )
@@ -845,7 +868,10 @@ CON_COMMAND( say, "Display player message" )
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
 	if ( pPlayer )
 	{
-		if ( pPlayer->CanPlayerTalk() )
+		if (engine->IsPaused())
+			Host_Say( pPlayer->edict(), args, 0 );
+
+		else if ( ( pPlayer->LastTimePlayerTalked() + TALK_INTERVAL ) < gpGlobals->curtime )
 		{
 			Host_Say( pPlayer->edict(), args, 0 );
 			pPlayer->NotePlayerTalked();
@@ -869,7 +895,10 @@ CON_COMMAND( say_team, "Display player message to team" )
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
 	if (pPlayer)
 	{
-		if ( pPlayer->CanPlayerTalk() )
+		if ( engine->IsPaused() )
+			Host_Say( pPlayer->edict(), args, 1 );
+
+		else if ( ( pPlayer->LastTimePlayerTalked() + TALK_INTERVAL ) < gpGlobals->curtime )
 		{
 			Host_Say( pPlayer->edict(), args, 1 );
 			pPlayer->NotePlayerTalked();

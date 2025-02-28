@@ -783,10 +783,10 @@ public:
 	void	DeactivateMovementConstraint( );
 
 	// talk control
-	virtual bool CanPlayerTalk();
+	// virtual bool CanPlayerTalk();
 	void	NotePlayerTalked() { m_fLastPlayerTalkTime = gpGlobals->curtime; }
 	float	LastTimePlayerTalked() const { return m_fLastPlayerTalkTime; }
-	bool	ArePlayerTalkMessagesAvailable();
+	// bool	ArePlayerTalkMessagesAvailable();
 
 	void	DisableButtons( int nButtons );
 	void	EnableButtons( int nButtons );
