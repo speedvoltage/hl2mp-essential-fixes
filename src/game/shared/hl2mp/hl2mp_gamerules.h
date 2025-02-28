@@ -155,6 +155,14 @@ public:
 	virtual bool IsConnectedUserInfoChangeAllowed( CBasePlayer *pPlayer );
 
 	void HandleNewTargetID();
+	void HandleTimeleft();
+	hudtextparms_t CreateTextParams();
+	void FormatStandardTime( int iTimeRemaining, char *buffer, size_t bufferSize );
+	void UpdateTeamScoreColors( hudtextparms_t &textParams );
+	void DisplayUnassignedTeamStats( hudtextparms_t &textParams, const char *stime );
+	void DisplaySpectatorStats( hudtextparms_t &textParams, const char *stime );
+	void SendHudMessagesToPlayers( hudtextparms_t &textParams, const char *stime );
+	void FormatTimeRemaining( int iTimeRemaining, char *buffer, size_t bufferSize );
 	
 private:
 	
