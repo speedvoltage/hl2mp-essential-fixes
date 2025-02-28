@@ -209,6 +209,12 @@ void CHL2MP_Player::Precache( void )
 	PrecacheScriptSound( "NPC_Citizen.die" );
 }
 
+void ReloadGameRules()
+{
+	// vanilla deathmatch
+	CreateGameRulesObject( "CHL2MPRules" );
+}
+
 void CHL2MP_Player::GiveAllItems( void )
 {
 	EquipSuit();
