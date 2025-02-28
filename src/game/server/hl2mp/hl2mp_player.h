@@ -150,6 +150,10 @@ public:
 	float GetNextHudUpdate() const { return m_flNextHudUpdate; }
 	void SetNextHudUpdate( float flNextUpdate ) { m_flNextHudUpdate = flNextUpdate; }
 
+	bool SavePlayerSettings();
+	bool LoadPlayerSettings();
+	void DelayedLoadPlayerSettings();
+
 private:
 
 	void LadderRespawnFix();

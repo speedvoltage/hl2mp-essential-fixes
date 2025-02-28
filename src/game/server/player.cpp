@@ -8206,6 +8206,55 @@ void SendProxy_CropFlagsToPlayerFlagBitsLength( const SendProp *pProp, const voi
 
 	pOut->m_Int = ( data & mask );
 }
+
+static void SendProxy_FOV( const SendProp *pProp, const void *pStructBase, const void *pData, DVariant *pOut, int iElement, int objectID )
+{
+	auto *pPlayer = ( CHL2_Player * ) pStructBase;
+
+	if ( pPlayer )
+	{
+		if ( pPlayer->IsObserver() )
+		{
+			if ( pPlayer->GetObserverMode() == OBS_MODE_IN_EYE )
+			{
+				CBaseEntity *pSpectated = pPlayer->GetObserverTarget();
+
+				if ( pSpectated && pSpectated->IsPlayer() )
+				{
+					CHL2_Player *pSpectatedPlayer = ( CHL2_Player * ) pSpectated;
+
+					if ( pSpectatedPlayer->GetNewFOV() > 0 && pSpectatedPlayer->GetNewFOV() < 180 )
+					{
+						pOut->m_Int = pSpectatedPlayer->GetFOV();
+					}
+					else
+					{
+						pOut->m_Int = 90;
+					}
+					return;
+				}
+			}
+			else
+			{
+				pOut->m_Int = pPlayer->GetNewFOV();
+			}
+		}
+
+		else
+		{
+			if ( pPlayer->IsZooming() )
+				pOut->m_Int = *( int * ) pData;
+			else
+				if ( pPlayer->GetNewFOV() <= 0 || pPlayer->GetNewFOV() >= 180 )
+				{
+					pOut->m_Int = 90;
+				}
+				else
+					pOut->m_Int = pPlayer->GetNewFOV();
+		}
+	}	
+}
+
 // -------------------------------------------------------------------------------- //
 // SendTable for CPlayerState.
 // -------------------------------------------------------------------------------- //
@@ -8231,7 +8280,8 @@ void SendProxy_CropFlagsToPlayerFlagBitsLength( const SendProp *pProp, const voi
 
 		SendPropFloat		( SENDINFO(m_flFriction),		8,	SPROP_ROUNDDOWN,	0.0f,	4.0f),
 
-		SendPropArray3		( SENDINFO_ARRAY3(m_iAmmo), SendPropInt( SENDINFO_ARRAY(m_iAmmo), -1, SPROP_VARINT | SPROP_UNSIGNED ) ),
+		SendPropArray3		( SENDINFO_ARRAY3(m_iAmmo), 
+		SendPropInt			( SENDINFO_ARRAY(m_iAmmo), -1, SPROP_VARINT | SPROP_UNSIGNED ) ),
 			
 		SendPropInt			( SENDINFO( m_fOnTarget ), 2, SPROP_UNSIGNED ),
 
@@ -8287,10 +8337,10 @@ void SendProxy_CropFlagsToPlayerFlagBitsLength( const SendProp *pProp, const voi
 		SendPropInt		(SENDINFO(m_fFlags), PLAYER_FLAG_BITS, SPROP_UNSIGNED|SPROP_CHANGES_OFTEN, SendProxy_CropFlagsToPlayerFlagBitsLength ),
 		SendPropInt		(SENDINFO(m_iObserverMode), 3, SPROP_UNSIGNED ),
 		SendPropEHandle	(SENDINFO(m_hObserverTarget) ),
-		SendPropInt		(SENDINFO(m_iFOV), 8, SPROP_UNSIGNED ),
+		SendPropInt		(SENDINFO(m_iFOV), 8, SPROP_UNSIGNED, SendProxy_FOV ),
 		SendPropInt		(SENDINFO(m_iFOVStart), 8, SPROP_UNSIGNED ),
 		SendPropFloat	(SENDINFO(m_flFOVTime) ),
-		SendPropInt		(SENDINFO(m_iDefaultFOV), 8, SPROP_UNSIGNED ),
+		SendPropInt		(SENDINFO(m_iDefaultFOV), 8, SPROP_UNSIGNED, SendProxy_FOV ),
 		SendPropEHandle	(SENDINFO(m_hZoomOwner) ),
 		SendPropArray	( SendPropEHandle( SENDINFO_ARRAY( m_hViewModel ) ), m_hViewModel ),
 		SendPropString	(SENDINFO(m_szLastPlaceName) ),
@@ -9786,3 +9836,13 @@ void* SendProxy_SendNonLocalDataTable( const SendProp *pProp, const void *pStruc
 }
 REGISTER_SEND_PROXY_NON_MODIFIED_POINTER( SendProxy_SendNonLocalDataTable );
 
+uint64 CBasePlayer::ConvertSteamID3ToSteamID64( const char *steamID3 )
+{
+	int universe = 1; // Default universe (1 = Public)
+	int accountID = 0;
+	sscanf( steamID3, "[U:%d:%d]", &universe, &accountID );
+
+	// SteamID64 calculation formula
+	uint64 steamID64 = 0x0110000100000000ULL + accountID;
+	return steamID64;
+}

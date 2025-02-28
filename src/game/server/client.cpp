@@ -35,6 +35,7 @@
 #include "datacache/imdlcache.h"
 #include "basemultiplayerplayer.h"
 #include "voice_gamemgr.h"
+#include "hl2mp_player.h"
 
 #ifdef TF_DLL
 #include "tf_player.h"
@@ -956,20 +957,35 @@ CON_COMMAND( give, "Give item to player.\n\tArguments: <item_name>" )
 CON_COMMAND( fov, "Change players FOV" )
 {
 	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() );
-	if ( pPlayer && sv_cheats->GetBool() )
+
+	if ( pPlayer )
 	{
 		if ( args.ArgC() > 1 )
 		{
-			int nFOV = atoi( args[1] );
-			pPlayer->SetDefaultFOV( nFOV );
+			int nFOV = atoi( args[ 1 ] );
+
+			if ( nFOV < 70 || nFOV > 110 )
+			{
+				ClientPrint( pPlayer, HUD_PRINTCONSOLE, "FOV must be between 70 and 110.\n" );
+				return;
+			}
+
+			pPlayer->SetNewFOV( nFOV );
+
+			CHL2MP_Player *pHL2Player = dynamic_cast< CHL2MP_Player * >( pPlayer );
+			if ( pHL2Player )
+			{
+				pHL2Player->SavePlayerSettings();
+			}
+
+			ClientPrint( pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs( "\"fov\" is \"%d\"\n", nFOV ) );
 		}
 		else
 		{
-			ClientPrint( pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs( "\"fov\" is \"%d\"\n", pPlayer->GetFOV() ) );
+			ClientPrint( pPlayer, HUD_PRINTCONSOLE, UTIL_VarArgs( "\"fov\" is \"%d\"\n", pPlayer->GetNewFOV() ) );
 		}
 	}
 }
-
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------

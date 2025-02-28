@@ -28,6 +28,7 @@
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 
 #include "ilagcompensationmanager.h"
+#include "filesystem.h"
 
 int g_iLastCitizenModel = 0;
 int g_iLastCombineModel = 0;
@@ -340,6 +341,11 @@ void CHL2MP_Player::PickDefaultSpawnTeam( void )
 //-----------------------------------------------------------------------------
 // Purpose: Sets HL2 specific defaults.
 //-----------------------------------------------------------------------------
+void CHL2MP_Player::DelayedLoadPlayerSettings()
+{
+	LoadPlayerSettings();
+}
+
 void CHL2MP_Player::Spawn(void)
 {
 	// m_flNextModelChangeTime = 0.0f;
@@ -348,6 +354,8 @@ void CHL2MP_Player::Spawn(void)
 	PickDefaultSpawnTeam();
 
 	BaseClass::Spawn();
+
+	SetContextThink( &CHL2MP_Player::DelayedLoadPlayerSettings, gpGlobals->curtime + 0.1f, "LoadPlayerSettingsContext" );
 
 	CompensateScoreOnTeamSwitch( false );
 	CompensateTeamScoreOnTeamSwitch( false );
@@ -1833,4 +1841,96 @@ bool CHL2MP_Player::IsThreatFiringAtMe( CBaseEntity* threat ) const
 	}
 
 	return false;
+}
+
+bool CHL2MP_Player::SavePlayerSettings()
+{
+	if ( IsBot() )
+		return false;
+
+	const char *steamID3 = engine->GetPlayerNetworkIDString( edict() );
+
+	if ( ( V_stristr( steamID3, "BOT" ) != nullptr ) )
+		return false;
+	uint64 steamID64 = ConvertSteamID3ToSteamID64( steamID3 ); 
+
+	char filename[ MAX_PATH ];
+	Q_snprintf( filename, sizeof( filename ), "cfg/core/%llu.txt", steamID64 );
+
+	if ( !filesystem->FileExists( "cfg/core", "GAME" ) )
+	{
+		filesystem->CreateDirHierarchy( "cfg/core", "GAME" );
+	}
+
+	KeyValues *kv = new KeyValues( "Settings" );
+
+	kv->LoadFromFile( filesystem, filename, "MOD" );
+
+	KeyValues *playerSettings = kv->FindKey( UTIL_VarArgs( "%llu", steamID64 ), true );
+	playerSettings->SetInt( "FOV", GetNewFOV() );
+
+	if ( kv->SaveToFile( filesystem, filename, "MOD" ) )
+	{
+		DevMsg( "Player settings saved successfully in cfg/core/.\n" );
+	}
+	else
+	{
+		Warning( "Failed to save player settings in cfg/core/.\n" );
+	}
+
+	kv->deleteThis();
+	return true;
+}
+
+bool CHL2MP_Player::LoadPlayerSettings()
+{
+	if ( IsBot() )
+		return false;
+
+	const char *steamID3 = engine->GetPlayerNetworkIDString( edict() );
+	uint64 steamID64 = ConvertSteamID3ToSteamID64( steamID3 );
+
+	char filename[ MAX_PATH ];
+	Q_snprintf( filename, sizeof( filename ), "cfg/core/%llu.txt", steamID64 );
+
+	KeyValues *kv = new KeyValues( "Settings" );
+
+	if ( !kv->LoadFromFile( filesystem, filename, "MOD" ) )
+	{
+		Warning( "Couldn't load settings from file %s, creating a new one with default values...\n", filename );
+
+		SetNewFOV(90);
+
+		KeyValues *playerSettings = new KeyValues( UTIL_VarArgs( "%llu", steamID64 ) );
+		playerSettings->SetInt( "FOV", GetNewFOV() );
+
+		kv->AddSubKey( playerSettings );
+
+		if ( kv->SaveToFile( filesystem, filename, "MOD" ) )
+		{
+			Msg( "Default settings for player %s have been saved to %s\n", steamID3, filename );
+		}
+		else
+		{
+			Warning( "Failed to save default settings to file %s\n", filename );
+			kv->deleteThis();
+			return false;
+		}
+
+		kv->deleteThis();
+		return true;
+	}
+
+	KeyValues *playerSettings = kv->FindKey( UTIL_VarArgs( "%llu", steamID64 ) );
+	if ( !playerSettings )
+	{
+		Warning( "Player settings not found in file %s\n", filename );
+		kv->deleteThis();
+		return false;
+	}
+
+	SetNewFOV( playerSettings->GetInt( "FOV", GetNewFOV() ) );
+
+	kv->deleteThis();
+	return true;
 }

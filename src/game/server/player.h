@@ -770,6 +770,9 @@ public:
 	float	GetFOVDistanceAdjustFactor(); // shared between client and server
 	float	GetFOVDistanceAdjustFactorForNetworking();
 
+	void SetNewFOV( int fov ) { m_iFOVMemory = fov; }
+	int	GetNewFOV() { return m_iFOVMemory; }
+
 	float GetLadderCooldownTime() const { return m_flLadderCooldownTime; }
 	void SetLadderCooldownTime( float cooldownTime ) { m_flLadderCooldownTime = cooldownTime; }
 
@@ -833,12 +836,13 @@ public:
 		}
 	}
 
-	void UpdatePenetrationTime( float currentTime ) { m_flPenetrationTime = currentTime; }
-	bool IsPenetrationOngoing( float currentTime ) const { return ( m_flPenetrationTime + 1.0f ) > currentTime; }
-	void SetPlayerSpeedmodActive( bool enabled ) { m_bSpeedmodActive = enabled; }
-	bool IsPlayerSpeedmodActive() const { return m_bSpeedmodActive; }
-	void SetCheckForPenetration( bool penetration ) { m_bCheckPenetration = penetration; }
-	bool CheckForPenetration() const { return m_bCheckPenetration; }
+	void	UpdatePenetrationTime( float currentTime ) { m_flPenetrationTime = currentTime; }
+	bool	IsPenetrationOngoing( float currentTime ) const { return ( m_flPenetrationTime + 1.0f ) > currentTime; }
+	void	SetPlayerSpeedmodActive( bool enabled ) { m_bSpeedmodActive = enabled; }
+	bool	IsPlayerSpeedmodActive() const { return m_bSpeedmodActive; }
+	void	SetCheckForPenetration( bool penetration ) { m_bCheckPenetration = penetration; }
+	bool	CheckForPenetration() const { return m_bCheckPenetration; }
+	uint64	ConvertSteamID3ToSteamID64( const char *steamID3 );
 
 private:
 	// How much of a movement time buffer can we process from this user?
@@ -863,6 +867,7 @@ private:
 	bool m_bHasCompensatedTeamScore;
 	bool m_bIsUsingGameUI;
 	int iDamageTime;
+	int m_iFOVMemory;
 
 public:
 	
