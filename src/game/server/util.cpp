@@ -2155,11 +2155,20 @@ void UTIL_SetClientVisibilityPVS( edict_t *pClient, const unsigned char *pvs, in
 
 		g_CheckClient.m_bClientPVSIsExpanded = false;
 
+		// old, revert if problematic
+		/*
 		unsigned *pFrom = (unsigned *)pvs;
 		unsigned *pMask = (unsigned *)g_CheckClient.m_checkPVS;
 		unsigned *pTo = (unsigned *)g_CheckClient.m_checkVisibilityPVS;
 
 		int limit = pvssize / 4;
+		*/
+
+		size_t *pFrom = ( size_t * ) pvs;
+		size_t *pMask = ( size_t * ) g_CheckClient.m_checkPVS;
+		size_t *pTo = ( size_t * ) g_CheckClient.m_checkVisibilityPVS;
+		int limit = pvssize / static_cast< int >( sizeof( size_t ) );
+
 		int i;
 
 		for ( i = 0; i < limit; i++ )
@@ -2172,7 +2181,9 @@ void UTIL_SetClientVisibilityPVS( edict_t *pClient, const unsigned char *pvs, in
 			}
 		}
 
-		int remainder = pvssize % 4;
+		// int remainder = pvssize % 4;
+		int remainder = pvssize % static_cast< int >( sizeof( size_t ) );
+
 		for ( i = 0; i < remainder; i++ )
 		{
 			((unsigned char *)&pTo[limit])[i] = ((unsigned char *)&pFrom[limit])[i] & !((unsigned char *)&pMask[limit])[i];
