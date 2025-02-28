@@ -275,7 +275,7 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE( CBaseEntity, DT_BaseEntity )
 	SendPropDataTable( SENDINFO_DT( m_Collision ), &REFERENCE_SEND_TABLE(DT_CollisionProperty) ),
 	SendPropInt		(SENDINFO(m_nRenderFX),		8, SPROP_UNSIGNED ),
 	SendPropInt		(SENDINFO(m_nRenderMode),	8, SPROP_UNSIGNED ),
-	SendPropInt		(SENDINFO(m_fEffects),		EF_MAX_BITS, SPROP_UNSIGNED),
+	SendPropInt		(SENDINFO(m_fEffects),		EF_MAX_BITS, SPROP_UNSIGNED ),
 	SendPropInt		(SENDINFO(m_clrRender),	32, SPROP_UNSIGNED),
 	SendPropInt		(SENDINFO(m_iTeamNum),		TEAMNUM_NUM_BITS, 0),
 	SendPropInt		(SENDINFO(m_CollisionGroup), 5, SPROP_UNSIGNED),

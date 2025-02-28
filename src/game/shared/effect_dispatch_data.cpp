@@ -78,6 +78,10 @@
 
 	#include "dt_send.h"
 
+
+
+
+
 	BEGIN_SEND_TABLE_NOBASE( CEffectData, DT_EffectData )
 
 		// Everything uses _NOCHECK here since this is not an entity and we don't need

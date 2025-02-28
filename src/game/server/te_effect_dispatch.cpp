@@ -51,10 +51,10 @@ CTEEffectDispatch::~CTEEffectDispatch( void )
 {
 }
 
+
 IMPLEMENT_SERVERCLASS_ST( CTEEffectDispatch, DT_TEEffectDispatch )
 
-	SendPropDataTable( SENDINFO_DT( m_EffectData ), &REFERENCE_SEND_TABLE( DT_EffectData ) )
-
+SendPropDataTable( SENDINFO_DT( m_EffectData ), &REFERENCE_SEND_TABLE( DT_EffectData ) )
 END_SEND_TABLE()
 
 

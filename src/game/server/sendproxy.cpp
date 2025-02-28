@@ -59,6 +59,15 @@ SendProp SendPropBool(
 	return SendPropInt( pVarName, offset, sizeofVar, 1, SPROP_UNSIGNED );
 }
 
+SendProp SendPropBoolEx(
+	const char *pVarName,
+	int offset,
+	int sizeofVar,
+	SendVarProxyFn proxyFn )
+{
+	Assert( sizeofVar == sizeof( bool ) );
+	return SendPropInt( pVarName, offset, sizeofVar, 1, SPROP_UNSIGNED, proxyFn );
+}
 
 SendProp SendPropEHandle(
 	const char *pVarName,
@@ -138,6 +147,17 @@ SendProp SendPropTime(
 //	return SendPropInt( pVarName, offset, sizeofVar, TIME_BITS, 0, SendProxy_Time );
 	// FIXME:  Re-enable above when it doesn't cause lots of deltas
 	return SendPropFloat( pVarName, offset, sizeofVar, -1, SPROP_NOSCALE );
+}
+
+SendProp SendPropTimeEx(
+	const char *pVarName,
+	int offset,
+	int sizeofVar,
+	SendVarProxyFn varProxy )
+{
+	//	return SendPropInt( pVarName, offset, sizeofVar, TIME_BITS, 0, SendProxy_Time );
+	// FIXME:  Re-enable above when it doesn't cause lots of deltas
+	return SendPropFloat( pVarName, offset, sizeofVar, -1, SPROP_NOSCALE, 0.0f, HIGH_DEFAULT, varProxy );
 }
 
 #if !defined( NO_ENTITY_PREDICTION )

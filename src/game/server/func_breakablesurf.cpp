@@ -186,7 +186,6 @@ BEGIN_DATADESC( CBreakableSurface )
 	// DEFINE_FIELD( m_ForceUpdateClientData, CBitVec < MAX_PLAYERS > ),  // No need to save/restore this, it's just a temporary flag field
 END_DATADESC()
 
-
 IMPLEMENT_SERVERCLASS_ST(CBreakableSurface, DT_BreakableSurface)
 	SendPropInt(SENDINFO(m_nNumWide), 8,  SPROP_UNSIGNED),
 	SendPropInt(SENDINFO(m_nNumHigh), 8, SPROP_UNSIGNED),

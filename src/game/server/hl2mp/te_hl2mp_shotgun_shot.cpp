@@ -57,6 +57,7 @@ CTEHL2MPFireBullets::~CTEHL2MPFireBullets( void )
 {
 }
 
+
 IMPLEMENT_SERVERCLASS_ST_NOBASE(CTEHL2MPFireBullets, DT_TEHL2MPFireBullets)
 	SendPropVector( SENDINFO(m_vecOrigin), -1, SPROP_COORD ),
 	SendPropVector( SENDINFO(m_vecDir), -1 ),

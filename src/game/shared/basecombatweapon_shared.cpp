@@ -2839,6 +2839,7 @@ BEGIN_NETWORK_TABLE_NOBASE( CBaseCombatWeapon, DT_LocalActiveWeaponData )
 #endif
 END_NETWORK_TABLE()
 
+
 //-----------------------------------------------------------------------------
 // Purpose: Propagation data for weapons. Only sent when a player's holding it.
 //-----------------------------------------------------------------------------

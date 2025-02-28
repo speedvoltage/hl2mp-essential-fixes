@@ -24,6 +24,12 @@ SendProp SendPropBool(
 	int offset,
 	int sizeofVar );
 
+SendProp SendPropBoolEx(
+	const char *pVarName,
+	int offset,
+	int sizeofVar,
+	SendVarProxyFn proxyFn );
+
 SendProp SendPropEHandle(
 	const char *pVarName,
 	int offset,
@@ -35,6 +41,12 @@ SendProp SendPropTime(
 	const char *pVarName,
 	int offset,
 	int sizeofVar=SIZEOF_IGNORE );
+
+SendProp SendPropTimeEx(
+	const char *pVarName,
+	int offset,
+	int sizeofVar = SIZEOF_IGNORE,
+	SendVarProxyFn varProxy = SendProxy_FloatToFloat );
 
 #if !defined( NO_ENTITY_PREDICTION )
 SendProp SendPropPredictableId(

@@ -562,7 +562,7 @@ BEGIN_NETWORK_TABLE_NOBASE(CBaseViewModel, DT_BaseViewModel)
 	SendPropInt		(SENDINFO(m_nSequence),	8, SPROP_UNSIGNED),
 	SendPropInt		(SENDINFO(m_nViewModelIndex), VIEWMODEL_INDEX_BITS, SPROP_UNSIGNED),
 	SendPropFloat	(SENDINFO(m_flPlaybackRate),	8,	SPROP_ROUNDUP,	-4.0,	12.0f),
-	SendPropInt		(SENDINFO(m_fEffects),		10, SPROP_UNSIGNED),
+	SendPropInt		(SENDINFO(m_fEffects),		10, SPROP_UNSIGNED ),
 	SendPropInt		(SENDINFO(m_nAnimationParity), 3, SPROP_UNSIGNED ),
 	SendPropEHandle (SENDINFO(m_hWeapon)),
 	SendPropEHandle (SENDINFO(m_hOwner)),

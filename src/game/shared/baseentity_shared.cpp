@@ -1596,6 +1596,8 @@ typedef CTraceFilterSimpleList CBulletsTraceFilter;
 
 void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 {
+	// CDisablePredictionFiltering disablePred;
+
 	static int	tracerCount;
 	trace_t		tr;
 	CAmmoDef*	pAmmoDef	= GetAmmoDef();
