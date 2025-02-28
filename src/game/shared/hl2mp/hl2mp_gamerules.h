@@ -163,6 +163,7 @@ public:
 	void DisplaySpectatorStats( hudtextparms_t &textParams, const char *stime );
 	void SendHudMessagesToPlayers( hudtextparms_t &textParams, const char *stime );
 	void FormatTimeRemaining( int iTimeRemaining, char *buffer, size_t bufferSize );
+	void HandlePlayerNetworkCheck();
 	
 private:
 	

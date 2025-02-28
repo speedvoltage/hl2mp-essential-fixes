@@ -307,6 +307,7 @@ void CHL2MPRules::Think( void )
 
 	HandleNewTargetID();
 	HandleTimeleft();
+	HandlePlayerNetworkCheck();
 
 	if ( g_fGameOver )   // someone else quit the game already
 	{
@@ -389,6 +390,85 @@ void CHL2MPRules::Think( void )
 }
 
 #ifndef CLIENT_DLL
+bool IsValidPositiveInteger( const char *str )
+{
+	// Check if the string is not empty and doesn't start with '+' or '-'
+	if ( str == nullptr || *str == '\0' || *str == '+' || *str == '-' )
+		return false;
+
+	// Ensure all characters are digits
+	for ( const char *p = str; *p; p++ )
+	{
+		if ( !isdigit( *p ) )
+			return false;
+	}
+
+	return true;
+}
+
+void CHL2MPRules::HandlePlayerNetworkCheck()
+{
+	// We don't want people using 0
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		if ( gpGlobals->curtime > m_tmNextPeriodicThink )
+		{
+			CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+
+			if ( pPlayer && !pPlayer->IsBot() && !pPlayer->IsHLTV() )
+			{
+				// Fetch client-side settings from the player
+				const char *cl_updaterate = engine->GetClientConVarValue( pPlayer->entindex(), "cl_updaterate" );
+				const char *cl_cmdrate = engine->GetClientConVarValue( pPlayer->entindex(), "cl_cmdrate" );
+
+				bool shouldKick = false;
+				char kickReason[ 128 ] = "";
+
+				// Validate and convert cl_updaterate
+				if ( !IsValidPositiveInteger( cl_updaterate ) )
+				{
+					shouldKick = true;
+					Q_snprintf( kickReason, sizeof( kickReason ), "cl_updaterate is invalid (value: %s)", cl_updaterate );
+				}
+				else
+				{
+					int updaterate = atoi( cl_updaterate );
+					if ( updaterate <= 0 )
+					{
+						shouldKick = true;
+						Q_snprintf( kickReason, sizeof( kickReason ), "cl_updaterate is invalid (value: %d)", updaterate );
+					}
+				}
+
+				// Validate and convert cl_cmdrate
+				if ( !IsValidPositiveInteger( cl_cmdrate ) )
+				{
+					shouldKick = true;
+					Q_snprintf( kickReason, sizeof( kickReason ), "cl_cmdrate is invalid (value: %s)", cl_cmdrate );
+				}
+				else
+				{
+					int cmdrate = atoi( cl_cmdrate );
+					if ( cmdrate <= 0 )
+					{
+						shouldKick = true;
+						Q_snprintf( kickReason, sizeof( kickReason ), "cl_cmdrate is invalid (value: %d)", cmdrate );
+					}
+				}
+
+				if ( shouldKick )
+				{
+					// Get the player's user ID instead of the entity index
+					int userID = pPlayer->GetUserID();  // This will provide the correct user ID for kicking
+
+					engine->ServerCommand( UTIL_VarArgs( "kickid %d %s\n", userID, kickReason ) );  // Use userID instead of entindex()
+					return;
+				}
+			}
+		}
+	}
+}
+
 void CHL2MPRules::HandleTimeleft()
 {
 	if ( GetMapRemainingTime() <= 0 || !sv_timeleft_enable.GetBool() )
