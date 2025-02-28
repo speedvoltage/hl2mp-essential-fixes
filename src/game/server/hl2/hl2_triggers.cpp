@@ -324,6 +324,9 @@ void CTriggerWeaponStrip::StartTouch(CBaseEntity *pOther)
 		return;
 
 	CBaseCombatCharacter *pCharacter = pOther->MyCombatCharacterPointer();
+
+	if ( !pCharacter )
+		return;
 	
 	if ( m_bKillWeapons )
 	{
