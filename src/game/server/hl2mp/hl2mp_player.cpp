@@ -1001,6 +1001,7 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	bool bWasSpectator = false;
 	bool bIsDead = !IsAlive();
 	bool bTeamplay = GameRules()->IsTeamplay();
+	int iPrevTeam = GetTeamNumber();
 
 	if ( HL2MPRules()->IsTeamplay() != true && iTeam != TEAM_SPECTATOR )
 	{
@@ -1013,19 +1014,29 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 		bWasSpectator = true;
 	}
 
-	if ( HL2MPRules()->IsTeamplay() == true )
+	BaseClass::ChangeTeam( iTeam );
+
+	iTeam = GetTeamNumber();
+
+	if ( HL2MPRules()->IsTeamplay() )
 	{
-		if ( iTeam != GetTeamNumber() && GetTeamNumber() != TEAM_UNASSIGNED )
+		SetPlayerTeamModel();
+		if ( iPrevTeam != TEAM_UNASSIGNED )
 		{
 			bKill = true;
 		}
 	}
+	else
+	{
+		SetPlayerModel();
+	}	
 
-	BaseClass::ChangeTeam( iTeam );
+	if ( iPrevTeam == iTeam )
+		return;
 
 	m_flNextTeamChangeTime = gpGlobals->curtime + TEAM_CHANGE_INTERVAL;
 
-	if ( HL2MPRules()->IsTeamplay() == true )
+	if ( HL2MPRules()->IsTeamplay() )
 	{
 		SetPlayerTeamModel();
 	}
@@ -1037,7 +1048,7 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	if ( bWasSpectator )
 	{
 		Spawn();
-		return; // everything is useless afterwards
+		return;
 	}
 
 	DetonateTripmines();
