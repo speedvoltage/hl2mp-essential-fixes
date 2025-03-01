@@ -164,7 +164,14 @@ public:
 	void SendHudMessagesToPlayers( hudtextparms_t &textParams, const char *stime );
 	void FormatTimeRemaining( int iTimeRemaining, char *buffer, size_t bufferSize );
 	void HandlePlayerNetworkCheck();
-	
+
+	void SetMapChangeOnGoing( bool enabled ) { bMapChangeOnGoing = enabled; }
+	void SetMapChange( bool enabled ) { bMapChange = enabled; }
+	bool IsMapChangeOnGoing() const { return bMapChangeOnGoing; }
+	bool IsMapChange() const { return bMapChange; }
+	void SetScheduledMapName( const char *mapName ) { Q_strncpy( m_scheduledMapName, mapName, sizeof( m_scheduledMapName ) ); }
+	void HandleMapVotes();
+
 private:
 	
 	CNetworkVar( bool, m_bTeamPlayEnabled );
@@ -180,6 +187,11 @@ private:
 	bool m_bChangelevelDone;
 
 	void RemoveAllPlayersEquipment();
+
+	bool bMapChangeOnGoing;
+	bool bMapChange;
+	float m_flMapChangeTime;
+	char m_scheduledMapName[ 64 ];  // The map name to change to
 #endif
 };
 

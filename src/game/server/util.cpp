@@ -29,6 +29,7 @@
 #include "utldict.h"
 #include "collisionutils.h"
 #include "movevars_shared.h"
+#include "inetchannel.h"
 #include "inetchannelinfo.h"
 #include "tier0/vprof.h"
 #include "ndebugoverlay.h"
@@ -1091,6 +1092,28 @@ void ClientPrint( CBasePlayer *player, int msg_dest, const char *msg_name, const
 	UTIL_ClientPrintFilter( user, msg_dest, msg_name, param1, param2, param3, param4 );
 }
 
+void UTIL_PrintToAllClients( const char *msg, const char *param1, const char *param2, const char *param3, const char *param4 )
+{
+	if ( msg )
+	{
+		CReliableBroadcastRecipientFilter filter;
+		UTIL_SayText2Filter( filter, NULL, true, msg, param1, param2, param3, param4 );
+	}
+}
+
+void UTIL_PrintToClient( CBasePlayer *player, const char *msg, const char *param1, const char *param2, const char *param3, const char *param4 )
+{
+	if ( !player )
+		return;
+
+	if ( msg )
+	{
+		CSingleUserRecipientFilter user( player );
+		user.MakeReliable();
+		UTIL_SayText2Filter( user, NULL, true, msg, param1, param2, param3, param4 );
+	}
+}
+
 void UTIL_SayTextFilter( IRecipientFilter& filter, const char *pText, CBasePlayer *pPlayer, bool bChat )
 {
 	UserMessageBegin( filter, "SayText" );
@@ -1187,6 +1210,26 @@ void UTIL_ShowMessage( const char *pString, CBasePlayer *pPlayer )
 void UTIL_ShowMessageAll( const char *pString )
 {
 	UTIL_ShowMessage( pString, NULL );
+}
+
+#define NET_SETCONVAR 5
+#define NETMSG_BITS 6
+
+void UTIL_SendConVarValue( edict_t *pEdict, const char *pConVarName, const char *pConVarValue )
+{
+	char data[ 256 ];
+	bf_write buffer( data, sizeof( data ) );
+	buffer.WriteUBitLong( NET_SETCONVAR, NETMSG_BITS );
+	buffer.WriteByte( 1 );
+	buffer.WriteString( pConVarName );
+	buffer.WriteString( pConVarValue );
+
+	INetChannel *pChannel = ( INetChannel * ) engine->GetPlayerNetInfo( pEdict->m_EdictIndex );
+
+	if ( pChannel )
+	{
+		pChannel->SendData( buffer );
+	}
 }
 
 // So we always return a valid surface

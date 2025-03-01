@@ -85,6 +85,7 @@
 #include "particle_parse.h"
 #ifndef NO_STEAM
 #include "steam/steam_gameserver.h"
+#include "hl2mp/admin/hl2mp_serveradmin.h"
 #endif
 #include "tier3/tier3.h"
 #include "serverbenchmark_base.h"
@@ -127,6 +128,24 @@ extern ConVar tf_mm_servermode;
 
 #if defined( REPLAY_ENABLED )
 #include "replay/ireplaysystem.h"
+#endif
+
+#ifdef _WIN32
+#include <ctime>
+#include <string>
+#include <sstream>
+
+std::string GetCurrentDateTime()
+{
+	time_t now = time( 0 );
+	struct tm tstruct;
+	char buf[ 80 ];
+	localtime_s( &tstruct, &now ); // Safe version for Windows
+	strftime( buf, sizeof( buf ), "%Y-%m-%d %X", &tstruct );
+	return std::string( buf );
+}
+
+std::string g_ServerBootTime;
 #endif
 
 extern IToolFrameworkServer *g_pToolFrameworkServer;
@@ -745,6 +764,10 @@ bool CServerGameDLL::DLLInit( CreateInterfaceFn appSystemFactory,
 	gamestatsuploader->InitConnection();
 #endif
 
+#ifdef _WIN32
+	g_ServerBootTime = GetCurrentDateTime();
+#endif
+
 	return true;
 }
 
@@ -967,7 +990,7 @@ bool CServerGameDLL::LevelInit( const char *pMapName, char const *pMapEntities, 
 		pItemSchema->BInitFromDelayedBuffer();
 	}
 #endif // USES_ECON_ITEMS
-
+	CHL2MP_Admin::InitAdminSystem();
 	ResetWindspeed();
 	UpdateChapterRestrictions( pMapName );
 
@@ -2762,6 +2785,12 @@ void CServerGameClients::ClientSpawned( edict_t *pPlayer )
 // Purpose: called when a player disconnects from a server
 // Input  : *pEdict - the player
 //-----------------------------------------------------------------------------
+extern int g_voters;
+extern int g_votes;
+extern void CheckRTVThreshold( CBasePlayer *pPlayer );
+extern CUtlDict<CUtlString, unsigned short> g_nominatedMaps;
+extern CUtlDict<int, unsigned short> g_alreadyNominatedMaps;
+extern int g_nominationCount;
 void CServerGameClients::ClientDisconnect( edict_t *pEdict )
 {
 	extern bool	g_fGameOver;
@@ -2769,6 +2798,48 @@ void CServerGameClients::ClientDisconnect( edict_t *pEdict )
 	CBasePlayer *player = ( CBasePlayer * )CBaseEntity::Instance( pEdict );
 	if ( player )
 	{
+		g_voters--;
+		if ( player->HasPlayerRTV() )
+		{
+			player->PlayerHasRTV( false );
+			g_votes--;
+		}
+		if ( g_votes > 0 )
+			CheckRTVThreshold( player );
+		
+		CSteamID steamID;
+
+		if ( player->GetSteamID( &steamID ) )
+		{
+			char buffer[ 32 ];
+			Q_snprintf( buffer, sizeof( buffer ), "[U:1:%u]", steamID.GetAccountID() );
+			CUtlString playerSteamID( buffer );
+
+			int playerIndex = g_nominatedMaps.Find( playerSteamID );
+			if ( playerIndex != g_nominatedMaps.InvalidIndex() )
+			{
+				const CUtlString &nominatedMap = g_nominatedMaps[ playerIndex ];
+
+				int mapIndex = g_alreadyNominatedMaps.Find( nominatedMap.Get() );
+				if ( mapIndex != g_alreadyNominatedMaps.InvalidIndex() )
+				{
+					g_alreadyNominatedMaps[ mapIndex ]--;
+					if ( g_alreadyNominatedMaps[ mapIndex ] == 0 )
+					{
+						g_alreadyNominatedMaps.RemoveAt( mapIndex );
+					}
+				}
+
+				g_nominatedMaps.RemoveAt( playerIndex );
+				g_nominationCount--;
+				// Msg("Removed nominated map for disconnected player: %s\n", playerSteamID.Get());
+			}
+			/*else
+			{
+				Msg( "Couldn't remove nominated map for disconnected player: %s\n", playerSteamID.Get() );
+			}*/
+		}
+
 		player->ForceDropOfCarriedPhysObjects( NULL );
 		if ( !g_fGameOver )
 		{

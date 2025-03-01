@@ -843,6 +843,12 @@ public:
 	void	SetCheckForPenetration( bool penetration ) { m_bCheckPenetration = penetration; }
 	bool	CheckForPenetration() const { return m_bCheckPenetration; }
 	uint64	ConvertSteamID3ToSteamID64( const char *steamID3 );
+	bool IsGagged() const { return m_bIsGagged; }
+	void SetGagged( bool gagged ) { m_bIsGagged = gagged; }
+	bool IsMuted() const { return m_bIsMuted; }
+	void SetMuted( bool muted ) { m_bIsMuted = muted; }
+	bool HasPlayerRTV() const { return m_bHasPlayerRTV; }
+	void PlayerHasRTV( bool PlayerHasVoted ) { m_bHasPlayerRTV = PlayerHasVoted; }
 
 private:
 	// How much of a movement time buffer can we process from this user?
@@ -868,6 +874,11 @@ private:
 	bool m_bIsUsingGameUI;
 	int iDamageTime;
 	int m_iFOVMemory;
+
+	// Gagged and muted
+	bool m_bIsGagged;
+	bool m_bIsMuted;
+	bool m_bHasPlayerRTV;
 
 public:
 	

@@ -54,6 +54,10 @@ ConVar sv_timeleft_x( "sv_timeleft_x", "-1" );
 ConVar sv_timeleft_y( "sv_timeleft_y", "0.01" );
 
 extern ConVar mp_chattime;
+extern ConVar sv_rtv_mintime;
+extern ConVar sv_rtv_mintime;
+extern ConVar sv_rtv_enabled;
+extern void StartMapVote();
 
 extern CBaseEntity	 *g_pLastCombineSpawn;
 extern CBaseEntity	 *g_pLastRebelSpawn;
@@ -140,8 +144,19 @@ static const char *s_PreserveEnts[] =
 	"point_devshot_camera",
 	"", // END Marker
 };
-
-
+bool bAdminMapChange = false;
+extern int g_voters;
+extern int g_votes;
+extern int g_votesneeded;
+extern bool g_votebegun;
+extern bool g_votehasended;
+extern int g_votetime;
+extern int g_timetortv;
+extern bool g_rtvbooted;
+extern CUtlDict<int, unsigned short> g_mapVotes;
+extern CUtlVector<CBasePlayer *> g_playersWhoVoted;
+extern CUtlVector<CUtlString> g_currentVoteMaps;
+extern CUtlDict<CUtlString, unsigned short> g_nominatedMaps;
 
 #ifdef CLIENT_DLL
 	void RecvProxy_HL2MPRules( const RecvProp *pProp, void **pOut, void *pData, int objectID )
@@ -215,6 +230,23 @@ CHL2MPRules::CHL2MPRules()
 	m_bAwaitingReadyRestart = false;
 	m_bChangelevelDone = false;
 
+	bAdminMapChange = false;
+	bMapChangeOnGoing = false;
+	bMapChange = false;
+	m_flMapChangeTime = 0.0f;
+	Q_strncpy( m_scheduledMapName, "", sizeof( m_scheduledMapName ) );
+
+	g_voters = 0;
+	g_votes = 0;
+	g_votesneeded = 0;
+	g_votetime = 0;
+	g_timetortv = 0;
+	g_votebegun = false;
+	g_votehasended = false;
+	g_rtvbooted = false;
+	g_mapVotes.RemoveAll();
+	g_playersWhoVoted.RemoveAll();
+	g_nominatedMaps.RemoveAll();
 #endif
 }
 
@@ -297,7 +329,6 @@ void CHL2MPRules::PlayerKilled( CBasePlayer *pVictim, const CTakeDamageInfo &inf
 #endif
 }
 
-
 void CHL2MPRules::Think( void )
 {
 
@@ -308,6 +339,15 @@ void CHL2MPRules::Think( void )
 	HandleNewTargetID();
 	HandleTimeleft();
 	HandlePlayerNetworkCheck();
+	HandleMapVotes();
+
+	if ( sv_rtv_enabled.GetBool() && ( mp_timelimit.GetFloat() > 0 ) && GetMapRemainingTime() <= 20 && !g_votebegun && !g_votehasended && !bAdminMapChange )
+	{
+		g_votebegun = true;
+
+		UTIL_PrintToAllClients( CHAT_INFO "Voting for next map has started...\n" );
+		StartMapVote();
+	}
 
 	if ( g_fGameOver )   // someone else quit the game already
 	{
@@ -390,6 +430,101 @@ void CHL2MPRules::Think( void )
 }
 
 #ifndef CLIENT_DLL
+void CHL2MPRules::HandleMapVotes()
+{
+	if ( !g_rtvbooted )
+	{
+		g_timetortv = gpGlobals->curtime + sv_rtv_mintime.GetInt();
+		g_rtvbooted = true;
+	}
+
+	if ( g_votebegun && !g_votehasended && ( gpGlobals->curtime >= g_votetime ) )
+	{
+		CUtlString winningMap;
+		int totalVotes = g_playersWhoVoted.Count();
+
+		if ( totalVotes == 0 )
+		{
+			if ( g_currentVoteMaps.Count() > 0 )
+			{
+				winningMap = g_currentVoteMaps[ RandomInt( 0, g_currentVoteMaps.Count() - 1 ) ];
+				UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_ADMIN "No votes were cast. Randomly selecting map: " CHAT_INFO "%s\n", winningMap.Get() ) );
+			}
+			else
+			{
+				UTIL_PrintToAllClients( CHAT_RED "No maps available for random selection.\n" );
+				return;
+			}
+		}
+		else
+		{
+			CUtlVector<CUtlString> tiedMaps;
+			int highestVotes = 0;
+
+			for ( unsigned int i = 0; i < g_mapVotes.Count(); i++ )
+			{
+				int votes = g_mapVotes[ i ];
+				const char *mapName = g_mapVotes.GetElementName( i );
+
+				if ( votes > highestVotes )
+				{
+					highestVotes = votes;
+					winningMap = mapName;
+					tiedMaps.RemoveAll();
+					tiedMaps.AddToTail( mapName );
+				}
+				else if ( votes == highestVotes )
+				{
+					tiedMaps.AddToTail( mapName );
+				}
+			}
+
+			if ( tiedMaps.Count() > 1 )
+			{
+				winningMap = tiedMaps[ RandomInt( 0, tiedMaps.Count() - 1 ) ];
+			}
+
+			float winningPercentage = ( static_cast< float >( highestVotes ) / totalVotes ) * 100.0f;
+
+			UTIL_PrintToAllClients( UTIL_VarArgs(
+				CHAT_ADMIN "Players have spoken! Winning map is " CHAT_INFO "%s " CHAT_DEFAULT "(%.2f%% of %d vote%s).\n",
+				winningMap.Get(), winningPercentage, totalVotes, totalVotes < 2 ? "" : "s" ) );
+
+			if ( mp_chattime.GetInt() <= 5 )
+			{
+				mp_chattime.SetValue( 10 );
+			}
+
+			GoToIntermission();
+		}
+
+		engine->ServerCommand( CFmtStr( "sa map %s\n", winningMap.Get() ) );
+
+		g_votebegun = false;
+		g_votehasended = true;
+		g_mapVotes.RemoveAll();
+		g_playersWhoVoted.RemoveAll();
+		g_currentVoteMaps.RemoveAll();
+	}
+
+	if ( IsMapChangeOnGoing() && IsMapChange() )
+	{
+		SetMapChange( false );
+		m_flMapChangeTime = gpGlobals->curtime + 5.0f;
+	}
+
+	if ( IsMapChangeOnGoing() && gpGlobals->curtime > m_flMapChangeTime )
+	{
+		SetMapChange( false );
+		SetMapChangeOnGoing( false );
+
+		if ( Q_strlen( m_scheduledMapName ) > 0 )
+		{
+			engine->ServerCommand( UTIL_VarArgs( "changelevel %s\n", m_scheduledMapName ) );
+		}
+	}
+}
+
 bool IsValidPositiveInteger( const char *str )
 {
 	// Check if the string is not empty and doesn't start with '+' or '-'

@@ -29,6 +29,7 @@
 
 #include "ilagcompensationmanager.h"
 #include "filesystem.h"
+#include "admin/hl2mp_serveradmin.h"
 
 int g_iLastCitizenModel = 0;
 int g_iLastCombineModel = 0;
@@ -1660,6 +1661,7 @@ void CHL2MP_Player::SetReady( bool bReady )
 
 void CHL2MP_Player::CheckChatText( char *p, int bufsize )
 {
+	CHL2MP_Admin::CheckChatText( p, bufsize );
 	//Look for escape sequences and replace
 
 	char *buf = new char[bufsize];

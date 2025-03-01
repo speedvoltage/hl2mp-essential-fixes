@@ -38,9 +38,11 @@ ConVar sv_displaymotd( "sv_displaymotd", "1", 0, "If enabled, display the MOTD t
 
 extern CBaseEntity*	FindPickerEntityClass( CBasePlayer *pPlayer, char *classname );
 extern bool			g_fGameOver;
+extern int g_voters;
 
 void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 {
+	g_voters++;
 	pPlayer->InitialSpawn();
 	pPlayer->Spawn();
 

@@ -65,8 +65,8 @@ ConVar mp_chattime(
 		"10", 
 		FCVAR_REPLICATED,
 		"amount of time players can chat after the game is over",
-		true, 1,
-		true, 120 );
+		true, 10,
+		true, 60 );
 
 #ifdef GAME_DLL
 void MPTimeLimitCallback( IConVar *var, const char *pOldString, float flOldValue )
