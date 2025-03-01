@@ -112,6 +112,7 @@ void CRagdollBoogie::ZapThink()
 	{
 		CEffectData	data;
 		
+		data.m_vOrigin = GetAbsOrigin();
 		data.m_nEntIndex = GetMoveParent()->entindex();
 		data.m_flMagnitude = 4;
 		data.m_flScale = HasSpawnFlags(SF_RAGDOLL_BOOGIE_ELECTRICAL_NARROW_BEAM) ? 1.0f : 2.0f;

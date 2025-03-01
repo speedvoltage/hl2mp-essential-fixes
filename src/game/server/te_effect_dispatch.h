@@ -18,6 +18,6 @@
 
 void DispatchEffect( const char *pName, const CEffectData &data );
 void DispatchEffect( const char *pName, const CEffectData &data, CRecipientFilter &filter );
-
+void DispatchEffectNoPred( const char *pName, const CEffectData &data );
 
 #endif // TE_EFFECT_DISPATCH_H

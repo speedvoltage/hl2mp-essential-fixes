@@ -2183,6 +2183,7 @@ void CFuncTank::DoMuzzleFlash( void )
 		if ( m_iEffectHandling == EH_COMBINE_CANNON )
 		{
 			CEffectData data;
+			data.m_vOrigin = pAnim->GetAbsOrigin();
 			data.m_nAttachmentIndex = m_nBarrelAttachment;
 			data.m_nEntIndex = pAnim->entindex();
 			
@@ -2192,6 +2193,7 @@ void CFuncTank::DoMuzzleFlash( void )
 		else
 		{
 			CEffectData data;
+			data.m_vOrigin = pAnim->GetAbsOrigin();
 			data.m_nEntIndex = pAnim->entindex();
 			data.m_nAttachmentIndex = m_nBarrelAttachment;
 			data.m_flScale = 1.0f;
@@ -2988,6 +2990,7 @@ void CFuncTankAirboatGun::DoMuzzleFlash( void )
 	if ( m_hAirboatGunModel && (m_nGunBarrelAttachment != 0) )
 	{
 		CEffectData data;
+		data.m_vOrigin = m_hAirboatGunModel->GetAbsOrigin();
 		data.m_nEntIndex = m_hAirboatGunModel->entindex();
 		data.m_nAttachmentIndex = m_nGunBarrelAttachment;
 		data.m_flScale = 1.0f;

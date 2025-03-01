@@ -920,7 +920,7 @@ void CWeaponCrossbow::DoLoadEffect( void )
 	data.m_vOrigin = GetAbsOrigin();
 	data.m_nAttachmentIndex = 1;
 
-	DispatchEffect( "CrossbowLoad", data );
+	DispatchEffectNoPred( "CrossbowLoad", data );
 
 #ifndef CLIENT_DLL
 
