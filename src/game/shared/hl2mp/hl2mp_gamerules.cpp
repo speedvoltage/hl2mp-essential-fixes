@@ -43,6 +43,7 @@ ConVar sv_hl2mp_item_respawn_time( "sv_hl2mp_item_respawn_time", "30", FCVAR_GAM
 ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 
 extern ConVar mp_chattime;
+extern void StartMapVote();
 
 extern CBaseEntity	 *g_pLastCombineSpawn;
 extern CBaseEntity	 *g_pLastRebelSpawn;
@@ -130,7 +131,7 @@ static const char *s_PreserveEnts[] =
 	"", // END Marker
 };
 
-
+bool bAdminMapChange = false;
 
 #ifdef CLIENT_DLL
 	void RecvProxy_HL2MPRules( const RecvProp *pProp, void **pOut, void *pData, int objectID )
@@ -204,6 +205,11 @@ CHL2MPRules::CHL2MPRules()
 	m_bAwaitingReadyRestart = false;
 	m_bChangelevelDone = false;
 
+	bAdminMapChange = false;
+	bMapChangeOnGoing = false;
+	bMapChange = false;
+	m_flMapChangeTime = 0.0f;
+	Q_strncpy( m_scheduledMapName, "", sizeof( m_scheduledMapName ) );
 #endif
 }
 
@@ -294,6 +300,8 @@ void CHL2MPRules::Think( void )
 	
 	CGameRules::Think();
 
+	HandleMapChange();
+
 	if ( g_fGameOver )   // someone else quit the game already
 	{
 		// check to see if we should change levels now
@@ -351,6 +359,7 @@ void CHL2MPRules::Think( void )
 	{		
 		CheckAllPlayersReady();
 		CheckRestartGame();
+
 		m_tmNextPeriodicThink = gpGlobals->curtime + 1.0;
 	}
 
@@ -372,6 +381,28 @@ void CHL2MPRules::Think( void )
 
 #endif
 }
+
+#ifndef CLIENT_DLL
+void CHL2MPRules::HandleMapChange()
+{
+	if ( IsMapChangeOnGoing() && IsMapChange() )
+	{
+		SetMapChange( false );
+		m_flMapChangeTime = gpGlobals->curtime + 5.0f;
+	}
+
+	if ( IsMapChangeOnGoing() && gpGlobals->curtime > m_flMapChangeTime )
+	{
+		SetMapChange( false );
+		SetMapChangeOnGoing( false );
+
+		if ( Q_strlen( m_scheduledMapName ) > 0 )
+		{
+			engine->ServerCommand( UTIL_VarArgs( "changelevel %s\n", m_scheduledMapName ) );
+		}
+	}
+}
+#endif
 
 void CHL2MPRules::GoToIntermission( void )
 {
