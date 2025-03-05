@@ -828,8 +828,6 @@ public:
 	void SetGagged( bool gagged ) { m_bIsGagged = gagged; }
 	bool IsMuted() const { return m_bIsMuted; }
 	void SetMuted( bool muted ) { m_bIsMuted = muted; }
-	bool HasPlayerRTV() const { return m_bHasPlayerRTV; }
-	void PlayerHasRTV( bool PlayerHasVoted ) { m_bHasPlayerRTV = PlayerHasVoted; }
 	void SetLastCommandWasFromChat( bool enabled ) { m_bLastCommandWasFromChat = enabled; }
 	bool WasCommandUsedFromChat() { return m_bLastCommandWasFromChat; }
 	void SetChatCommandResetThink();
@@ -854,7 +852,6 @@ private:
 	// Gagged and muted
 	bool m_bIsGagged;
 	bool m_bIsMuted;
-	bool m_bHasPlayerRTV;
 	bool m_bLastCommandWasFromChat;
 
 public:

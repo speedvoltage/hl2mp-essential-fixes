@@ -43,7 +43,6 @@ ConVar sv_hl2mp_item_respawn_time( "sv_hl2mp_item_respawn_time", "30", FCVAR_GAM
 ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 
 extern ConVar mp_chattime;
-extern void StartMapVote();
 
 extern CBaseEntity	 *g_pLastCombineSpawn;
 extern CBaseEntity	 *g_pLastRebelSpawn;
