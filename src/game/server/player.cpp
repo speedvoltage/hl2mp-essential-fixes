@@ -8843,10 +8843,10 @@ bool CBasePlayer::ArePlayerTalkMessagesAvailable()
 	m_flPlayerTalkAvailableMessagesTier2 = MAX( 0, m_flPlayerTalkAvailableMessagesTier2 );
 
 	// Debug messages
-	Msg( "Elapsed: %.2f sec | Gained Tier1: %.2f | Gained Tier2: %.2f\n",
+	DevMsg( "Elapsed: %.2f sec | Gained Tier1: %.2f | Gained Tier2: %.2f\n",
 		flTimeElapsedSinceLastMsg, flMessagesGainedTier1, flMessagesGainedTier2 );
 
-	Msg( "Remaining Msgs - Tier1: %.2f / %.2f | Tier2: %.2f / %.2f | Penalty Multiplier: %.2f\n",
+	DevMsg( "Remaining Msgs - Tier1: %.2f / %.2f | Tier2: %.2f / %.2f | Penalty Multiplier: %.2f\n",
 		m_flPlayerTalkAvailableMessagesTier1, flTotalBucketSizeTier1,
 		m_flPlayerTalkAvailableMessagesTier2, sv_chat_bucket_size_tier2.GetFloat(),
 		m_flChatPenaltyMultiplier );
