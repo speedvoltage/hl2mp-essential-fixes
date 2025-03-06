@@ -515,6 +515,10 @@ void CHL2_Player::HandleSpeedChanges( CMoveData *mv )
 
 	// Putting those here instead of within bWantsToChangeSprinting to ensure sprint properly starts when summoned!
 	// Restoring pre-OB (2010) working sprinting behavior.
+
+	if ( GetGroundEntity() == NULL && ( mv->m_nButtons & IN_SPEED ) )
+		bSprinting = true;
+
 	if ( m_Local.m_bDucked && !m_Local.m_bDucking && bSprinting )
 		bSprinting = false;
 

@@ -804,6 +804,9 @@ void C_HL2MP_Player::HandleSpeedChanges( CMoveData *mv )
 		bSprinting = false;
 
 	// Putting those here instead of within bWantsToChangeSprinting to ensure sprint properly starts when summoned! 
+	if ( GetGroundEntity() == NULL && ( mv->m_nButtons & IN_SPEED ) )
+		bSprinting = true;
+
 	if ( m_Local.m_bDucked && !m_Local.m_bDucking && bSprinting )
 		bSprinting = false;
 
