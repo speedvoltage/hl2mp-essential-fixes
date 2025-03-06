@@ -96,7 +96,8 @@ ConVar	spec_freeze_traveltime( "spec_freeze_traveltime", "0.4", FCVAR_CHEAT | FC
 ConVar sv_bonus_challenge( "sv_bonus_challenge", "0", FCVAR_REPLICATED, "Set to values other than 0 to select a bonus map challenge type." );
 
 ConVar sv_chat_bucket_size_tier1( "sv_chat_bucket_size_tier1", "4", FCVAR_NONE, "The maxmimum size of the short term chat msg bucket." );
-ConVar sv_chat_bucket_size_tier1_penalty( "sv_chat_bucket_size_tier1_penalty", "0.25", FCVAR_NONE, "The penalty multiplier that gets added to the regeneration time of this bucket." );
+ConVar sv_chat_bucket_size_tier1_penalty( "sv_chat_bucket_size_tier1_penalty", "0.25", FCVAR_NONE, "The penalty multiplier that gets added to the regeneration time of this bucket.", true, 0.1, false, NULL );
+ConVar sv_chat_bucket_size_tier1_penalty_decay( "sv_chat_bucket_size_tier1_penalty_decay", "30", FCVAR_NONE, "The time in seconds to wait to reduce penalty multiplier one notch.", true, 1.0, false, NULL );
 ConVar sv_chat_seconds_per_msg_tier1( "sv_chat_seconds_per_msg_tier1", "6", FCVAR_NONE, "The number of seconds to accrue an additional short term chat msg." );
 ConVar sv_chat_bucket_size_tier2( "sv_chat_bucket_size_tier2", "30", FCVAR_NONE, "The maxmimum size of the long term chat msg bucket." );
 ConVar sv_chat_seconds_per_msg_tier2( "sv_chat_seconds_per_msg_tier2", "20", FCVAR_NONE, "The number of seconds to accrue an additional long term chat msg." );
@@ -8795,11 +8796,16 @@ void CBasePlayer::DecrementPlayerChatBuckets()
 
 bool CBasePlayer::ArePlayerTalkMessagesAvailable()
 {
+	if ( m_flChatPenaltyMultiplier < 1.0f ) // This should never happen, but it is a safety net
+		m_flChatPenaltyMultiplier = 1.0f;
+	if ( m_flChatPenaltyMultiplier > 3.0f ) // This should never happen, but it is a safety net
+		m_flChatPenaltyMultiplier = 3.0f;
+
 	float flTimeElapsedSinceLastMsg = gpGlobals->curtime - m_fLastPlayerTalkAttemptTime;
 	m_fLastPlayerTalkAttemptTime = gpGlobals->curtime;
 
 	// Apply decay to the penalty if enough time has passed since last chat message
-	const float flPenaltyDecayInterval = 30.0f;  // Every 30 seconds, the penalty decays slightly
+	const float flPenaltyDecayInterval = sv_chat_bucket_size_tier1_penalty_decay.GetFloat();  // Every 30 seconds, the penalty decays slightly
 	if ( gpGlobals->curtime - m_flLastPenaltyDecayTime >= flPenaltyDecayInterval )
 	{
 		m_flChatPenaltyMultiplier = MAX( 1.0f, m_flChatPenaltyMultiplier - 0.1f );  // Slowly recover
@@ -8822,9 +8828,16 @@ bool CBasePlayer::ArePlayerTalkMessagesAvailable()
 	// slowing down their regeneration of the bucket. Their buckets will keep refilling no matter what, but at a slower rate, 
 	// and at each failed message, the bucket fills more slowly. This penalty multiplier will eventually go back down if the player 
 	// stops spamming or does not use the chat for a while.
-	if ( m_flPlayerTalkAvailableMessagesTier1 <= 0.9f )
+	if ( m_flPlayerTalkAvailableMessagesTier1 <= 1.0f )
 	{
-		m_flChatPenaltyMultiplier += flChatPenaltyMulitplier;  // Increase penalty
+		// Let's not go overboard and apply a max multiplier
+		// We are setting a hard coded value, because going above 3 would just cause the same original behavior of digging 
+		// a hole and never being to talk ever again due to an insane multiplier and we do not want that.
+		if ( m_flChatPenaltyMultiplier < 3.0f )
+		{
+			m_flChatPenaltyMultiplier += flChatPenaltyMulitplier;  // Increase penalty
+			m_flChatPenaltyMultiplier = clamp( m_flChatPenaltyMultiplier, 1.0f, 3.0f ); // Ensure within bounds
+		}
 
 		if ( m_flPlayerTalkAvailableMessagesTier1 <= 0.0f )
 			m_flPlayerTalkAvailableMessagesTier1 = 0.0f;  // Never go negative
