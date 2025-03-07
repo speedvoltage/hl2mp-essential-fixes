@@ -1726,29 +1726,7 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 		float fPortalFraction = 2.0f;
 #endif
 
-#ifdef PORTAL
-		Ray_t rayBullet;
-		rayBullet.Init( info.m_vecSrc, vecEnd );
-		pShootThroughPortal = UTIL_Portal_FirstAlongRay( rayBullet, fPortalFraction );
-		if ( !UTIL_Portal_TraceRay_Bullets( pShootThroughPortal, rayBullet, MASK_SHOT, &traceFilter, &tr ) )
-		{
-			pShootThroughPortal = NULL;
-		}
-#elif TF_DLL
-		CTraceFilterIgnoreFriendlyCombatItems traceFilterCombatItem( this, COLLISION_GROUP_NONE, GetTeamNumber() );
-		if ( TFGameRules() && TFGameRules()->GameModeUsesUpgrades() )
-		{
-			CTraceFilterChain traceFilterChain( &traceFilter, &traceFilterCombatItem );
-			AI_TraceLine( info.m_vecSrc, vecEnd, MASK_SHOT, &traceFilterChain, &tr );
-		}
-		else
-		{
-			AI_TraceLine( info.m_vecSrc, vecEnd, MASK_SHOT, &traceFilter, &tr );
-		}
-#else
-		// Make the shotgun's trace detection a lot more accurate
-		// Fixes the issue of it being all or nothing,
-		// i.e. OP or too weak.
+#ifdef HL2MP
 		if ( info.m_iAmmoType == GetAmmoDef()->Index( "Buckshot" ) )
 		{
 			// Use all three trace methods for shotguns
@@ -1780,7 +1758,49 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 			// Default behavior for non-shotgun weapons
 			AI_TraceLine( info.m_vecSrc, vecEnd, MASK_SHOT, &traceFilter, &tr );
 		}
-#endif // PORTAL / TF_DLL / fallback
+#else // Use the original tracing logic for the other games
+		if ( IsPlayer() && info.m_iShots > 1 && iShot % 2 )
+		{
+			// Half of the shotgun pellets are hulls that make it easier to hit targets with the shotgun.
+#ifdef PORTAL
+			Ray_t rayBullet;
+			rayBullet.Init( info.m_vecSrc, vecEnd );
+			pShootThroughPortal = UTIL_Portal_FirstAlongRay( rayBullet, fPortalFraction );
+			if ( !UTIL_Portal_TraceRay_Bullets( pShootThroughPortal, rayBullet, MASK_SHOT, &traceFilter, &tr ) )
+			{
+				pShootThroughPortal = NULL;
+			}
+#else
+			AI_TraceHull( info.m_vecSrc, vecEnd, Vector( -3, -3, -3 ), Vector( 3, 3, 3 ), MASK_SHOT, &traceFilter, &tr );
+#endif
+		}
+		else
+		{
+#ifdef PORTAL
+			Ray_t rayBullet;
+			rayBullet.Init( info.m_vecSrc, vecEnd );
+			pShootThroughPortal = UTIL_Portal_FirstAlongRay( rayBullet, fPortalFraction );
+			if ( !UTIL_Portal_TraceRay_Bullets( pShootThroughPortal, rayBullet, MASK_SHOT, &traceFilter, &tr ) )
+			{
+				pShootThroughPortal = NULL;
+			}
+#elif TF_DLL
+			CTraceFilterIgnoreFriendlyCombatItems traceFilterCombatItem( this, COLLISION_GROUP_NONE, GetTeamNumber() );
+			if ( TFGameRules() && TFGameRules()->GameModeUsesUpgrades() )
+			{
+				CTraceFilterChain traceFilterChain( &traceFilter, &traceFilterCombatItem );
+				AI_TraceLine( info.m_vecSrc, vecEnd, MASK_SHOT, &traceFilterChain, &tr );
+			}
+			else
+			{
+				AI_TraceLine( info.m_vecSrc, vecEnd, MASK_SHOT, &traceFilter, &tr );
+			}
+#else
+			AI_TraceLine( info.m_vecSrc, vecEnd, MASK_SHOT, &traceFilter, &tr );
+#endif
+		}
+#endif // HL2MP
+
 
 		// Tracker 70354/63250:  ywb 8/2/07
 		// Fixes bug where trace from turret with attachment point outside of Vcollide
