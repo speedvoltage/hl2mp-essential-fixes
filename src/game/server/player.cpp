@@ -918,6 +918,8 @@ void CBasePlayer::DrawDebugGeometryOverlays(void)
 //=========================================================
 void CBasePlayer::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
+	CDisablePredictionFiltering disabler;
+
 	if ( m_takedamage )
 	{
 		CTakeDamageInfo info = inputInfo;
