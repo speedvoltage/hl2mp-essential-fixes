@@ -374,7 +374,7 @@ static void SendProxy_Solid( const SendProp *pProp, const void *pStruct, const v
 
 static void SendProxy_SolidFlags( const SendProp *pProp, const void *pStruct, const void *pData, DVariant *pOut, int iElement, int objectID )
 {	
-	/*
+
 	CCollisionProperty *pCollision = ( CCollisionProperty * ) pStruct;
 
 	auto pEntity = static_cast< CBaseEntity * >( pCollision->GetEntityHandle() );
@@ -389,7 +389,7 @@ static void SendProxy_SolidFlags( const SendProp *pProp, const void *pStruct, co
 			return;
 		}
 	}
-	*/
+	
 	pOut->m_Int = ((CCollisionProperty*)pStruct)->GetSolidFlags();
 }
 
