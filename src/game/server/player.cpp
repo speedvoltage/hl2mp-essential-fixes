@@ -918,8 +918,6 @@ void CBasePlayer::DrawDebugGeometryOverlays(void)
 //=========================================================
 void CBasePlayer::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator )
 {
-	CDisablePredictionFiltering disabler;
-
 	if ( m_takedamage )
 	{
 		CTakeDamageInfo info = inputInfo;
@@ -975,6 +973,9 @@ void CBasePlayer::TraceAttack( const CTakeDamageInfo &inputInfo, const Vector &v
 		if ( bShouldBleed )
 #endif
 		{
+#ifdef HL2MP
+			CDisablePredictionFiltering disabler;
+#endif
 			SpawnBlood(ptr->endpos, vecDir, BloodColor(), info.GetDamage());// a little surface blood.
 			TraceBleed( info.GetDamage(), vecDir, ptr, info.GetDamageType() );
 		}
