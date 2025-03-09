@@ -46,6 +46,8 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 	pPlayer->InitialSpawn();
 	pPlayer->Spawn();
 
+	UTIL_SendConVarValue( pPlayer->edict(), "sv_wpn_sway_pred_legacy", "1" );
+
 	char sName[128];
 	Q_strncpy( sName, pPlayer->GetPlayerName(), sizeof( sName ) );
 	
