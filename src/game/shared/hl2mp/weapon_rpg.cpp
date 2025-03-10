@@ -178,7 +178,7 @@ void CMissile::Spawn( void )
 
 	SetSolid( SOLID_BBOX );
 	SetModel("models/weapons/w_missile_launch.mdl");
-	UTIL_SetSize( this, -Vector(4,4,4), Vector(4,4,4) );
+	UTIL_SetSize( this, -Vector( 2, 2, 2 ), Vector( 2, 2, 2 ) );
 
 	SetTouch( &CMissile::MissileTouch );
 
@@ -879,7 +879,7 @@ CAPCMissile *CAPCMissile::Create( const Vector &vecOrigin, const QAngle &vecAngl
 {
 	CAPCMissile *pMissile = (CAPCMissile *)CBaseEntity::Create( "apc_missile", vecOrigin, vecAngles, pOwner );
 	pMissile->SetOwnerEntity( pOwner );
-	pMissile->Spawn();
+	// pMissile->Spawn();
 	pMissile->SetAbsVelocity( vecVelocity );
 	pMissile->AddFlag( FL_NOTARGET );
 	pMissile->AddEffects( EF_NOSHADOW );
