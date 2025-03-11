@@ -145,6 +145,9 @@ public:
 	bool IsThreatFiringAtMe( CBaseEntity* threat ) const;
 private:
 
+	void SetFlashlightCooldownTime( float FlashlightTime ) { m_flFlashlightCooldown = FlashlightTime; }
+	bool IsFlashlightInCooldown() const { return gpGlobals->curtime < m_flFlashlightCooldown; }
+
 	CNetworkQAngle( m_angEyeAngles );
 	CPlayerAnimState   m_PlayerAnimState;
 
@@ -168,6 +171,8 @@ private:
 
     bool m_bEnterObserver;
 	bool m_bReady;
+
+	float m_flFlashlightCooldown; // To prevent flashlight on/off spam.
 };
 
 inline CHL2MP_Player *ToHL2MPPlayer( CBaseEntity *pEntity )

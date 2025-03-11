@@ -1228,6 +1228,11 @@ extern ConVar flashlight;
 //-----------------------------------------------------------------------------
 void CHL2MP_Player::FlashlightTurnOn( void )
 {
+	if ( IsFlashlightInCooldown() )
+		return;
+
+	SetFlashlightCooldownTime( gpGlobals->curtime + 0.25f );
+
 	if( flashlight.GetInt() > 0 && IsAlive() )
 	{
 		AddEffects( EF_DIMLIGHT );
