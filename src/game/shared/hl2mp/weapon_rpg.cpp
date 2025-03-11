@@ -1666,9 +1666,10 @@ void CWeaponRPG::StartGuiding( void )
 	m_bGuiding = true;
 
 #ifndef CLIENT_DLL
-	WeaponSound(SPECIAL1);
-
 	CreateLaserPointer();
+
+	CDisablePredictionFiltering disablePred;
+	WeaponSound( SPECIAL1 );
 #endif
 
 }
@@ -1681,9 +1682,6 @@ void CWeaponRPG::StopGuiding( void )
 	m_bGuiding = false;
 
 #ifndef CLIENT_DLL
-
-	WeaponSound( SPECIAL2 );
-
 	// Kill the dot completely
 	if ( m_hLaserDot != NULL )
 	{
@@ -1691,6 +1689,8 @@ void CWeaponRPG::StopGuiding( void )
 		UTIL_Remove( m_hLaserDot );
 		m_hLaserDot = NULL;
 	}
+	CDisablePredictionFiltering disablePred;
+	WeaponSound( SPECIAL2 );
 #else
 	if ( m_pBeam )
 	{
