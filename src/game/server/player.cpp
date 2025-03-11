@@ -95,12 +95,13 @@ ConVar	spec_freeze_traveltime( "spec_freeze_traveltime", "0.4", FCVAR_CHEAT | FC
 
 ConVar sv_bonus_challenge( "sv_bonus_challenge", "0", FCVAR_REPLICATED, "Set to values other than 0 to select a bonus map challenge type." );
 
-ConVar sv_chat_bucket_size_tier1( "sv_chat_bucket_size_tier1", "4", FCVAR_NONE, "The maximum size of the short term chat msg bucket." ); 
+ConVar sv_chat_bucket_size_tier1( "sv_chat_bucket_size_tier1", "4", FCVAR_NONE, "The maximum size of the short term chat msg bucket." );
+ConVar sv_chat_seconds_per_msg_tier1( "sv_chat_seconds_per_msg_tier1", "3", FCVAR_NONE, "The number of seconds to accrue an additional short term chat msg." );
+ConVar sv_chat_bucket_size_tier2( "sv_chat_bucket_size_tier2", "30", FCVAR_NONE, "The maximum size of the long term chat msg bucket." );
+ConVar sv_chat_seconds_per_msg_tier2( "sv_chat_seconds_per_msg_tier2", "10", FCVAR_NONE, "The number of seconds to accrue an additional long term chat msg." );
+
 ConVar sv_chat_bucket_size_tier1_penalty( "sv_chat_bucket_size_tier1_penalty", "0.25", FCVAR_NONE, "The penalty multiplier that gets added to the regeneration time of this bucket.", true, 0.1, false, NULL );
 ConVar sv_chat_bucket_size_tier1_penalty_decay( "sv_chat_bucket_size_tier1_penalty_decay", "30", FCVAR_NONE, "The time in seconds to wait to reduce penalty multiplier one notch.", true, 1.0, false, NULL );
-ConVar sv_chat_seconds_per_msg_tier1( "sv_chat_seconds_per_msg_tier1", "6", FCVAR_NONE, "The number of seconds to accrue an additional short term chat msg." );
-ConVar sv_chat_bucket_size_tier2( "sv_chat_bucket_size_tier2", "30", FCVAR_NONE, "The maximum size of the long term chat msg bucket." ); 
-ConVar sv_chat_seconds_per_msg_tier2( "sv_chat_seconds_per_msg_tier2", "20", FCVAR_NONE, "The number of seconds to accrue an additional long term chat msg." );
 
 static ConVar sv_maxusrcmdprocessticks( "sv_maxusrcmdprocessticks", "24", FCVAR_NOTIFY, "Maximum number of client-issued usrcmd ticks that can be replayed in packet loss conditions, 0 to allow no restrictions" );
 
