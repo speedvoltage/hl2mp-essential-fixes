@@ -5705,6 +5705,20 @@ void CC_Ent_Remove( const CCommand& args )
 {
 	CBaseEntity *pEntity = NULL;
 
+	CBasePlayer *pPlayer = UTIL_GetCommandClient();
+	if ( pPlayer )
+	{
+		if ( !Q_stricmp( args[ 1 ], "player" ) || 
+			!Q_stricmp( args[ 1 ], "worldspawn" ) || 
+			!Q_stricmp( args[ 1 ], "info_player_deathmatch" ) || 
+			!Q_stricmp( args[ 1 ], "info_player_rebel" ) 
+			|| !Q_stricmp( args[ 1 ], "info_player_combine" ) )
+		{
+			ClientPrint( pPlayer, HUD_PRINTCONSOLE, "This entity cannot be removed\n" );
+			return;
+		}
+	}
+
 	// If no name was given set bits based on the picked
 	if ( FStrEq( args[1],"") ) 
 	{
@@ -5753,6 +5767,20 @@ void CC_Ent_RemoveAll( const CCommand& args )
 	}
 	else 
 	{
+		CBasePlayer *pPlayer = UTIL_GetCommandClient();
+		if ( pPlayer )
+		{
+			if ( !Q_stricmp( args[ 1 ], "player" ) ||
+				!Q_stricmp( args[ 1 ], "worldspawn" ) ||
+				!Q_stricmp( args[ 1 ], "info_player_deathmatch" ) ||
+				!Q_stricmp( args[ 1 ], "info_player_rebel" )
+				|| !Q_stricmp( args[ 1 ], "info_player_combine" ) )
+			{
+				ClientPrint( pPlayer, HUD_PRINTCONSOLE, "This entity cannot be removed\n" );
+				return;
+			}
+		}
+
 		// Otherwise remove based on name or classname
 		int iCount = 0;
 		CBaseEntity *ent = NULL;
