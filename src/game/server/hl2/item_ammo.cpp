@@ -877,12 +877,15 @@ void CItem_AmmoCrate::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 	if ( pPlayer == NULL )
 		return;
 
+	if ( !pPlayer->IsAlive() )
+		return;
+
 	m_OnUsed.FireOutput( pActivator, this );
 
 	int iSequence = LookupSequence( "Open" );
 
 	// See if we're not opening already
-	if ( GetSequence() != iSequence )
+	if ( GetSequence() != iSequence && pPlayer->IsAlive() )
 	{
 		Vector mins, maxs;
 		trace_t tr;
@@ -929,7 +932,9 @@ int CItem_AmmoCrate::OnTakeDamage( const CTakeDamageInfo &info )
 	{
 		CBaseCombatWeapon *weapon = player->GetActiveWeapon();
 
-		if (weapon && !stricmp(weapon->GetName(), "weapon_crowbar"))
+		if ( weapon && ( ( !stricmp( weapon->GetName(), "weapon_crowbar" ) // Is my weapon a crowbar?
+			|| !stricmp( weapon->GetName(), "weapon_stunstick" ) ) ) // Or a stunstick?
+			&& info.GetDamageType() & DMG_CLUB ) // Have I damaged the crate with either weapon?
 		{
 			// play the normal use sound
 			player->EmitSound( "HL2Player.Use" );
