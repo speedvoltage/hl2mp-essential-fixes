@@ -6241,6 +6241,12 @@ void CC_Ent_Info( const CCommand& args )
 	{
 		return;
 	}
+
+	if ( !Q_stricmp( args[ 1 ], "worldspawn" ) )
+	{
+		ClientPrint( pPlayer, HUD_PRINTCONSOLE, "Can't use command on worldspawn\n" );
+		return;
+	}
 	
 	if ( args.ArgC() < 2 )
 	{
