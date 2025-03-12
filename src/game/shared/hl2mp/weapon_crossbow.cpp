@@ -417,6 +417,7 @@ private:
 	void	SetSkin( int skinNum );
 	void	CheckZoomToggle( void );
 	void	FireBolt( void );
+	void	SetBolt( int iSetting );
 	void	ToggleZoom( void );
 	
 	// Various states for the crossbow's charger
@@ -683,6 +684,18 @@ void CWeaponCrossbow::FireBolt( void )
 }
 
 //-----------------------------------------------------------------------------
+// Purpose: Sets whether or not the bolt is visible
+//-----------------------------------------------------------------------------
+inline void CWeaponCrossbow::SetBolt( int iSetting )
+{
+	int iBody = FindBodygroupByName( "bolt" );
+	if ( iBody != -1 || ( GetOwner() && GetOwner()->IsPlayer() ) ) // HACKHACK: Player models check the viewmodel instead of the worldmodel, so we have to do this manually
+		SetBodygroup( iBody, iSetting );
+	else
+		m_nSkin = iSetting;
+}
+
+//-----------------------------------------------------------------------------
 // Purpose: 
 // Output : Returns true on success, false on failure.
 //-----------------------------------------------------------------------------
@@ -694,6 +707,7 @@ bool CWeaponCrossbow::Deploy( void )
 	}
 
 	SetSkin( BOLT_SKIN_GLOW );
+	SetBolt( 0 );
 
 	return BaseClass::Deploy();
 }
@@ -856,7 +870,8 @@ void CWeaponCrossbow::SetChargerState( ChargerState_t state )
 		
 		// Shoot some sparks and draw a beam between the two outer points
 		DoLoadEffect();
-		
+		SetBolt( 0 );
+
 		break;
 #ifndef CLIENT_DLL
 	case CHARGER_STATE_START_CHARGE:
