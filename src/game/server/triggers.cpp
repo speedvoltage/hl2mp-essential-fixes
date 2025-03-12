@@ -2321,7 +2321,7 @@ void CTriggerPush::Touch( CBaseEntity *pOther )
 			{
 				pOther->SetGroundEntity( NULL );
 				Vector origin = pOther->GetAbsOrigin();
-				origin.z += 1.0f;
+				origin.z += 16.0f;
 				pOther->SetAbsOrigin( origin );
 			}
 
