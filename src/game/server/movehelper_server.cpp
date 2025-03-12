@@ -360,10 +360,10 @@ void CMoveHelperServer::Con_NPrintf( int idx, char const* pFormat, ...)
 bool CMoveHelperServer::PlayerFallingDamage( void )
 {
 	float flFallDamage = g_pGameRules->FlPlayerFallDamage( m_pHostPlayer );	
-	if ( flFallDamage > 0 )
+	if ( flFallDamage >= 1 )
 	{
 		int iDamageTaken = m_pHostPlayer->TakeDamage( CTakeDamageInfo( GetContainingEntity(INDEXENT(0)), GetContainingEntity(INDEXENT(0)), flFallDamage, DMG_FALL ) ); 
-		if ( iDamageTaken > 0 )
+		if ( iDamageTaken >= 1 )
 		{
 			StartSound( m_pHostPlayer->GetAbsOrigin(), "Player.FallDamage" );
 		}
