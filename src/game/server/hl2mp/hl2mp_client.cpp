@@ -40,11 +40,22 @@ extern CBaseEntity*	FindPickerEntityClass( CBasePlayer *pPlayer, char *classname
 extern bool			g_fGameOver;
 extern int g_voters;
 
+void CBasePlayer::DelayedSpawn()
+{
+	Spawn();
+}
+
 void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 {
 	g_voters++;
 	pPlayer->InitialSpawn();
-	pPlayer->Spawn();
+	// Peter: I can't seem to find anything that would suggest 
+	// this would be broken after connecting to a server, but clearly, 
+	// delaying this fixes: 
+	// 
+	// 1) The spawning angles of 0, 0, 0 
+	// 2) Always spawning in showers on lockdown
+	pPlayer->SetContextThink( &CBasePlayer::DelayedSpawn, gpGlobals->curtime + 0.01f, "DelayedSnapEyeAngles" );
 
 	UTIL_SendConVarValue( pPlayer->edict(), "sv_wpn_sway_pred_legacy", "1" );
 

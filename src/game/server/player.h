@@ -291,6 +291,7 @@ public:
 	virtual bool			WantsLagCompensationOnEntity( const CBasePlayer	*pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const;
 
 	virtual void			Spawn( void );
+	void					DelayedSpawn();
 	virtual void			Activate( void );
 	virtual void			SharedSpawn(); // Shared between client and server.
 	virtual void			ForceRespawn( void );
