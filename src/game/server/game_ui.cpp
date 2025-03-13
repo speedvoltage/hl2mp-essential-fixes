@@ -168,10 +168,6 @@ void CGameUI::Deactivate( CBaseEntity *pActivator )
 		m_nLastButtonState = 0;
 		m_player = NULL;
 	}
-	else
-	{
-		Warning("%s Deactivate(): I have no player when called by %s!\n", GetEntityName().ToCStr(), pActivator ? pActivator->GetEntityName().ToCStr() : NULL);
-	}
 	
 	// Stop thinking
 	SetNextThink( TICK_NEVER_THINK );
