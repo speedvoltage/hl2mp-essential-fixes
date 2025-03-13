@@ -2412,6 +2412,7 @@ public:
 	virtual edict_t*		BaseEntityToEdict( CBaseEntity *pEnt );
 	virtual CBaseEntity*	EdictToBaseEntity( edict_t *pEdict );
 	virtual void			CheckTransmit( CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts );
+	void					MarkEntityForTransmit( CCheckTransmitInfo *pInfo, edict_t *pEdict, bool bIsHLTVOrReplay );
 };
 EXPOSE_SINGLE_INTERFACE(CServerGameEnts, IServerGameEnts, INTERFACEVERSION_SERVERGAMEENTS);
 
@@ -2477,148 +2478,107 @@ inline void CServerNetworkProperty::CheckTransmit( CCheckTransmitInfo *pInfo )
 	}
 } */
 
+void CServerGameEnts::MarkEntityForTransmit( CCheckTransmitInfo *pInfo, edict_t *pEdict, bool bIsHLTVOrReplay )
+{
+	while ( pEdict )
+	{
+		int iEdict = engine->IndexOfEdict( pEdict );
+		pInfo->m_pTransmitEdict->Set( iEdict );
+
+#ifndef _X360
+		if ( bIsHLTVOrReplay )
+		{
+			pInfo->m_pTransmitAlways->Set( iEdict );
+		}
+#endif
+		CServerNetworkProperty *pEnt = static_cast< CServerNetworkProperty * >( pEdict->GetNetworkable() );
+		if ( !pEnt ) break;
+
+		CServerNetworkProperty *pParent = pEnt->GetNetworkParent();
+		if ( !pParent ) break;
+
+		pEdict = pParent->edict();
+	}
+}
+
 void CServerGameEnts::CheckTransmit( CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts )
 {
-	// NOTE: for speed's sake, this assumes that all networkables are CBaseEntities and that the edict list
-	// is consecutive in memory. If either of these things change, then this routine needs to change, but
-	// ideally we won't be calling any virtual from this routine. This speedy routine was added as an
-	// optimization which would be nice to keep.
 	edict_t *pBaseEdict = engine->PEntityOfEntIndex( 0 );
-
-	// get recipient player's skybox:
 	CBaseEntity *pRecipientEntity = CBaseEntity::Instance( pInfo->m_pClientEnt );
 
 	Assert( pRecipientEntity && pRecipientEntity->IsPlayer() );
-	if ( !pRecipientEntity )
-		return;
-	
+	if ( !pRecipientEntity ) return;
+
 	MDLCACHE_CRITICAL_SECTION();
-	CBasePlayer *pRecipientPlayer = static_cast<CBasePlayer*>( pRecipientEntity );
+	CBasePlayer *pRecipientPlayer = static_cast< CBasePlayer * >( pRecipientEntity );
 	const int skyBoxArea = pRecipientPlayer->m_Local.m_skybox3d.area;
 
 #ifndef _X360
 	const bool bIsHLTV = pRecipientPlayer->IsHLTV();
 	const bool bIsReplay = pRecipientPlayer->IsReplay();
 
-	// m_pTransmitAlways must be set if HLTV client
-	Assert( bIsHLTV == ( pInfo->m_pTransmitAlways != NULL) ||
-		    bIsReplay == ( pInfo->m_pTransmitAlways != NULL) );
+	Assert( bIsHLTV == ( pInfo->m_pTransmitAlways != nullptr ) ||
+		bIsReplay == ( pInfo->m_pTransmitAlways != nullptr ) );
 #endif
 
-	for ( int i=0; i < nEdicts; i++ )
+	for ( int i = 0; i < nEdicts; i++ )
 	{
-		int iEdict = pEdictIndices[i];
-
-		edict_t *pEdict = &pBaseEdict[iEdict];
+		int iEdict = pEdictIndices[ i ];
+		edict_t *pEdict = &pBaseEdict[ iEdict ];
 		Assert( pEdict == engine->PEntityOfEntIndex( iEdict ) );
-		int nFlags = pEdict->m_fStateFlags & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK);
 
-		// entity needs no transmit
-		if ( nFlags & FL_EDICT_DONTSEND )
-			continue;
-		
-		// entity is already marked for sending
-		if ( pInfo->m_pTransmitEdict->Get( iEdict ) )
-			continue;
-		
+		int nFlags = pEdict->m_fStateFlags & ( FL_EDICT_DONTSEND | FL_EDICT_ALWAYS | FL_EDICT_PVSCHECK | FL_EDICT_FULLCHECK );
+
+		if ( nFlags & FL_EDICT_DONTSEND ) continue;
+
+		if ( pInfo->m_pTransmitEdict->Get( iEdict ) ) continue;
+
 		if ( nFlags & FL_EDICT_ALWAYS )
 		{
-			// FIXME: Hey! Shouldn't this be using SetTransmit so as 
-			// to also force network down dependent entities?
-			while ( true )
-			{
-				// mark entity for sending
-				pInfo->m_pTransmitEdict->Set( iEdict );
-	
-#ifndef _X360
-				if ( bIsHLTV || bIsReplay )
-				{
-					pInfo->m_pTransmitAlways->Set( iEdict );
-				}
-#endif	
-				CServerNetworkProperty *pEnt = static_cast<CServerNetworkProperty*>( pEdict->GetNetworkable() );
-				if ( !pEnt )
-					break;
-
-				CServerNetworkProperty *pParent = pEnt->GetNetworkParent();
-				if ( !pParent )
-					break;
-
-				pEdict = pParent->edict();
-				iEdict = pParent->entindex();
-			}
+			MarkEntityForTransmit( pInfo, pEdict, bIsHLTV || bIsReplay );
 			continue;
 		}
 
-		// FIXME: Would like to remove all dependencies
-		CBaseEntity *pEnt = ( CBaseEntity * )pEdict->GetUnknown();
-		Assert( dynamic_cast< CBaseEntity* >( pEdict->GetUnknown() ) == pEnt );
+		CBaseEntity *pEnt = static_cast< CBaseEntity * >( pEdict->GetUnknown() );
+		Assert( dynamic_cast< CBaseEntity * >( pEdict->GetUnknown() ) == pEnt );
 
 		if ( nFlags == FL_EDICT_FULLCHECK )
 		{
-			// do a full ShouldTransmit() check, may return FL_EDICT_CHECKPVS
 			nFlags = pEnt->ShouldTransmit( pInfo );
-
-			Assert( !(nFlags & FL_EDICT_FULLCHECK) );
+			Assert( !( nFlags & FL_EDICT_FULLCHECK ) );
 
 			if ( nFlags & FL_EDICT_ALWAYS )
 			{
 				pEnt->SetTransmit( pInfo, true );
 				continue;
-			}	
+			}
 		}
 
-		// don't send this entity
-		if ( !( nFlags & FL_EDICT_PVSCHECK ) )
-			continue;
+		if ( !( nFlags & FL_EDICT_PVSCHECK ) ) continue;
 
-		CServerNetworkProperty *netProp = static_cast<CServerNetworkProperty*>( pEdict->GetNetworkable() );
+		CServerNetworkProperty *netProp = static_cast< CServerNetworkProperty * >( pEdict->GetNetworkable() );
 
 #ifndef _X360
 		if ( bIsHLTV || bIsReplay )
 		{
-			// for the HLTV/Replay we don't cull against PVS
-			if ( netProp->AreaNum() == skyBoxArea )
-			{
-				pEnt->SetTransmit( pInfo, true );
-			}
-			else
-			{
-				pEnt->SetTransmit( pInfo, false );
-			}
+			pEnt->SetTransmit( pInfo, netProp->AreaNum() == skyBoxArea );
 			continue;
 		}
 #endif
 
-		// Always send entities in the player's 3d skybox.
-		// Sidenote: call of AreaNum() ensures that PVS data is up to date for this entity
-		bool bSameAreaAsSky = netProp->AreaNum() == skyBoxArea;
-		if ( bSameAreaAsSky )
+		if ( netProp->AreaNum() == skyBoxArea || netProp->IsInPVS( pInfo ) )
 		{
 			pEnt->SetTransmit( pInfo, true );
 			continue;
 		}
 
-		bool bInPVS = netProp->IsInPVS( pInfo );
-		if ( bInPVS || sv_force_transmit_ents.GetBool() )
-		{
-			// only send if entity is in PVS
-			pEnt->SetTransmit( pInfo, false );
-			continue;
-		}
-
-		// If the entity is marked "check PVS" but it's in hierarchy, walk up the hierarchy looking for the
-		//  for any parent which is also in the PVS.  If none are found, then we don't need to worry about sending ourself
 		CBaseEntity *orig = pEnt;
 		CServerNetworkProperty *check = netProp->GetNetworkParent();
 
-		// BUG BUG:  I think it might be better to build up a list of edict indices which "depend" on other answers and then
-		// resolve them in a second pass.  Not sure what happens if an entity has two parents who both request PVS check?
-        while ( check )
+		while ( check )
 		{
 			int checkIndex = check->entindex();
 
-			// Parent already being sent
 			if ( pInfo->m_pTransmitEdict->Get( checkIndex ) )
 			{
 				orig->SetTransmit( pInfo, true );
@@ -2626,9 +2586,9 @@ void CServerGameEnts::CheckTransmit( CCheckTransmitInfo *pInfo, const unsigned s
 			}
 
 			edict_t *checkEdict = check->edict();
-			int checkFlags = checkEdict->m_fStateFlags & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK);
-			if ( checkFlags & FL_EDICT_DONTSEND )
-				break;
+			int checkFlags = checkEdict->m_fStateFlags & ( FL_EDICT_DONTSEND | FL_EDICT_ALWAYS | FL_EDICT_PVSCHECK | FL_EDICT_FULLCHECK );
+
+			if ( checkFlags & FL_EDICT_DONTSEND ) break;
 
 			if ( checkFlags & FL_EDICT_ALWAYS )
 			{
@@ -2638,10 +2598,10 @@ void CServerGameEnts::CheckTransmit( CCheckTransmitInfo *pInfo, const unsigned s
 
 			if ( checkFlags == FL_EDICT_FULLCHECK )
 			{
-				// do a full ShouldTransmit() check, may return FL_EDICT_CHECKPVS
 				CBaseEntity *pCheckEntity = check->GetBaseEntity();
 				nFlags = pCheckEntity->ShouldTransmit( pInfo );
-				Assert( !(nFlags & FL_EDICT_FULLCHECK) );
+				Assert( !( nFlags & FL_EDICT_FULLCHECK ) );
+
 				if ( nFlags & FL_EDICT_ALWAYS )
 				{
 					pCheckEntity->SetTransmit( pInfo, true );
@@ -2652,24 +2612,18 @@ void CServerGameEnts::CheckTransmit( CCheckTransmitInfo *pInfo, const unsigned s
 
 			if ( checkFlags & FL_EDICT_PVSCHECK )
 			{
-				// Check pvs
 				check->RecomputePVSInformation();
-				bool bMoveParentInPVS = check->IsInPVS( pInfo );
-				if ( bMoveParentInPVS )
+				if ( check->IsInPVS( pInfo ) )
 				{
 					orig->SetTransmit( pInfo, true );
 					break;
 				}
 			}
 
-			// Continue up chain just in case the parent itself has a parent that's in the PVS...
 			check = check->GetNetworkParent();
 		}
 	}
-
-//	Msg("A:%i, N:%i, F: %i, P: %i\n", always, dontSend, fullCheck, PVS );
 }
-
 
 CServerGameClients g_ServerGameClients;
 // INTERFACEVERSION_SERVERGAMECLIENTS_VERSION_3 is compatible with the latest since we're only adding things to the end, so expose that as well.
