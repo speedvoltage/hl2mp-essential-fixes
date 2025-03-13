@@ -552,6 +552,18 @@ public:
 	{
 		VPROF( "CSoundEmitterSystem::EmitSound (calls engine)" );
 
+		CRecipientFilter reliableFilter;
+		for ( int i = 0; i < filter.GetRecipientCount(); i++ )
+		{
+			int playerIndex = filter.GetRecipientIndex( i );
+			CBasePlayer *pPlayer = UTIL_PlayerByIndex( playerIndex );
+
+			if ( pPlayer )
+			{
+				reliableFilter.AddRecipient( pPlayer );
+			}
+		}
+		reliableFilter.MakeReliable();
 
 		if ( ep.m_pSoundName && 
 			( Q_stristr( ep.m_pSoundName, ".wav" ) || 
@@ -586,7 +598,7 @@ public:
 			}
 #endif
 			enginesound->EmitSound( 
-				filter, 
+				reliableFilter,
 				entindex, 
 				ep.m_nChannel, 
 				ep.m_pSoundName, 
@@ -619,7 +631,7 @@ public:
 		if ( ep.m_hSoundScriptHandle == -1 )
 			return;
 
-		EmitSoundByHandle( filter, entindex, ep, ep.m_hSoundScriptHandle );
+		EmitSoundByHandle( reliableFilter, entindex, ep, ep.m_hSoundScriptHandle );
 	}
 
 	void EmitCloseCaption( IRecipientFilter& filter, int entindex, bool fromplayer, char const *token, CUtlVector< Vector >& originlist, float duration, bool warnifmissing /*= false*/ )
