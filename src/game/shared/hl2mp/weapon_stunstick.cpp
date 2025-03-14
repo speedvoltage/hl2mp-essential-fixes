@@ -77,7 +77,7 @@ public:
 
 	float		GetRange( void )		{ return STUNSTICK_RANGE; }
 	float		GetFireRate( void )		{ return STUNSTICK_REFIRE; }
-	void		AddViewKick( void ); // should be client-side, much like the crowbar
+	void		AddViewKick( void );
 
 	bool		Deploy( void );
 	bool		Holster( CBaseCombatWeapon *pSwitchingTo = NULL );
