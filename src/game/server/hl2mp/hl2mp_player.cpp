@@ -1012,7 +1012,7 @@ bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 {
 	if ( !GetGlobalTeam( team ) || team == 0 )
 	{
-		ClientPrint( this, HUD_PRINTCONSOLE, "Please enter a valid team index\n" );
+		Warning( "HandleCommand_JoinTeam( %d ) - invalid team index.\n", team );
 		return false;
 	}
 
@@ -1064,6 +1064,11 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 	}
 	else if ( FStrEq( args[0], "jointeam" ) ) 
 	{
+		if ( args.ArgC() < 2 )
+		{
+			Warning( "Player sent bad jointeam syntax\n" );
+		}
+
 		if ( ShouldRunRateLimitedCommand( args ) )
 		{
 			int iTeam = atoi( args[1] );
