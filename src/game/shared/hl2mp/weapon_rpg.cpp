@@ -359,9 +359,7 @@ void CMissile::ShotDown( void )
 //-----------------------------------------------------------------------------
 void CMissile::DoExplosion( void )
 {
-	Vector origin = GetAbsOrigin();
-	origin.z -= 1;
-	SetAbsOrigin( origin );
+	Vector explosionOrigin = WorldSpaceCenter();
 
 	// Explode
 	ExplosionCreate( GetAbsOrigin(), GetAbsAngles(), GetOwnerEntity(), GetDamage(), GetDamage() * 2, 
