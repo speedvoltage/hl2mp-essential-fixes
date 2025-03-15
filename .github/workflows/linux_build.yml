@@ -16,9 +16,9 @@ jobs:
       - name: Run VPC
         run: src/buildallprojects
       - name: Rename server binary
-        run: mv game/mod_hl2mp/bin/x64/server.so game/mod_hl2mp/bin/x64/server_srv.so
+        run: mv game/mod_hl2mp/bin/linux64/server.so game/mod_hl2mp/bin/linux64/server_srv.so
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Linux-x86
-          path: game/mod_hl2mp/bin/x64/server_srv.so
+          path: game/mod_hl2mp/bin/linux64/server.so
