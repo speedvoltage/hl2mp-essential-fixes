@@ -12,7 +12,7 @@ jobs:
       - name: Create bin folder
         run: mkdir -p game/mod_hl2mp/bin
       - name: Run VPC
-        run: src/createallprojects
+        run: src/buildallprojects
       - name: Build
         uses: docker://registry.gitlab.steamos.cloud/steamrt/scout/sdk/i386:latest
         with:
