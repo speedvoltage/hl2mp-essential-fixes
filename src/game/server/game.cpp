@@ -32,7 +32,7 @@ void flashlight_changed( IConVar *pConVar, const char *pOldString, float flOldVa
 		return;
 	}
 
-	if ( var.GetInt() < 1 )
+	if ( var.GetInt() == 0 )
 	{
 		for ( int i = 1; i <= gpGlobals->maxClients; ++i )
 		{
