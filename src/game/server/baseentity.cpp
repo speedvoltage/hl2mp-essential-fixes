@@ -6774,9 +6774,8 @@ void CBaseEntity::SetLocalAngles( const QAngle &angles )
 	//QAngle angleNormalize( AngleNormalize( angles.x ), AngleNormalize( angles.y ), AngleNormalize( angles.z ) );
 
 
-#ifdef HL2MP
 	QAngle normalizedAngles( FloatNormalize_floorf_inline( angles.x ), FloatNormalize_floorf_inline( angles.y ), FloatNormalize_floorf_inline( angles.z ) );
-#else
+#if 0
 	QAngle normalizedAngles = angles;
 	// Safety check against NaN's or really huge numbers
 	if ( !IsEntityQAngleReasonable( normalizedAngles ) )
