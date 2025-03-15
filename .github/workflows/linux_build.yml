@@ -15,10 +15,6 @@ jobs:
         run: mkdir $HOME/.ccache
       - name: Run VPC
         run: src/buildallprojects
-      - name: Build
-        uses: docker://registry.gitlab.steamos.cloud/steamrt/scout/sdk/i386:latest
-        with:
-          args: make CFG=release GITHUB_ACTIONS=1 -f mp/src/dedicated.mak
       - name: Rename server binary
         run: mv game/mod_hl2mp/bin/server.so game/mod_hl2mp/bin/server_srv.so
       - name: Upload artifacts
