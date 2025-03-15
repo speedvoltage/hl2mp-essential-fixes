@@ -21,4 +21,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Linux-x86
-          path: game/mod_hl2mp/bin/linux64/server.so
+          path: game/mod_hl2mp/bin/linux64/server_srv.so
